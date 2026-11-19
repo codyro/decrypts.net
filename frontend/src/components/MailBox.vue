@@ -3,7 +3,7 @@ import { watch, onMounted, ref, onBeforeUnmount, computed } from "vue";
 import { useMessage, useThemeVars } from 'naive-ui'
 import { useScopedI18n } from '@/i18n/app'
 import { useGlobalState } from '../store'
-import { CloudDownloadRound, ArrowBackIosNewFilled, ArrowForwardIosFilled, InboxRound } from '@vicons/material'
+import { CloudDownloadRound, ArrowBackIosNewFilled, ArrowForwardIosFilled, InboxRound, CheckBoxOutlined, RefreshRound, SearchRound } from '@vicons/material'
 import { useIsMobile } from '../utils/composables'
 import { processItem } from '../utils/email-parser'
 import { buildReplyModel, buildForwardModel } from '../utils/mail-actions'
@@ -73,6 +73,7 @@ const {
 } = useGlobalState()
 const autoRefreshInterval = ref(configAutoRefreshInterval.value)
 const rawData = ref([])
+const loaded = ref(false)
 const timer = ref(null)
 
 const count = ref(0)
@@ -240,6 +241,7 @@ const refresh = async () => {
   } finally {
     if (requestedPage === pagination) requestedPage = null
     loading.value = false;
+    loaded.value = true;
   }
 };
 
@@ -387,154 +389,135 @@ onBeforeUnmount(() => {
 <template>
   <div>
     <div v-if="!isMobile" class="left">
-      <div style="margin-bottom: 10px;">
-        <n-space v-if="multiActionMode" align="center">
-          <n-button @click="multiActionModeClick(false)" tertiary>
-            {{ t('cancelMultiAction') }}
-          </n-button>
-          <n-button @click="multiActionSelectAll(true)" tertiary>
-            {{ t('selectAll') }}
-          </n-button>
-          <n-button @click="multiActionSelectAll(false)" tertiary>
-            {{ t('unselectAll') }}
-          </n-button>
+      <div class="toolbar mailbox-toolbar">
+        <template v-if="multiActionMode">
+          <n-button @click="multiActionModeClick(false)" quaternary size="small">{{ t('cancelMultiAction') }}</n-button>
+          <n-button @click="multiActionSelectAll(true)" quaternary size="small">{{ t('selectAll') }}</n-button>
+          <n-button @click="multiActionSelectAll(false)" quaternary size="small">{{ t('unselectAll') }}</n-button>
+          <div class="toolbar__spacer" />
           <n-popconfirm v-if="enableUserDeleteEmail" @positive-click="multiActionDeleteMail">
-            <template #trigger>
-              <n-button tertiary type="error">{{ t('delete') }}</n-button>
-            </template>
+            <template #trigger><n-button tertiary type="error" size="small">{{ t('delete') }}</n-button></template>
             {{ t('deleteMailTip') }}
           </n-popconfirm>
-          <n-button @click="multiActionDownload" tertiary type="info">
-            <template #icon>
-              <n-icon :component="CloudDownloadRound" />
-            </template>
+          <n-button @click="multiActionDownload" tertiary size="small">
+            <template #icon><n-icon :component="CloudDownloadRound" /></template>
             {{ t('downloadMail') }}
           </n-button>
-        </n-space>
-        <n-space v-else align="center">
-          <n-button @click="multiActionModeClick(true)" type="primary" tertiary>
+        </template>
+        <template v-else>
+          <n-button @click="multiActionModeClick(true)" quaternary size="small">
+            <template #icon><n-icon :component="CheckBoxOutlined" /></template>
             {{ t('multiAction') }}
           </n-button>
-          <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" :page-sizes="[20, 50, 100]"
-            show-size-picker />
-          <n-switch v-model:value="autoRefresh" :round="false">
-            <template #checked>
-              {{ t('refreshAfter', { msg: autoRefreshInterval }) }}
-            </template>
-            <template #unchecked>
-              {{ t('autoRefresh') }}
-            </template>
-          </n-switch>
-          <n-button @click="backFirstPageAndRefresh" type="primary" tertiary>
+          <n-button @click="backFirstPageAndRefresh" quaternary size="small">
+            <template #icon><n-icon :component="RefreshRound" /></template>
             {{ t('refresh') }}
           </n-button>
-          <n-input v-if="showFilterInput" v-model:value="localFilterKeyword"
-            :placeholder="t('keywordQueryTip')" style="width: 200px; display: flex; align-items: center;"
-            clearable />
-        </n-space>
+          <n-switch v-model:value="autoRefresh" size="small" :round="false">
+            <template #checked>{{ t('refreshAfter', { msg: autoRefreshInterval }) }}</template>
+            <template #unchecked>{{ t('autoRefresh') }}</template>
+          </n-switch>
+          <div class="toolbar__spacer" />
+          <n-input v-if="showFilterInput" v-model:value="localFilterKeyword" :placeholder="t('keywordQueryTip')"
+            class="mailbox-filter" size="small" clearable>
+            <template #prefix><n-icon :component="SearchRound" /></template>
+          </n-input>
+          <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" :page-sizes="[20, 50, 100]"
+            show-size-picker size="small" />
+        </template>
       </div>
-      <n-split class="left" direction="horizontal" :max="0.75" :min="0" :resize-trigger-size="8"
-        :default-size="mailboxSplitSize" :on-update:size="onSpiltSizeChange" v-if="!mailListView || curMail">
-        <template #resize-trigger>
-          <div class="split-handle">
-            <div class="split-handle__grip" />
-          </div>
-        </template>
-        <template #1>
-          <div class="mail-list-scroll mail-list-compact">
-            <n-list hoverable clickable>
-              <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)"
-                :class="[mailItemClass(row), { 'mail-list-unread': enableMailReadStatus && row.is_unread === 1 }]">
-                <template #prefix v-if="multiActionMode">
-                  <n-checkbox v-model:checked="row.checked" @click.stop />
-                </template>
-                <MailSummary :mail="row" :showEMailTo="showEMailTo" :enableMailReadStatus="enableMailReadStatus"
-                  :previewLineClamp="mailListPreviewLineClampValue" />
-              </n-list-item>
-            </n-list>
-          </div>
-        </template>
-        <template #2>
-          <div v-if="curMail" style="margin: 8px;">
-            <n-flex justify="space-between" align="center">
-              <n-space :wrap="false" align="center">
-                <n-button v-if="mailListView" @click="curMail = null" text size="small">
-                  <template #icon>
-                    <n-icon>
-                      <ArrowBackIosNewFilled />
-                    </n-icon>
-                  </template>
-                  {{ t('backToList') }}
-                </n-button>
-                <n-button @click="prevMail" :disabled="!canGoPrevMail" text size="small">
-                  <template #icon>
-                    <n-icon>
-                      <ArrowBackIosNewFilled />
-                    </n-icon>
-                  </template>
-                  {{ t('prevMail') }}
-                </n-button>
-              </n-space>
+      <div v-if="loaded && rawData.length === 0" class="empty-state mailbox-empty">
+        <n-icon class="empty-state__icon" :component="InboxRound" />
+        <h3 class="empty-state__title">{{ t('emptyInbox') }}</h3>
+        <p class="empty-state__hint">{{ t('emptyInboxHint') }}</p>
+        <n-button secondary size="small" @click="backFirstPageAndRefresh">{{ t('refresh') }}</n-button>
+      </div>
+      <template v-else>
+        <n-split class="left" direction="horizontal" :max="0.75" :min="0" :resize-trigger-size="8"
+          :default-size="mailboxSplitSize" :on-update:size="onSpiltSizeChange" v-if="!mailListView || curMail">
+          <template #resize-trigger><div class="split-handle"><div class="split-handle__grip" /></div></template>
+          <template #1>
+            <div class="mail-list-scroll mail-list-compact mail-list-column">
+              <p v-if="rawData.length > 0 && data.length === 0" class="muted filter-empty">{{ t('noFilterMatch') }}</p>
+              <n-list v-else hoverable clickable>
+                <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)"
+                  :class="[mailItemClass(row), { 'mail-list-unread': enableMailReadStatus && row.is_unread === 1 }]">
+                  <template #prefix v-if="multiActionMode"><n-checkbox v-model:checked="row.checked" @click.stop /></template>
+                  <MailSummary :mail="row" :showEMailTo="showEMailTo" :enableMailReadStatus="enableMailReadStatus"
+                    :previewLineClamp="mailListPreviewLineClampValue" />
+                </n-list-item>
+              </n-list>
+            </div>
+          </template>
+          <template #2>
+            <div v-if="curMail" class="toolbar reader-nav">
+              <n-button v-if="mailListView" @click="curMail = null" text size="small">
+                <template #icon><n-icon><ArrowBackIosNewFilled /></n-icon></template>
+                {{ t('backToList') }}
+              </n-button>
+              <div v-if="mailListView" class="toolbar__spacer" />
+              <n-button @click="prevMail" :disabled="!canGoPrevMail" text size="small">
+                <template #icon><n-icon><ArrowBackIosNewFilled /></n-icon></template>
+                {{ t('prevMail') }}
+              </n-button>
               <n-button @click="nextMail" :disabled="!canGoNextMail" text size="small" icon-placement="right">
-                <template #icon>
-                  <n-icon>
-                    <ArrowForwardIosFilled />
-                  </n-icon>
-                </template>
+                <template #icon><n-icon><ArrowForwardIosFilled /></n-icon></template>
                 {{ t('nextMail') }}
               </n-button>
-            </n-flex>
-          </div>
-          <n-card :bordered="false" v-if="curMail" class="mail-item" :title="curMail.subject"
-            style="overflow: auto; max-height: 100vh;">
-            <MailContentRenderer :mail="curMail" :showEMailTo="showEMailTo"
-              :enableUserDeleteEmail="enableUserDeleteEmail" :showReply="showReply" :showSaveS3="showSaveS3"
-              :enableMailReadStatus="enableMailReadStatus" :onUpdateMailReadStatus="toggleCurrentMailUnread"
-              :onDelete="deleteMail" :onReply="replyMail" :onForward="forwardMail" :onSaveToS3="saveToS3Proxy" />
-          </n-card>
-          <n-card :bordered="false" embedded class="mail-item" v-else>
-            <n-result status="info" :title="count === 0 ? t('emptyInbox') : t('pleaseSelectMail')">
-              <template #icon>
-                <n-icon :component="InboxRound" :size="100" />
-              </template>
-            </n-result>
-          </n-card>
-        </template>
-      </n-split>
-      <div v-else class="mail-list-scroll mail-list-compact">
-        <n-list hoverable clickable>
-          <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)"
-            :class="[mailItemClass(row), { 'mail-list-unread': enableMailReadStatus && row.is_unread === 1 }]">
-            <template #prefix v-if="multiActionMode">
-              <n-checkbox v-model:checked="row.checked" @click.stop />
-            </template>
-            <MailSummary :mail="row" :showEMailTo="showEMailTo" :enableMailReadStatus="enableMailReadStatus"
-              :previewLineClamp="mailListPreviewLineClampValue" />
-          </n-list-item>
-        </n-list>
-      </div>
+            </div>
+            <n-card :bordered="false" v-if="curMail" class="mail-item" :title="curMail.subject"
+              content-style="padding: 0 24px 24px" header-style="padding: 8px 24px 12px"
+              style="overflow: auto; max-height: calc(100vh - 180px);">
+              <MailContentRenderer :mail="curMail" :showEMailTo="showEMailTo"
+                :enableUserDeleteEmail="enableUserDeleteEmail" :showReply="showReply" :showSaveS3="showSaveS3"
+                :enableMailReadStatus="enableMailReadStatus" :onUpdateMailReadStatus="toggleCurrentMailUnread"
+                :onDelete="deleteMail" :onReply="replyMail" :onForward="forwardMail" :onSaveToS3="saveToS3Proxy" />
+            </n-card>
+            <div v-else class="empty-state reader-empty">
+              <n-icon class="empty-state__icon" :component="InboxRound" />
+              <h3 class="empty-state__title">{{ t('pleaseSelectMail') }}</h3>
+            </div>
+          </template>
+        </n-split>
+        <div v-else class="mail-list-scroll mail-list-compact">
+          <p v-if="rawData.length > 0 && data.length === 0" class="muted filter-empty">{{ t('noFilterMatch') }}</p>
+          <n-list v-else hoverable clickable>
+            <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)"
+              :class="[mailItemClass(row), { 'mail-list-unread': enableMailReadStatus && row.is_unread === 1 }]">
+              <template #prefix v-if="multiActionMode"><n-checkbox v-model:checked="row.checked" @click.stop /></template>
+              <MailSummary :mail="row" :showEMailTo="showEMailTo" :enableMailReadStatus="enableMailReadStatus"
+                :previewLineClamp="mailListPreviewLineClampValue" />
+            </n-list-item>
+          </n-list>
+        </div>
+      </template>
     </div>
     <div class="left" v-else>
-      <n-space justify="space-between" align="center" :size="[8, 8]">
-        <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" simple size="small" />
-        <n-switch v-model:value="autoRefresh" size="small" :round="false">
-          <template #checked>
-            {{ t('refreshAfter', { msg: autoRefreshInterval }) }}
-          </template>
-          <template #unchecked>
-            {{ t('autoRefresh') }}
-          </template>
-        </n-switch>
-        <n-button @click="backFirstPageAndRefresh" tertiary size="small" type="primary">
+      <n-input v-if="showFilterInput" v-model:value="localFilterKeyword" :placeholder="t('keywordQueryTip')"
+        class="mobile-mailbox-filter" size="medium" clearable>
+        <template #prefix><n-icon :component="SearchRound" /></template>
+      </n-input>
+      <div class="toolbar mailbox-toolbar">
+        <n-button @click="backFirstPageAndRefresh" quaternary size="small">
+          <template #icon><n-icon :component="RefreshRound" /></template>
           {{ t('refresh') }}
         </n-button>
-      </n-space>
-      <div v-if="showFilterInput" style="padding: 0 10px; margin-top: 8px; margin-bottom: 10px;">
-        <n-input v-model:value="localFilterKeyword"
-          :placeholder="t('keywordQueryTip')" size="small" clearable />
+        <n-switch v-model:value="autoRefresh" size="small" :round="false">
+          <template #checked>{{ t('refreshAfter', { msg: autoRefreshInterval }) }}</template>
+          <template #unchecked>{{ t('autoRefresh') }}</template>
+        </n-switch>
+        <div class="toolbar__spacer" />
+        <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" simple size="small" />
       </div>
-      <div class="mail-list-scroll mail-list-compact">
-        <n-list hoverable clickable>
+      <div v-if="loaded && rawData.length === 0" class="empty-state mailbox-empty">
+        <n-icon class="empty-state__icon" :component="InboxRound" />
+        <h3 class="empty-state__title">{{ t('emptyInbox') }}</h3>
+        <p class="empty-state__hint">{{ t('emptyInboxHint') }}</p>
+        <n-button secondary size="small" @click="backFirstPageAndRefresh">{{ t('refresh') }}</n-button>
+      </div>
+      <div v-else class="mail-list-scroll mail-list-compact">
+        <p v-if="rawData.length > 0 && data.length === 0" class="muted filter-empty">{{ t('noFilterMatch') }}</p>
+        <n-list v-else hoverable clickable>
           <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)"
             :class="{ 'mail-list-unread': enableMailReadStatus && row.is_unread === 1 }">
             <MailSummary :mail="row" :showEMailTo="showEMailTo" :enableMailReadStatus="enableMailReadStatus"
@@ -543,7 +526,7 @@ onBeforeUnmount(() => {
         </n-list>
       </div>
       <n-drawer v-model:show="curMail" width="100%" placement="bottom" :trap-focus="false" :block-scroll="false"
-        style="height: 80vh;">
+        style="height: 92vh; border-radius: 12px 12px 0 0;">
         <n-drawer-content :title="curMail ? curMail.subject : ''" closable>
           <div class="mail-mobile-reader">
             <MailContentRenderer :mail="curMail" :showEMailTo="showEMailTo"
@@ -601,12 +584,23 @@ onBeforeUnmount(() => {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
+.mailbox-toolbar { margin-bottom: var(--space-3); }
+.mailbox-filter { width: 220px; }
+.filter-empty { padding: 16px 14px; margin: 0; }
+.reader-nav { justify-content: flex-end; padding: 0 24px; }
+.reader-empty { padding-block: var(--space-8); }
+.mailbox-empty { min-height: 320px; justify-content: center; }
+.mail-list-column { border-right: 1px solid var(--app-divider); }
+.mail-list-compact :deep(.n-list-item.overlay) { box-shadow: inset 3px 0 0 var(--app-accent); }
+
 .mail-item {
   height: 100%;
 }
 
 :deep(.mail-item .n-card-header__main) {
   overflow-wrap: anywhere;
+  font-size: var(--font-xl);
+  font-weight: 600;
 }
 
 .mail-mobile-reader {
@@ -616,8 +610,8 @@ onBeforeUnmount(() => {
 .mail-list-scroll {
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 60vh;
-  max-height: 100vh;
+  min-height: 420px;
+  max-height: calc(100vh - 220px);
 }
 
 .mail-list-compact :deep(.n-list-item) {
@@ -646,14 +640,19 @@ pre {
 }
 
 .split-handle__grip {
-  width: 4px;
-  height: 32px;
-  border-radius: 2px;
-  background-color: var(--n-resize-trigger-color);
-  transition: background-color 0.2s;
+  width: 1px;
+  height: 100%;
+  background-color: var(--app-divider);
+  transition: width 0.2s, background-color 0.2s;
 }
 
 .split-handle:hover .split-handle__grip {
-  background-color: var(--n-resize-trigger-color-hover);
+  width: 3px;
+  background-color: var(--app-accent);
+}
+
+@media (max-width: 767.98px) {
+  .mail-list-scroll { min-height: 0; max-height: none; overflow: visible; }
+  .mobile-mailbox-filter { width: 100%; margin-bottom: var(--space-3); }
 }
 </style>

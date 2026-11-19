@@ -4,7 +4,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { useScopedI18n } from '@/i18n/app'
 import { NTag, useMessage } from 'naive-ui'
 import useClipboard from 'vue-clipboard3'
-import { Copy } from '@vicons/fa'
+import { ContentCopyRound } from '@vicons/material'
 
 import { useGlobalState } from '../store'
 import { api } from '../api'
@@ -17,7 +17,7 @@ const props = defineProps({
     },
     size: {
         type: String,
-        default: 'small',
+        default: 'medium',
     },
 })
 
@@ -221,31 +221,42 @@ watch([userJwt, isTelegram, showUserMailboxes, jwt, localAddressCache, () => set
 </script>
 
 <template>
-    <n-flex class="address-row" align="center" justify="center" :wrap="true">
+    <n-flex class="address-row" align="center" justify="start" :wrap="true">
         <n-select v-model:value="addressValue" :options="addressOptions" :size="size" :render-label="renderLabel" filterable
             :loading="addressLoading" :placeholder="formatAddressLabel(settings.address) || t('selectMailbox')" @update:value="onAddressChange"
             class="address-select" />
-        <slot name="actions" />
-        <n-button v-if="showCopy" class="address-copy" @click="copy" :size="size" tertiary type="primary">
-            <n-icon :component="Copy" /> {{ t('copy') }}
+        <n-button v-if="showCopy" class="address-copy" @click="copy" :size="size" type="primary">
+            <template #icon><n-icon :component="ContentCopyRound" /></template>
+            {{ t('copy') }}
         </n-button>
+        <slot name="actions" />
     </n-flex>
 </template>
 
 <style scoped>
 .address-row {
     width: 100%;
-    gap: 10px;
+    gap: 8px;
 }
 
 .address-select {
-    min-width: 220px;
-    max-width: 420px;
-    flex: 1 1 220px;
+    flex: 1 1 320px;
+    min-width: 0;
+    max-width: 520px;
+}
+
+.address-select :deep(.n-base-selection-label) {
+    font-family: var(--font-mono);
+    font-size: 15px;
 }
 
 .address-copy {
     flex: 0 0 auto;
     white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+    .address-select { flex-basis: 100%; max-width: none; }
+    .address-copy { flex: 1 1 auto; }
 }
 </style>

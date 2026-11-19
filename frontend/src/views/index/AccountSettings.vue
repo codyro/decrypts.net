@@ -91,31 +91,53 @@ const changePassword = async () => {
 </script>
 
 <template>
-    <div class="center" v-if="settings.address">
-        <n-card :bordered="false" embedded class="account-card">
-            <n-button @click="showAddressCredential = true" type="primary" secondary block strong>
-                {{ t(openSettings.addressPasswordLoginOnly ? 'showSessionToken' : 'showAddressCredential') }}
-            </n-button>
-            <n-button v-if="openSettings?.enableAddressPassword" @click="showChangePassword = true" type="info" secondary block strong>
-                {{ t('changePassword') }}
-            </n-button>
-            <n-button v-if="openSettings.enableUserDeleteEmail" @click="showClearInbox = true" type="warning" secondary
-                block strong>
-                {{ t('clearInbox') }}
-            </n-button>
-            <n-button v-if="openSettings.enableUserDeleteEmail" @click="showClearSentItems = true" type="warning"
-                secondary block strong>
-                {{ t('clearSentItems') }}
-            </n-button>
-            <n-button @click="showLogout = true" secondary block strong>
-                {{ t('logout') }}
-            </n-button>
-            <n-divider v-if="openSettings.enableUserDeleteEmail" />
-            <n-button v-if="openSettings.enableUserDeleteEmail" @click="showDeleteAccount = true" type="error" secondary
-                block strong>
-                {{ t('deleteMailbox') }}
-            </n-button>
-        </n-card>
+    <div class="account-settings stack" v-if="settings.address">
+        <section class="panel settings-section">
+            <h3 class="panel-title settings-section__header">{{ t('accessSection') }}</h3>
+            <div class="settings-row">
+                <span class="settings-row__text">{{ t('credentialTip') }}</span>
+                <div class="settings-row__action">
+                    <n-button @click="showAddressCredential = true" secondary>
+                        {{ t(openSettings.addressPasswordLoginOnly ? 'showSessionToken' : 'showAddressCredential') }}
+                    </n-button>
+                </div>
+            </div>
+            <div v-if="openSettings?.enableAddressPassword" class="settings-row">
+                <span class="settings-row__text">{{ t('passwordTip') }}</span>
+                <div class="settings-row__action">
+                    <n-button @click="showChangePassword = true" secondary>{{ t('changePassword') }}</n-button>
+                </div>
+            </div>
+            <div class="settings-row">
+                <span class="settings-row__text">{{ t('logoutTip') }}</span>
+                <div class="settings-row__action">
+                    <n-button @click="showLogout = true" secondary>{{ t('logout') }}</n-button>
+                </div>
+            </div>
+        </section>
+        <slot name="extra" />
+        <section v-if="openSettings.enableUserDeleteEmail" class="panel panel--danger settings-section">
+            <h3 class="panel-title settings-section__header danger-title">{{ t('dangerSection') }}</h3>
+            <p class="muted danger-tip">{{ t('dangerSectionTip') }}</p>
+            <div class="settings-row">
+                <span class="settings-row__text">{{ t('clearInboxTip') }}</span>
+                <div class="settings-row__action">
+                    <n-button @click="showClearInbox = true" secondary type="error">{{ t('clearInbox') }}</n-button>
+                </div>
+            </div>
+            <div class="settings-row">
+                <span class="settings-row__text">{{ t('clearSentItemsTip') }}</span>
+                <div class="settings-row__action">
+                    <n-button @click="showClearSentItems = true" secondary type="error">{{ t('clearSentItems') }}</n-button>
+                </div>
+            </div>
+            <div class="settings-row">
+                <span class="settings-row__text">{{ t('deleteMailboxTip') }}</span>
+                <div class="settings-row__action">
+                    <n-button @click="showDeleteAccount = true" secondary type="error">{{ t('deleteMailbox') }}</n-button>
+                </div>
+            </div>
+        </section>
 
         <n-modal v-model:show="showLogout" preset="dialog" :title="t('logout')">
             <p>{{ t('logoutConfirm') }}</p>
@@ -171,18 +193,8 @@ const changePassword = async () => {
 </template>
 
 <style scoped>
-.center {
-    display: flex;
-    justify-content: center;
-}
-
-.account-card {
-    max-width: 800px;
-    text-align: left;
-}
-
-.n-button {
-    margin-top: 14px;
-}
-
+.account-settings { max-width: var(--content-form); text-align: left; }
+.account-settings > .settings-section + .settings-section { margin-top: 0; }
+.danger-title { color: var(--app-danger); }
+.danger-tip { margin: 0 0 var(--space-2); }
 </style>

@@ -10,6 +10,7 @@
 
 ### Features
 
+- feat: |UI| Redesign the frontend: unified accent and spacing, mailbox page reduced to address bar + inbox, appearance moved to a Preferences drawer, About/GitHub/Status moved to the footer, Auto Reply and S3 attachments merged into Mailbox Settings
 - feat: |Mail Forwarding| Add recipient address regex filters to forwarding rules, reusing internal delivery with any/all matching
 - feat: |Mailbox Login| Keep session-token access with expiry details, hiding legacy credential contents and blocking legacy cache switches in password-only mode while retaining cache removal
 - feat: |Mailbox Sessions| Extend renewable 30-day JWT issuance to mailbox creation and authorized user, admin, and Telegram access

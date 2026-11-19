@@ -364,18 +364,19 @@ const handleSaveToS3 = async (filename, blob) => {
   font-size: 13px;
   line-height: 22px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--n-border-color);
+  border-bottom: 1px solid var(--app-divider);
 }
 
 .mail-address {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 48px minmax(0, 1fr);
   gap: 8px;
   overflow-wrap: anywhere;
 }
 
 .mail-address-label {
   font-size: 11px;
+  color: var(--app-text-3);
 }
 
 .mail-details-footer {
@@ -388,6 +389,11 @@ const handleSaveToS3 = async (filename, blob) => {
 
 .mail-secondary-actions {
   margin-left: auto;
+}
+
+.mail-actions {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--app-divider);
 }
 
 .mail-actions :deep(.n-badge-sup) {

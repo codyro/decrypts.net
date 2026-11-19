@@ -13,6 +13,7 @@ import { api } from './api'
 import { getNaiveLocaleConfig } from './i18n/naive-locale'
 import { DEFAULT_LOCALE, isSupportedLocale } from './i18n/utils'
 import { APP_CONFIG } from './config'
+import { buildThemeOverrides, toCssVars, tokensFor } from './theme'
 
 const {
   isDark, loading, useSideMargin, telegramApp, isTelegram
@@ -21,15 +22,18 @@ const adClient = APP_CONFIG.GOOGLE_AD_CLIENT;
 const adSlot = APP_CONFIG.GOOGLE_AD_SLOT;
 const { locale } = useI18n({ useScope: 'global' });
 const theme = computed(() => isDark.value ? darkTheme : null)
+const tokens = computed(() => tokensFor(isDark.value))
+const themeOverrides = computed(() => buildThemeOverrides(tokens.value, isDark.value))
 const localeConfig = computed(() => getNaiveLocaleConfig(isSupportedLocale(locale.value) ? locale.value : DEFAULT_LOCALE))
 const isMobile = useIsMobile()
 const showSideMargin = computed(() => !isMobile.value && useSideMargin.value);
 const showAd = computed(() => !isMobile.value && adClient && adSlot);
-const gridMaxCols = computed(() => showAd.value ? 8 : 12);
 
 watchEffect(() => {
   if (typeof document === 'undefined') return
   document.documentElement.lang = isSupportedLocale(locale.value) ? locale.value : DEFAULT_LOCALE
+  const root = document.documentElement
+  for (const [key, value] of Object.entries(toCssVars(tokens.value))) root.style.setProperty(key, value)
 })
 
 if (showAd.value) {
@@ -88,36 +92,26 @@ onMounted(async () => {
 </script>
 
 <template>
-  <n-config-provider :locale="localeConfig.locale" :date-locale="localeConfig.dateLocale" :theme="theme">
+  <n-config-provider :locale="localeConfig.locale" :date-locale="localeConfig.dateLocale" :theme="theme" :theme-overrides="themeOverrides">
     <n-global-style />
     <n-spin description="loading..." :show="loading">
-      <n-notification-provider container-style="margin-top: 60px;">
-        <n-message-provider container-style="margin-top: 20px;">
-          <n-grid x-gap="12" :cols="gridMaxCols">
-            <n-gi v-if="showSideMargin" span="1">
-              <div class="side" v-if="showAd">
+      <n-notification-provider container-style="margin-top: 64px;">
+        <n-message-provider container-style="margin-top: 64px;">
+          <div class="app-shell" :class="{ 'app-shell--fluid': !showSideMargin, 'app-shell--ads': showAd && showSideMargin }">
+            <Header />
+            <div class="app-body">
+              <aside v-if="showAd && showSideMargin" class="app-ad">
                 <ins class="adsbygoogle" style="display:block" :data-ad-client="adClient" :data-ad-slot="adSlot"
                   data-ad-format="auto" data-full-width-responsive="true"></ins>
-              </div>
-            </n-gi>
-            <n-gi :span="!showSideMargin ? gridMaxCols : (gridMaxCols - 2)">
-              <div class="main">
-                <n-space vertical>
-                  <n-layout style="min-height: 80vh;">
-                    <Header />
-                    <router-view></router-view>
-                  </n-layout>
-                  <Footer />
-                </n-space>
-              </div>
-            </n-gi>
-            <n-gi v-if="showSideMargin" span="1">
-              <div class="side" v-if="showAd">
+              </aside>
+              <main class="app-main"><router-view /></main>
+              <aside v-if="showAd && showSideMargin" class="app-ad">
                 <ins class="adsbygoogle" style="display:block" :data-ad-client="adClient" :data-ad-slot="adSlot"
                   data-ad-format="auto" data-full-width-responsive="true"></ins>
-              </div>
-            </n-gi>
-          </n-grid>
+              </aside>
+            </div>
+            <Footer />
+          </div>
           <n-back-top />
         </n-message-provider>
       </n-notification-provider>
@@ -126,42 +120,38 @@ onMounted(async () => {
 </template>
 
 
-<style>
-.n-switch {
-  margin-left: 10px;
-  margin-right: 10px;
-}
-
-@media (hover: none) and (pointer: coarse) and (max-width: 1024px) {
-  :where(input, textarea, select, [contenteditable="true"]) {
-    font-size: 16px !important;
-  }
-
-  :where(.n-input, .n-input-number, .n-base-selection, .n-input-group-label) {
-    --n-font-size: 16px !important;
-  }
-}
-</style>
-
 <style scoped>
-.side {
-  height: 100vh;
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--app-bg);
 }
 
-.main {
-  height: 100vh;
-  text-align: center;
+.app-body {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: calc(var(--app-max-width) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: var(--space-6) var(--gutter) var(--space-12);
 }
 
-.n-grid {
-  height: 100%;
+.app-shell--fluid .app-body { max-width: none; }
+
+.app-shell--ads .app-body {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) 160px;
+  gap: var(--space-6);
+  max-width: calc(var(--app-max-width) + 320px + 48px + 2 * var(--gutter));
 }
 
-.n-gi {
-  height: 100%;
-}
+.app-main { min-width: 0; }
+.app-ad { min-height: 100%; }
 
-.n-space {
-  height: 100%;
+@media (max-width: 767.98px) {
+  .app-body {
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-8);
+  }
 }
 </style>

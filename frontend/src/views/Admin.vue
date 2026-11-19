@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watchEffect } from 'vue';
 import { useScopedI18n } from '@/i18n/app'
 import { useRouter } from 'vue-router'
 
@@ -20,10 +20,8 @@ import UserOauth2Settings from './admin/UserOauth2Settings.vue';
 import RoleAddressConfig from './admin/RoleAddressConfig.vue';
 import Mails from './admin/Mails.vue';
 import MailsUnknow from './admin/MailsUnknow.vue';
-import About from './common/About.vue';
 import Maintenance from './admin/Maintenance.vue';
 import DatabaseManager from './admin/DatabaseManager.vue';
-import Appearance from './common/Appearance.vue';
 import Telegram from './admin/Telegram.vue';
 import Webhook from './admin/Webhook.vue';
 import MailWebhook from './admin/MailWebhook.vue';
@@ -98,6 +96,17 @@ const currentLoginMethod = computed(() => {
   return '';
 })
 
+const visibleAdminTabs = computed(() => [
+  'qucickSetup', 'account', ...(showUserSystem.value ? ['user'] : []),
+  'mails', 'telegram', 'statistics',
+  ...(openSettings.value.enableRedeemCode ? ['redeemCodes'] : []),
+  'maintenance', 'adminAccount'
+])
+watchEffect(() => {
+  if (!openSettings.value.fetched) return
+  if (!visibleAdminTabs.value.includes(adminTab.value)) adminTab.value = 'account'
+})
+
 onMounted(async () => {
   // make sure openSettings is fetched for turnstile check
   if (!openSettings.value.fetched) await api.getOpenSettings(message);
@@ -119,9 +128,9 @@ onMounted(async () => {
         </n-button>
       </template>
     </n-modal>
-    <n-tabs v-if="showAdminPage" type="card" v-model:value="adminTab" :placement="globalTabplacement">
+    <n-tabs v-if="showAdminPage" type="line" size="medium" v-model:value="adminTab" :placement="globalTabplacement">
       <n-tab-pane name="qucickSetup" :tab="t('qucickSetup')">
-        <n-tabs key="quick-setup-tabs" type="bar" justify-content="center" animated>
+        <n-tabs key="quick-setup-tabs" type="bar" size="small" animated>
           <n-tab-pane name="database" :tab="t('database')">
             <DatabaseManager />
           </n-tab-pane>
@@ -137,7 +146,7 @@ onMounted(async () => {
         </n-tabs>
       </n-tab-pane>
       <n-tab-pane name="account" :tab="t('mailbox_management')">
-        <n-tabs key="account-tabs" type="bar" justify-content="center" animated>
+        <n-tabs key="account-tabs" type="bar" size="small" animated>
           <n-tab-pane name="account" :tab="t('mailbox_list')">
             <Account />
           </n-tab-pane>
@@ -162,7 +171,7 @@ onMounted(async () => {
         </n-tabs>
       </n-tab-pane>
       <n-tab-pane v-if="showUserSystem" name="user" :tab="t('user')">
-        <n-tabs key="user-tabs" type="bar" justify-content="center" animated>
+        <n-tabs key="user-tabs" type="bar" size="small" animated>
           <n-tab-pane name="user_management" :tab="t('user_management')">
             <UserManagement />
           </n-tab-pane>
@@ -178,7 +187,7 @@ onMounted(async () => {
         </n-tabs>
       </n-tab-pane>
       <n-tab-pane name="mails" :tab="t('mails')">
-        <n-tabs key="mails-tabs" type="bar" justify-content="center" animated>
+        <n-tabs key="mails-tabs" type="bar" size="small" animated>
           <n-tab-pane name="mails" :tab="t('mails')">
             <Mails />
           </n-tab-pane>
@@ -206,7 +215,7 @@ onMounted(async () => {
         <RedeemCodes />
       </n-tab-pane>
       <n-tab-pane name="maintenance" :tab="t('maintenance')">
-        <n-tabs key="maintenance-tabs" type="bar" justify-content="center" animated>
+        <n-tabs key="maintenance-tabs" type="bar" size="small" animated>
           <n-tab-pane name="database" :tab="t('database')">
             <DatabaseManager />
           </n-tab-pane>
@@ -218,25 +227,20 @@ onMounted(async () => {
           </n-tab-pane>
         </n-tabs>
       </n-tab-pane>
-      <n-tab-pane name="appearance" :tab="t('appearance')">
-        <Appearance />
-      </n-tab-pane>
       <n-tab-pane name="adminAccount" :tab="t('adminAccount')">
-        <div style="display: flex; justify-content: center; padding: 20px;">
-          <n-card style="width: 600px;">
-            <n-space vertical>
-              <n-text strong>{{ t('loginMethod') }}</n-text>
-              <n-text>{{ currentLoginMethod }}</n-text>
-              <n-divider v-if="isAdminPasswordLogin" />
-              <n-button v-if="isAdminPasswordLogin" type="warning" @click="showLogoutModal = true" block>
-                {{ t('logout') }}
-              </n-button>
-            </n-space>
-          </n-card>
-        </div>
-      </n-tab-pane>
-      <n-tab-pane name="about" :tab="t('about')">
-        <About />
+        <section class="panel settings-section admin-account-panel">
+          <h3 class="panel-title settings-section__header">{{ t('adminAccount') }}</h3>
+          <div class="settings-row">
+            <span class="settings-row__text">{{ t('loginMethod') }}</span>
+            <span class="settings-row__action">{{ currentLoginMethod }}</span>
+          </div>
+          <div v-if="isAdminPasswordLogin" class="settings-row">
+            <span class="settings-row__text">{{ t('logout') }}</span>
+            <div class="settings-row__action">
+              <n-button type="warning" secondary @click="showLogoutModal = true">{{ t('logout') }}</n-button>
+            </div>
+          </div>
+        </section>
       </n-tab-pane>
     </n-tabs>
     <n-modal v-model:show="showLogoutModal" preset="dialog" :title="t('logoutConfirmTitle')">
@@ -255,4 +259,5 @@ onMounted(async () => {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+.admin-account-panel { max-width: var(--content-form); text-align: left; }
 </style>

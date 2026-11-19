@@ -8,7 +8,8 @@ import {
     RefreshFilled,
     ArrowBackIosNewFilled,
     ArrowForwardIosFilled,
-    SettingsFilled
+    SettingsFilled,
+    InboxRound
 } from '@vicons/material'
 
 import { useGlobalState } from '../../store'
@@ -148,92 +149,58 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="center">
-        <div v-if="!settings.address">
-            <n-card :bordered="false" embedded>
-                <Login />
-            </n-card>
+        <div v-if="!settings.address" class="panel simple-panel">
+            <Login />
         </div>
 
         <div v-else>
-            <n-card :bordered="false" embedded>
-                <div style="text-align: center; margin-bottom: 16px; font-size: 18px;">
-                    <AddressSelect :showCopy="false" size="small" />
-                </div>
-                <n-flex justify="center">
-                    <n-button @click="refreshMails" :loading="loading" type="primary" tertiary size="small">
-                        <template #icon>
-                            <n-icon>
-                                <RefreshFilled />
-                            </n-icon>
-                        </template>
+            <div class="panel simple-panel">
+                <AddressSelect :showCopy="false" />
+                <div class="toolbar simple-actions">
+                    <n-button @click="refreshMails" :loading="loading" type="primary" size="small">
+                        <template #icon><n-icon><RefreshFilled /></n-icon></template>
                         {{ t('refreshMails') }}
                     </n-button>
-                    <n-button @click="copyAddress" tertiary size="small">
-                        <template #icon>
-                            <n-icon>
-                                <ContentCopyFilled />
-                            </n-icon>
-                        </template>
+                    <n-button @click="copyAddress" secondary size="small">
+                        <template #icon><n-icon><ContentCopyFilled /></n-icon></template>
                         {{ t('copyAddress') }}
                     </n-button>
-                    <n-button @click="useSimpleIndex = false" tertiary size="small">
-                        <template #icon>
-                            <n-icon>
-                                <ExitToAppFilled />
-                            </n-icon>
-                        </template>
-                        {{ t('exitSimpleIndex') }}
-                    </n-button>
-                    <n-button @click="showAccountSettingsCard = true" tertiary size="small">
-                        <template #icon>
-                            <n-icon>
-                                <SettingsFilled />
-                            </n-icon>
-                        </template>
+                    <n-button @click="showAccountSettingsCard = true" secondary size="small">
+                        <template #icon><n-icon><SettingsFilled /></n-icon></template>
                         {{ t('mailboxSettings') }}
                     </n-button>
-                </n-flex>
-                <div v-if="isFirstPage" style="text-align: center; margin-top: 12px;">
-                    <n-text depth="3" size="12">
-                        {{ t('refreshAfter', { msg: Math.max(0, currentAutoRefreshInterval) }) }}
-                    </n-text>
+                    <n-button @click="useSimpleIndex = false" secondary size="small">
+                        <template #icon><n-icon><ExitToAppFilled /></n-icon></template>
+                        {{ t('exitSimpleIndex') }}
+                    </n-button>
                 </div>
-            </n-card>
+                <div v-if="isFirstPage" class="caption simple-refresh-caption">
+                    {{ t('refreshAfter', { msg: Math.max(0, currentAutoRefreshInterval) }) }}
+                </div>
+            </div>
 
-            <!-- 账户设置卡片 -->
-            <n-card v-if="showAccountSettingsCard" :bordered="false" embedded closable
+            <n-card v-if="showAccountSettingsCard" :bordered="true" class="simple-settings-card" closable
                 @close="showAccountSettingsCard = false" :title="t('mailboxSettings')">
                 <AccountSettings />
             </n-card>
 
-            <n-card v-else :bordered="false" embedded style="text-align: left;">
-
+            <div v-else class="panel simple-panel simple-mail-panel">
                 <div v-if="totalCount > 1">
                     <n-flex justify="space-between">
                         <n-button @click="prevPage" :disabled="!canGoPrev" text size="small">
-                            <template #icon>
-                                <n-icon>
-                                    <ArrowBackIosNewFilled />
-                                </n-icon>
-                            </template>
+                            <template #icon><n-icon><ArrowBackIosNewFilled /></n-icon></template>
                             {{ t('prevPage') }}
                         </n-button>
-                        <n-text size="small">
-                            {{ t('mailCount', { current: currentPageDisplay, total: totalCount }) }}
-                        </n-text>
+                        <n-text size="small">{{ t('mailCount', { current: currentPageDisplay, total: totalCount }) }}</n-text>
                         <n-button @click="nextPage" :disabled="!canGoNext" text size="small" icon-placement="right">
-                            <template #icon>
-                                <n-icon>
-                                    <ArrowForwardIosFilled />
-                                </n-icon>
-                            </template>
+                            <template #icon><n-icon><ArrowForwardIosFilled /></n-icon></template>
                             {{ t('nextPage') }}
                         </n-button>
                     </n-flex>
                 </div>
-
-                <div v-if="!currentMail" class="no-mail">
-                    <n-empty :description="t('noMails')" />
+                <div v-if="!currentMail" class="empty-state">
+                    <n-icon class="empty-state__icon" :component="InboxRound" />
+                    <h3 class="empty-state__title">{{ t('noMails') }}</h3>
                 </div>
                 <div v-else>
                     <h3 v-if="currentMail.subject"
@@ -244,11 +211,10 @@ onBeforeUnmount(() => {
                         <MailContentRenderer :mail="currentMail" :showEMailTo="false" :showReply="false"
                             :enableUserDeleteEmail="openSettings.enableUserDeleteEmail" :showSaveS3="false"
                             :enableMailReadStatus="openSettings.enableMailReadStatus"
-                            :onUpdateMailReadStatus="toggleCurrentMailUnread"
-                            :onDelete="deleteMail" />
+                            :onUpdateMailReadStatus="toggleCurrentMailUnread" :onDelete="deleteMail" />
                     </div>
                 </div>
-            </n-card>
+            </div>
         </div>
         <AddressCredentialModal v-model:show="showAddressCredential" :address="settings.address" :jwt="jwt" />
     </div>
@@ -256,14 +222,19 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .center {
-    max-width: 800px;
+    max-width: var(--content-form);
     margin: 0 auto;
 }
 
-.n-card {
-    margin-top: 20px;
+.simple-panel,
+.simple-settings-card {
     width: 100%;
+    margin-top: var(--space-4);
 }
+
+.simple-actions { justify-content: center; margin-top: var(--space-4); }
+.simple-refresh-caption { margin-top: var(--space-3); text-align: center; }
+.simple-mail-panel { text-align: left; }
 
 .mail-title-unread {
     font-weight: 700;
@@ -275,7 +246,7 @@ onBeforeUnmount(() => {
     height: 7px;
     margin-right: 8px;
     border-radius: 50%;
-    background: #2080f0;
+    background: var(--app-accent);
     content: '';
     vertical-align: middle;
 }

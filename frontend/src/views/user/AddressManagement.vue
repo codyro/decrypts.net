@@ -261,21 +261,23 @@ watch([page, pageSize], async () => {
         </n-modal>
         <n-tabs type="segment">
             <n-tab-pane name="address" :tab="t('address')">
-                <n-input-group style="margin-top: 10px;">
-                    <n-input v-model:value="addressQuery" data-testid="user-address-search" clearable :placeholder="t('addressQueryTip')"
-                        @keydown.enter="searchData" />
-                    <n-button @click="searchData" type="primary" tertiary>
-                        {{ t('query') }}
-                    </n-button>
-                </n-input-group>
-                <div class="address-table-scroll">
+                <div class="toolbar address-management-toolbar">
+                    <n-input-group class="address-search-group">
+                        <n-input v-model:value="addressQuery" data-testid="user-address-search" clearable :placeholder="t('addressQueryTip')"
+                            @keydown.enter="searchData" />
+                        <n-button @click="searchData" secondary>
+                            {{ t('query') }}
+                        </n-button>
+                    </n-input-group>
                     <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count"
                         :page-sizes="[20, 50, 100]" show-size-picker>
                         <template #prefix="{ itemCount }">
                             {{ t('itemCount') }}: {{ itemCount }}
                         </template>
                     </n-pagination>
-                    <n-data-table :columns="columns" :data="data" :bordered="false" embedded />
+                </div>
+                <div class="address-table-scroll">
+                    <n-data-table :columns="columns" :data="data" :bordered="false" embedded size="small" />
                 </div>
             </n-tab-pane>
             <n-tab-pane name="create_or_bind" :tab="t('create_or_bind')">
@@ -290,13 +292,13 @@ watch([page, pageSize], async () => {
     min-width: 640px;
 }
 
+.address-management-toolbar { margin-bottom: var(--space-3); }
+.address-search-group { flex: 1 1 280px; }
+.address-management-toolbar .n-pagination { margin-left: auto; }
+
 .address-table-scroll {
     max-width: 100%;
     overflow-x: auto;
 }
 
-.n-pagination {
-    margin-top: 10px;
-    margin-bottom: 10px;
-}
 </style>

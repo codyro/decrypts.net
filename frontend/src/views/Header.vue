@@ -1,15 +1,13 @@
 <script setup>
-import { ref, h, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useScopedI18n } from '@/i18n/app'
 import { useHead } from '@unhead/vue'
-import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useIsMobile } from '../utils/composables'
 import {
-    DarkModeFilled, LightModeFilled, MenuFilled,
-    AdminPanelSettingsFilled, MonitorHeartFilled,
-    KeyboardArrowDownOutlined, OpenInNewOutlined
+    DarkModeOutlined, LightModeOutlined, MenuRound,
+    SettingsOutlined, KeyboardArrowDownOutlined, LanguageRound
 } from '@vicons/material'
-import { Envelope, GithubAlt, Language, User } from '@vicons/fa'
 
 import { useGlobalState } from '../store'
 import { api } from '../api'
@@ -17,20 +15,23 @@ import { getRouterPathWithLang, hashPassword } from '../utils'
 import { DEFAULT_LOCALE, isSupportedLocale, replaceLocaleInFullPath } from '../i18n/utils'
 import { getLocaleLabel, SUPPORTED_LOCALES } from '../i18n/locale-registry'
 import Turnstile from '../components/Turnstile.vue'
-import { NButton, NIcon } from 'naive-ui'
+import PreferencesDrawer from '../components/PreferencesDrawer.vue'
 
 const message = useMessage()
 const notification = useNotification()
 
 const {
     toggleDark, isDark, isTelegram, showAdminPage, showUserSystem,
-    showAuth, auth, loading, openSettings, preferredLocale, userSettings
+    showAuth, auth, loading, openSettings, preferredLocale, userSettings,
+    useSideMargin
 } = useGlobalState()
 const route = useRoute()
 const router = useRouter()
 const isMobile = useIsMobile()
+const showSideMargin = computed(() => !isMobile.value && useSideMargin.value)
 
 const showMobileMenu = ref(false)
+const showPreferences = ref(false)
 const menuValue = computed(() => {
     if (route.path.includes("user")) return "user";
     if (route.path.includes("admin")) return "admin";
@@ -62,11 +63,10 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
     key: locale,
 }))
 
+const { t, locale } = useScopedI18n('views.Header')
 const currentLocaleLabel = computed(() => {
     return languageOptions.find(opt => opt.value === locale.value)?.label || locale.value;
 });
-
-const { t, locale } = useScopedI18n('views.Header')
 
 const changeLocale = async (lang) => {
     if (!isSupportedLocale(lang)) {
@@ -102,114 +102,27 @@ const changeLocale = async (lang) => {
     if (localeSwitched) preferredLocale.value = lang;
 }
 
-const version = import.meta.env.PACKAGE_VERSION ? `v${import.meta.env.PACKAGE_VERSION}` : "";
-const showGithubForCurrentUser = computed(() => {
-    if (!openSettings.value.showGithub) return false;
-    if (openSettings.value.showGithubForUser) return true;
-    return showAdminPage.value;
-});
+const navItems = computed(() => [
+    { key: 'home', label: t('mailbox'), show: true },
+    { key: 'user', label: t('userCenter'), show: showUserSystem.value && !isTelegram.value },
+    { key: 'admin', label: t('admin'), show: showAdminPage.value },
+])
 
-const menuOptions = computed(() => [
-    {
-        label: () => h(NButton,
-            {
-                text: true,
-                size: "small",
-                type: menuValue.value == "home" ? "primary" : "default",
-                style: "width: 100%",
-                onClick: async () => {
-                    await router.push(getRouterPathWithLang('/', locale.value));
-                    showMobileMenu.value = false;
-                }
-            },
-            {
-                default: () => t('mailbox'),
-                icon: () => h(NIcon, { component: Envelope })
-            }),
-        key: "home"
-    },
-    {
-        label: () => h(
-            NButton,
-            {
-                text: true,
-                size: "small",
-                type: menuValue.value == "user" ? "primary" : "default",
-                style: "width: 100%",
-                onClick: async () => {
-                    await router.push(getRouterPathWithLang("/user", locale.value));
-                    showMobileMenu.value = false;
-                }
-            },
-            {
-                default: () => t('userCenter'),
-                icon: () => h(NIcon, { component: User }),
-            }
-        ),
-        key: "user",
-        show: showUserSystem.value && !isTelegram.value
-    },
-    {
-        label: () => h(
-            NButton,
-            {
-                text: true,
-                size: "small",
-                type: menuValue.value == "admin" ? "primary" : "default",
-                style: "width: 100%",
-                onClick: async () => {
-                    loading.value = true;
-                    await router.push(getRouterPathWithLang('/admin', locale.value));
-                    loading.value = false;
-                    showMobileMenu.value = false;
-                }
-            },
-            {
-                default: () => t('admin'),
-                icon: () => h(NIcon, { component: AdminPanelSettingsFilled }),
-            }
-        ),
-        show: showAdminPage.value,
-        key: "admin"
-    },
-    {
-        label: () => h(
-            NButton,
-            {
-                text: true,
-                size: "small",
-                style: "width: 100%",
-                onClick: () => { toggleDark(); showMobileMenu.value = false; }
-            },
-            {
-                default: () => isDark.value ? t('light') : t('dark'),
-                icon: () => h(
-                    NIcon, { component: isDark.value ? LightModeFilled : DarkModeFilled }
-                )
-            }
-        ),
-        key: "theme"
-    },
-    {
-        label: () => h(
-            NButton,
-            {
-                text: true,
-                size: "small",
-                style: "width: 100%",
-                tag: "a",
-                target: "_blank",
-                href: openSettings.value?.statusUrl,
-            },
-            {
-                default: () => t('status'),
-                icon: () => h(NIcon, { component: MonitorHeartFilled })
-            }
-        ),
-        show: !!openSettings.value?.statusUrl,
-        key: "status"
+const navigate = async (key) => {
+    showMobileMenu.value = false
+    if (key === 'admin') loading.value = true
+    try {
+        const path = key === 'home' ? '/' : `/${key}`
+        await router.push(getRouterPathWithLang(path, locale.value))
+    } finally {
+        if (key === 'admin') loading.value = false
     }
-]);
+}
+
+const openPreferences = () => {
+    showMobileMenu.value = false
+    showPreferences.value = true
+}
 
 useHead({
     title: () => openSettings.value.title || t('title'),
@@ -240,82 +153,75 @@ const logoClick = async () => {
 
 onMounted(async () => {
     await api.getOpenSettings(message, notification);
-    // make sure user_id is fetched
     if (showUserSystem.value && !userSettings.value.user_id) await api.getUserSettings(message);
 });
 </script>
 
 <template>
     <div>
-        <n-page-header>
-            <template #title>
-                <h3>{{ openSettings.title || t('title') }}</h3>
-            </template>
-            <template #avatar>
-                <div @click="logoClick">
-                    <n-avatar class="header-logo" src="/logo.png" />
+        <header class="app-header" :class="{ 'app-header--fluid': !showSideMargin }">
+            <div class="app-header__inner">
+                <div class="app-brand" @click="logoClick">
+                    <img class="header-logo" src="/logo.png" alt="" />
+                    <span class="app-title">{{ openSettings.title || t('title') }}</span>
                 </div>
-            </template>
-            <template #extra>
-                <n-space align="center" class="header-extra">
-                    <n-menu v-if="!isMobile" mode="horizontal" :options="menuOptions" responsive />
-                    <n-button v-else :text="true" @click="showMobileMenu = !showMobileMenu">
-                        <template #icon>
-                            <n-icon :component="MenuFilled" />
-                        </template>
-                        {{ t('menu') }}
-                    </n-button>
+                <nav v-if="!isMobile" class="app-nav" aria-label="Primary">
+                    <template v-for="item in navItems" :key="item.key">
+                        <n-button v-if="item.show" quaternary size="small" class="app-nav__item"
+                            :class="{ 'is-active': menuValue === item.key }" @click="navigate(item.key)">
+                            {{ item.label }}
+                        </n-button>
+                    </template>
+                </nav>
+                <div class="header-actions">
                     <n-dropdown v-if="!isMobile" :options="languageOptions" @select="changeLocale" trigger="click" class="header-locale-dropdown">
-                        <n-button text size="small" class="header-locale-button" style="padding: 0 10px;">
-                            <template #icon>
-                                <n-icon :component="Language" />
-                            </template>
+                        <n-button quaternary size="small" class="header-locale-button">
+                            <template #icon><n-icon :component="LanguageRound" /></template>
                             {{ currentLocaleLabel }}
-                            <n-icon :component="KeyboardArrowDownOutlined" style="margin-left: 4px;" />
+                            <n-icon :component="KeyboardArrowDownOutlined" class="locale-chevron" />
                         </n-button>
                     </n-dropdown>
-                    <n-button
-                        v-if="!isMobile && showGithubForCurrentUser"
-                        text
-                        size="small"
-                        class="header-version-button"
-                        tag="a"
-                        target="_blank"
-                        href="https://github.com/dreamhunter2333/cloudflare_temp_email"
-                    >
-                        <template #icon>
-                            <n-icon :component="GithubAlt" />
-                        </template>
-                        {{ version || 'Github' }}
+                    <n-button quaternary circle size="small" :aria-label="isDark ? t('light') : t('dark')"
+                        :title="isDark ? t('light') : t('dark')" @click="toggleDark()">
+                        <template #icon><n-icon :component="isDark ? LightModeOutlined : DarkModeOutlined" /></template>
                     </n-button>
-                </n-space>
-            </template>
-        </n-page-header>
-        <n-drawer v-model:show="showMobileMenu" placement="top" style="height: 100vh;">
+                    <n-button v-if="!isMobile" quaternary circle size="small" :aria-label="t('preferences')"
+                        :title="t('preferences')" @click="showPreferences = true">
+                        <template #icon><n-icon :component="SettingsOutlined" /></template>
+                    </n-button>
+                    <n-button v-if="isMobile" quaternary circle :aria-label="t('menu')" :title="t('menu')"
+                        @click="showMobileMenu = true">
+                        <template #icon><n-icon :component="MenuRound" /></template>
+                    </n-button>
+                </div>
+            </div>
+        </header>
+        <n-drawer v-model:show="showMobileMenu" placement="right" :width="'min(320px, 86vw)'">
             <n-drawer-content :title="t('menu')" closable>
-                <n-menu :options="menuOptions" />
+                <nav class="mobile-menu-nav" aria-label="Primary">
+                    <template v-for="item in navItems" :key="item.key">
+                        <n-button v-if="item.show" quaternary block class="mobile-menu-nav__item"
+                            :class="{ 'is-active': menuValue === item.key }" @click="navigate(item.key)">
+                            {{ item.label }}
+                        </n-button>
+                    </template>
+                </nav>
                 <div class="mobile-menu-actions">
                     <n-dropdown :options="languageOptions" @select="changeLocale" trigger="click" class="header-locale-dropdown">
                         <button type="button" class="mobile-menu-utility-button">
-                            <n-icon :component="Language" />
+                            <n-icon :component="LanguageRound" />
                             <span class="mobile-menu-action-label">{{ currentLocaleLabel }}</span>
                             <n-icon :component="KeyboardArrowDownOutlined" class="mobile-menu-action-arrow" />
                         </button>
                     </n-dropdown>
-                    <a
-                        v-if="showGithubForCurrentUser"
-                        class="mobile-menu-utility-button"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        href="https://github.com/dreamhunter2333/cloudflare_temp_email"
-                    >
-                        <n-icon :component="GithubAlt" />
-                        <span class="mobile-menu-action-label">{{ version || 'Github' }}</span>
-                        <n-icon :component="OpenInNewOutlined" class="mobile-menu-action-arrow" />
-                    </a>
+                    <button type="button" class="mobile-menu-utility-button" @click="openPreferences">
+                        <n-icon :component="SettingsOutlined" />
+                        <span class="mobile-menu-action-label">{{ t('preferences') }}</span>
+                    </button>
                 </div>
             </n-drawer-content>
         </n-drawer>
+        <PreferencesDrawer v-model:show="showPreferences" :is-home-route="menuValue === 'home'" />
         <n-modal v-model:show="showAuth" :closable="false" :closeOnEsc="false" :maskClosable="false" preset="dialog"
             :title="t('accessHeader')">
             <p>{{ t('accessTip') }}</p>
@@ -331,164 +237,89 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.header-logo {
-    margin-left: 10px;
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    height: var(--header-height);
+    background: var(--app-bg);
+    border-bottom: 1px solid var(--app-border);
 }
 
-:deep(.n-page-header) {
+.app-header__inner {
+    display: flex;
     align-items: center;
-    flex-wrap: nowrap;
+    gap: var(--space-5);
+    width: 100%;
+    max-width: calc(var(--app-max-width) + 2 * var(--gutter));
+    height: 100%;
+    margin: 0 auto;
+    padding: 0 var(--gutter);
 }
 
-:deep(.n-page-header__main) {
-    flex: 1 1 auto;
+.app-header--fluid .app-header__inner { max-width: none; }
+
+.app-brand {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: var(--space-2);
     min-width: 0;
-    overflow: hidden;
+    cursor: pointer;
 }
 
-:deep(.n-page-header__title) {
-    min-width: 0;
-    overflow: hidden;
-}
+.header-logo { flex: 0 0 auto; width: 28px; height: 28px; }
 
-:deep(.n-page-header__title h3) {
+.app-title {
     overflow: hidden;
+    color: var(--app-text-1);
+    font-size: var(--font-lg);
+    font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-:deep(.n-page-header__extra) {
-    flex: 0 0 auto;
-}
-
-.n-layout-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.header-extra {
-    align-items: center;
-    flex-wrap: nowrap;
-}
-
-.header-extra :deep(.n-space-item) {
-    display: flex;
-    align-items: center;
-}
-
-.header-locale-button {
-    display: inline-flex;
-    align-items: center;
-}
-
-.header-locale-button :deep(.n-button__content) {
-    display: inline-flex;
-    align-items: center;
-}
-
-.header-locale-button :deep(.n-icon) {
-    display: inline-flex;
-    align-items: center;
-}
-
-.header-version-button {
-    display: inline-flex;
-    align-items: center;
-}
-
-.header-version-button :deep(.n-button__content) {
-    display: inline-flex;
-    align-items: center;
-}
+.app-nav { display: flex; flex: 1 1 auto; align-items: center; gap: var(--space-1); }
+.app-nav__item.is-active,
+.mobile-menu-nav__item.is-active { background: var(--app-accent-soft); color: var(--app-accent); }
+.header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: var(--space-2); margin-left: auto; }
+.locale-chevron { margin-left: var(--space-1); }
+.mobile-menu-nav { display: flex; flex-direction: column; gap: var(--space-2); }
+.mobile-menu-nav__item { justify-content: flex-start; height: 44px; }
+.mobile-menu-nav__item :deep(.n-button__content) { justify-content: flex-start; }
 
 .mobile-menu-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(128, 128, 128, 0.16);
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--app-divider);
 }
 
 .mobile-menu-utility-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 36px;
     width: 100%;
     min-width: 0;
-    padding: 0 8px;
+    height: 44px;
+    padding: 0 var(--space-2);
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: transparent;
-    color: inherit;
+    color: var(--app-text-2);
     font: inherit;
-    text-decoration: none;
-    opacity: 0.82;
     cursor: pointer;
 }
 
-.mobile-menu-action-label {
-    margin: 0 6px;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.mobile-menu-utility-button:hover { background: var(--app-accent-soft); }
+.mobile-menu-action-label { min-width: 0; margin: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mobile-menu-action-arrow { flex: 0 0 auto; margin-left: 2px; }
+
+@media (max-width: 767.98px) {
+    .app-header__inner { gap: var(--space-2); }
+    .app-brand { flex: 1 1 auto; }
+    .header-actions { gap: var(--space-1); }
 }
-
-.mobile-menu-action-arrow {
-    flex: 0 0 auto;
-    margin-left: 2px;
-}
-
-.n-alert {
-    margin-top: 10px;
-    margin-bottom: 10px;
-    text-align: center;
-}
-
-.n-card {
-    margin-top: 10px;
-}
-
-.center {
-    display: flex;
-    text-align: left;
-    place-items: center;
-    justify-content: center;
-    margin: 20px;
-}
-
-.n-form .n-button {
-    margin-top: 10px;
-}
-
-@media (width < 768px) {
-    :deep(.n-page-header) {
-        padding-inline: 16px;
-    }
-
-    .header-logo {
-        margin-left: 0;
-    }
-}
-
-@media (max-width: 640px) {
-    :deep(.n-page-header) {
-        padding-block: 10px;
-    }
-
-    :deep(.n-page-header__title) {
-        min-width: 0;
-    }
-
-    :deep(.n-page-header__title h3) {
-        max-width: calc(100vw - 104px);
-        margin: 0;
-        font-size: clamp(16px, 5vw, 20px);
-        line-height: 1.2;
-    }
-}
-
 </style>

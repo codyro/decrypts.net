@@ -60,16 +60,20 @@ onMounted(() => {
 </script>
 
 <template>
-    <div style="margin-top: 10px;">
-        <n-input-group>
-            <n-select v-model:value="addressFilter" :options="addressFilterOptions" clearable
-                :placeholder="t('addressQueryTip')" />
-            <n-button @click="queryMail" type="primary" tertiary>
-                {{ t('query') }}
-            </n-button>
-        </n-input-group>
-        <div style="margin-top: 10px;"></div>
+    <div>
+        <div class="toolbar user-address-filter">
+            <n-input-group class="user-address-filter__group">
+                <n-select v-model:value="addressFilter" :options="addressFilterOptions" clearable
+                    :placeholder="t('addressQueryTip')" />
+                <n-button @click="queryMail" secondary>{{ t('query') }}</n-button>
+            </n-input-group>
+        </div>
         <MailBox :key="mailBoxKey" :enableUserDeleteEmail="openSettings.enableUserDeleteEmail" :fetchMailData="fetchMailData"
             :deleteMail="deleteMail" :showFilterInput="true" />
     </div>
 </template>
+
+<style scoped>
+.user-address-filter { margin-bottom: var(--space-3); }
+.user-address-filter__group { flex: 1 1 320px; max-width: 480px; }
+</style>

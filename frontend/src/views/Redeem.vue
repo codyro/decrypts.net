@@ -264,7 +264,7 @@ onMounted(loadContext)
 <template>
     <main v-if="openSettings.enableRedeemCode" class="redeem-page">
         <section class="redeem-shell">
-            <n-card class="redeem-card" :bordered="false" embedded>
+            <n-card class="redeem-card" :bordered="true">
                 <n-button text class="back-link" @click="goBack">
                     <template #icon>
                         <n-icon :component="ArrowBackOutlined" />
@@ -468,7 +468,9 @@ onMounted(loadContext)
 }
 
 .redeem-card {
-    border-radius: 10px;
+    width: min(560px, 100%);
+    margin: 0 auto;
+    border-radius: 12px;
 }
 
 .heading-copy {
@@ -483,9 +485,9 @@ onMounted(loadContext)
     width: 42px;
     height: 42px;
     place-items: center;
-    color: #18a058;
+    color: var(--app-accent);
     font-size: 24px;
-    background: rgba(24, 160, 88, 0.12);
+    background: var(--app-accent-soft);
     border-radius: 8px;
 }
 
@@ -522,7 +524,7 @@ onMounted(loadContext)
 
 .type-card .n-icon {
     flex: 0 0 auto;
-    color: #18a058;
+    color: var(--app-accent);
     font-size: 20px;
 }
 
@@ -531,9 +533,9 @@ onMounted(loadContext)
 }
 
 .type-card.active {
-    color: #18a058;
-    border-color: rgba(24, 160, 88, 0.55);
-    background: rgba(24, 160, 88, 0.08);
+    color: var(--app-accent);
+    border-color: var(--app-accent);
+    background: var(--app-accent-soft);
 }
 
 .redeem-card > :deep(.n-card__content) > .n-divider {
@@ -567,7 +569,7 @@ onMounted(loadContext)
 
 .detail-heading > .n-icon {
     flex: 0 0 auto;
-    color: #18a058;
+    color: var(--app-accent);
     font-size: 28px;
 }
 
@@ -599,7 +601,7 @@ onMounted(loadContext)
 }
 
 .success-state > .n-icon {
-    color: #18a058;
+    color: var(--app-accent);
     font-size: 50px;
 }
 

@@ -161,7 +161,7 @@ const handleCreated = (editor) => {
 
 <template>
     <div class="composer-page">
-        <n-card class="composer-card" :bordered="false" embedded>
+        <n-card class="composer-card" :bordered="true">
             <template #header>
                 <div class="composer-title">
                     <h2>{{ t('composeMail') }}</h2>
@@ -253,7 +253,7 @@ const handleCreated = (editor) => {
 <style scoped>
 .composer-page {
     width: 100%;
-    padding: 14px 0 24px;
+    padding: 0 0 24px;
     text-align: left;
 }
 

@@ -277,7 +277,7 @@ onMounted(async () => {
 
 <template>
     <div class="center">
-        <n-card :bordered="false" embedded v-if="enableWebhook" style="max-width: 800px; overflow: auto;">
+        <n-card :bordered="true" v-if="enableWebhook" style="max-width: 800px; overflow: auto;">
             <n-flex justify="end">
                 <n-dropdown :options="presetDropdownOptions" @select="handlePresetSelect">
                     <n-button secondary>
@@ -373,7 +373,7 @@ onMounted(async () => {
     display: flex;
     text-align: left;
     place-items: center;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 .n-button {

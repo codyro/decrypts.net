@@ -104,6 +104,6 @@ onMounted(async () => {
                 {{ t('download') }}
             </n-button>
         </n-modal>
-        <n-data-table :columns="columns" :data="data" :bordered="false" embedded />
+        <n-data-table :columns="columns" :data="data" :bordered="false" embedded size="small" />
     </div>
 </template>

@@ -1,11 +1,12 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useScopedI18n } from '@/i18n/app'
 import { useRouter } from 'vue-router'
-import { User, ExchangeAlt } from '@vicons/fa'
+import { MoreVertRound, PersonOutlineRound, SwapHorizRound } from '@vicons/material'
 
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
+import { useIsMobile } from '../../utils/composables'
 import Login from '../common/Login.vue'
 import TelegramAddress from './TelegramAddress.vue'
 import LocalAddress from './LocalAddress.vue'
@@ -15,15 +16,28 @@ import AddressSelect from '../../components/AddressSelect.vue'
 import AddressCredentialModal from '../../components/AddressCredentialModal.vue'
 
 const router = useRouter()
-
+const isMobile = useIsMobile()
 const {
-    jwt, settings, showAddressCredential,
+    jwt, settings, showAddressCredential, openSettings, useSimpleIndex,
     isTelegram, addressPassword, showUserSystem, showUserMailboxes
 } = useGlobalState()
 
 const { locale, t } = useScopedI18n('views.index.AddressBar')
-
+const { t: accountT } = useScopedI18n('views.index.AccountSettings')
+const { t: indexT } = useScopedI18n('views.Index')
 const showAddressManage = ref(false)
+const mailboxOptions = computed(() => [
+    {
+        key: 'credentials',
+        label: accountT(openSettings.value.addressPasswordLoginOnly ? 'showSessionToken' : 'showAddressCredential'),
+    },
+    { key: 'simple', label: indexT('enterSimpleMode') },
+])
+
+const onMailboxOption = (key) => {
+    if (key === 'credentials') showAddressCredential.value = true
+    if (key === 'simple') useSimpleIndex.value = true
+}
 
 const onUserLogin = async () => {
     await router.push(getRouterPathWithLang("/user", locale.value))
@@ -36,49 +50,52 @@ onMounted(async () => {
 
 <template>
     <div>
-        <n-card :bordered="false" embedded v-if="!settings.fetched">
-            <n-skeleton style="height: 50vh" />
-        </n-card>
-        <div v-else-if="settings.address">
-            <n-alert type="info" :show-icon="false" :bordered="false">
-                <AddressSelect>
-                    <template #actions>
-                        <n-button class="address-manage" size="small" tertiary type="primary"
-                            @click="showAddressManage = true">
-                            <n-icon :component="ExchangeAlt" />
-                            {{ t('addressManage') }}
-                        </n-button>
-                    </template>
-                </AddressSelect>
-            </n-alert>
+        <div v-if="!settings.fetched" class="panel loading-panel">
+            <n-skeleton style="height: 200px" />
         </div>
-        <div v-else-if="isTelegram">
+        <section v-else-if="settings.address" class="address-bar">
+            <div class="caption">{{ t('yourAddress') }}</div>
+            <AddressSelect>
+                <template #actions>
+                    <n-button class="address-manage" secondary :circle="isMobile"
+                        :aria-label="isMobile ? t('addressManage') : undefined"
+                        :title="isMobile ? t('addressManage') : undefined" @click="showAddressManage = true">
+                        <template #icon><n-icon :component="SwapHorizRound" /></template>
+                        <span v-if="!isMobile">{{ t('addressManage') }}</span>
+                    </n-button>
+                    <n-dropdown trigger="click" :options="mailboxOptions" @select="onMailboxOption">
+                        <n-button quaternary circle :aria-label="t('mailboxOptions')" :title="t('mailboxOptions')">
+                            <template #icon><n-icon :component="MoreVertRound" /></template>
+                        </n-button>
+                    </n-dropdown>
+                </template>
+            </AddressSelect>
+        </section>
+        <div v-else-if="isTelegram" class="panel address-management-panel">
             <TelegramAddress />
         </div>
-        <div v-else-if="showUserMailboxes" class="center">
-            <n-card :bordered="false" embedded style="max-width: 900px; width: 100%;">
-                <AddressManagement />
-            </n-card>
+        <div v-else-if="showUserMailboxes" class="panel address-management-panel">
+            <h2 class="section-title">{{ t('addressManage') }}</h2>
+            <AddressManagement />
         </div>
-        <div v-else class="center">
-            <n-card :bordered="false" embedded style="max-width: 600px;">
+        <section v-else class="landing">
+            <h1 class="page-title">{{ t('landingTitle') }}</h1>
+            <p class="muted landing__tip">{{ t('landingTip') }}</p>
+            <div class="panel landing__panel">
                 <n-alert v-if="jwt" type="warning" :show-icon="false" :bordered="false" closable>
                     <span>{{ t('fetchAddressError') }}</span>
                 </n-alert>
                 <Login />
-                <n-divider v-if="showUserSystem" />
-                <n-button v-if="showUserSystem" @click="onUserLogin" type="primary" block secondary strong>
-                    <template #icon>
-                        <n-icon :component="User" />
-                    </template>
-                    {{ t('userCenter') }}
-                </n-button>
-            </n-card>
-        </div>
+            </div>
+            <n-button v-if="showUserSystem" text type="primary" @click="onUserLogin">
+                <template #icon><n-icon :component="PersonOutlineRound" /></template>
+                {{ t('userCenter') }} →
+            </n-button>
+        </section>
         <AddressCredentialModal v-model:show="showAddressCredential" :address="settings.address" :jwt="jwt"
             :address-password="addressPassword" />
         <n-modal v-model:show="showAddressManage" preset="card" :title="t('addressManage')"
-            style="width: 720px;">
+            style="width: min(760px, calc(100vw - 32px));">
             <TelegramAddress v-if="isTelegram" />
             <AddressManagement v-else-if="showUserMailboxes" />
             <LocalAddress v-else />
@@ -87,27 +104,26 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.n-alert {
-    margin-top: 10px;
-    margin-bottom: 10px;
+.loading-panel { height: 240px; }
+.address-bar { margin-bottom: var(--space-4); }
+.address-bar > .caption { display: block; margin-bottom: var(--space-1); }
+.address-manage { flex: 0 0 auto; white-space: nowrap; }
+.address-management-panel { max-width: 960px; margin: 0 auto; }
+.address-management-panel > .section-title { margin-bottom: var(--space-4); }
+.landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding-top: var(--space-8);
     text-align: center;
 }
+.landing__tip { margin: 0; }
+.landing__panel { width: min(var(--content-auth), 100%); text-align: left; }
+.landing__panel .n-alert { margin-bottom: var(--space-3); }
 
-.n-card {
-    margin-top: 10px;
+@media (max-width: 767.98px) {
+    .landing { padding-top: var(--space-4); }
+    .landing .page-title { font-size: 20px; line-height: 28px; }
 }
-
-.center {
-    display: flex;
-    text-align: left;
-    place-items: center;
-    justify-content: center;
-    margin: 20px;
-}
-
-.address-manage {
-    flex: 0 0 auto;
-    white-space: nowrap;
-}
-
 </style>

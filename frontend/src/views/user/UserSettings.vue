@@ -156,23 +156,25 @@ const renamePasskey = async () => {
 </script>
 
 <template>
-    <div class="center" v-if="userSettings.user_email">
-        <n-card :bordered="false" embedded>
-            <n-button @click="showPasskeyList = true; fetchPasskeyList();" secondary block strong>
-                {{ t('showPasskeyList') }}
-            </n-button>
-            <n-button @click="showCreatePasskey = true" type="primary" secondary block strong>
-                {{ t('createPasskey') }}
-            </n-button>
-            <n-alert :show-icon="false" :bordered="false">
-                <span>
-                    {{ t('passordTip') }}
-                </span>
-            </n-alert>
-            <n-button @click="showLogout = true" secondary block strong>
-                {{ t('logout') }}
-            </n-button>
-        </n-card>
+    <div class="user-settings stack" v-if="userSettings.user_email">
+        <section class="panel settings-section">
+            <h3 class="panel-title settings-section__header">{{ t('passkeySection') }}</h3>
+            <div class="settings-row">
+                <span class="settings-row__text">{{ t('passkeyTip') }}</span>
+                <div class="settings-row__action toolbar">
+                    <n-button @click="showPasskeyList = true; fetchPasskeyList();" secondary>{{ t('showPasskeyList') }}</n-button>
+                    <n-button @click="showCreatePasskey = true" type="primary">{{ t('createPasskey') }}</n-button>
+                </div>
+            </div>
+        </section>
+        <section class="panel settings-section">
+            <h3 class="panel-title settings-section__header">{{ t('accountSection') }}</h3>
+            <p class="muted account-tip">{{ t('passordTip') }}</p>
+            <div class="settings-row">
+                <span class="settings-row__text">{{ t('logoutTip') }}</span>
+                <div class="settings-row__action"><n-button @click="showLogout = true" secondary>{{ t('logout') }}</n-button></div>
+            </div>
+        </section>
         <n-modal v-model:show="showCreatePasskey" preset="dialog" :title="t('createPasskey')">
             <n-input v-model:value="passkeyName" :placeholder="t('passkeyNamePlaceholder')" />
             <template #action>
@@ -204,19 +206,11 @@ const renamePasskey = async () => {
 </template>
 
 <style scoped>
-.center {
-    display: flex;
-    justify-content: center;
-}
-
-
-.n-card {
-    max-width: 800px;
-    text-align: left;
-}
-
-.n-button {
-    margin-top: 10px;
-    margin-bottom: 10px;
+.user-settings { max-width: var(--content-form); text-align: left; }
+.user-settings > .settings-section + .settings-section { margin-top: 0; }
+.account-tip { margin: 0; }
+.settings-row__action.toolbar { flex-wrap: nowrap; }
+@media (max-width: 767.98px) {
+    .settings-row__action.toolbar { flex-direction: column; align-items: stretch; }
 }
 </style>

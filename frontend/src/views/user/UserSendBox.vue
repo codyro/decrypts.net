@@ -5,6 +5,7 @@ import { useScopedI18n } from '@/i18n/app'
 import { api } from '../../api'
 import { useGlobalState } from '../../store'
 import SendBox from '../../components/SendBox.vue'
+import { SendRound } from '@vicons/material'
 
 const SendMail = defineAsyncComponent(() => import('./SendMail.vue'))
 
@@ -96,21 +97,23 @@ onMounted(fetchAddresses)
 <template>
     <div class="user-send-box">
         <template v-if="mode === 'send_mail'">
-            <n-empty v-if="!selectedAddressId" class="address-empty" :description="t('noAddress')" />
+            <div v-if="!selectedAddressId" class="empty-state">
+                <n-icon class="empty-state__icon" :component="SendRound" />
+                <h3 class="empty-state__title">{{ t('noAddress') }}</h3>
+            </div>
             <SendMail v-else :key="selectedAddressId" v-model:address-id="selectedAddressId"
                 :address-options="addressOptions" :address-loading="addressLoading"
                 @address-scroll="handleAddressScroll" @sent="emit('sent')" />
         </template>
         <template v-else>
-            <n-input-group>
-                <n-select v-model:value="addressFilter" :options="addressFilterOptions" clearable
-                    :loading="addressLoading" :placeholder="mailboxT('addressQueryTip')"
-                    @scroll="handleAddressScroll" />
-                <n-button @click="querySendbox" type="primary" tertiary>
-                    {{ mailboxT('query') }}
-                </n-button>
-            </n-input-group>
-            <div class="filter-spacing"></div>
+            <div class="toolbar user-address-filter">
+                <n-input-group class="user-address-filter__group">
+                    <n-select v-model:value="addressFilter" :options="addressFilterOptions" clearable
+                        :loading="addressLoading" :placeholder="mailboxT('addressQueryTip')"
+                        @scroll="handleAddressScroll" />
+                    <n-button @click="querySendbox" secondary>{{ mailboxT('query') }}</n-button>
+                </n-input-group>
+            </div>
             <SendBox :key="sendboxKey" :fetch-mail-data="fetchSendbox" show-e-mail-from
                 :enable-user-delete-email="openSettings.enableUserDeleteEmail"
                 :delete-mail="deleteSendboxMail" />
@@ -119,17 +122,8 @@ onMounted(fetchAddresses)
 </template>
 
 <style scoped>
-.user-send-box {
-    padding-top: 10px;
-    text-align: left;
-}
-
-.filter-spacing {
-    margin-top: 10px;
-}
-
-.address-empty {
-    padding: 72px 0;
-}
+.user-send-box { text-align: left; }
+.user-address-filter { margin-bottom: var(--space-3); }
+.user-address-filter__group { flex: 1 1 320px; max-width: 480px; }
 
 </style>

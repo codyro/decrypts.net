@@ -121,7 +121,7 @@ const visibleColumns = computed(() => {
 
 <template>
     <div>
-        <n-alert type="warning" :show-icon="false" :bordered="false">
+        <n-alert class="local-address-tip" type="warning" :show-icon="false" :bordered="false">
             <span>{{ t('tip') }}</span>
         </n-alert>
         <n-tabs type="segment" v-model:value="tabValue">
@@ -141,6 +141,8 @@ const visibleColumns = computed(() => {
 .n-data-table {
     min-width: 640px;
 }
+
+.local-address-tip { margin-bottom: 12px; }
 
 .address-table-scroll {
     max-width: 100%;

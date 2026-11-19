@@ -1,0 +1,43 @@
+export const lightTokens = {
+  bg: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceSubtle: '#F7F7F9',
+  surfaceRaised: '#FFFFFF',
+  popover: '#FFFFFF',
+  border: '#E4E4E7',
+  divider: '#EFEFF2',
+  text1: 'rgb(31, 34, 37)',
+  text2: 'rgb(51, 54, 57)',
+  text3: '#6B7280',
+  accent: '#2563EB',
+  accentHover: '#3B82F6',
+  accentPressed: '#1D4ED8',
+  accentSoft: 'rgba(37, 99, 235, 0.08)',
+  accentSoftHover: 'rgba(37, 99, 235, 0.12)',
+  danger: '#D03050',
+  dangerSoft: 'rgba(208, 48, 80, 0.06)',
+  shadowRaised: '0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.08)',
+}
+
+export const darkTokens: AppTokens = {
+  bg: '#101014',
+  surface: '#18181C',
+  surfaceSubtle: '#1E1E23',
+  surfaceRaised: '#232329',
+  popover: '#2A2A30',
+  border: 'rgba(255, 255, 255, 0.12)',
+  divider: 'rgba(255, 255, 255, 0.07)',
+  text1: 'rgba(255, 255, 255, 0.9)',
+  text2: 'rgba(255, 255, 255, 0.82)',
+  text3: 'rgba(255, 255, 255, 0.52)',
+  accent: '#60A5FA',
+  accentHover: '#93C5FD',
+  accentPressed: '#3B82F6',
+  accentSoft: 'rgba(96, 165, 250, 0.14)',
+  accentSoftHover: 'rgba(96, 165, 250, 0.20)',
+  danger: '#E88080',
+  dangerSoft: 'rgba(232, 128, 128, 0.10)',
+  shadowRaised: '0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.4)',
+}
+
+export type AppTokens = typeof lightTokens

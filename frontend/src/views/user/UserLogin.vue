@@ -18,6 +18,7 @@ const {
 const message = useMessage();
 
 const { t } = useScopedI18n('views.user.UserLogin')
+const { t: loginCommonT } = useScopedI18n('views.common.Login')
 
 const tabValue = ref("signin");
 const showModal = ref(false);
@@ -179,10 +180,10 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="center">
-        <n-tabs v-model:value="tabValue" size="large" v-if="userOpenSettings.fetched" justify-content="space-evenly">
+    <div class="user-login">
+        <n-tabs v-model:value="tabValue" size="medium" v-if="userOpenSettings.fetched" justify-content="space-evenly">
             <n-tab-pane name="signin" :tab="t('login')">
-                <n-form>
+                <n-form class="user-login-form">
                     <n-form-item-row :label="t('email')" required>
                         <n-input v-model:value="user.email" />
                     </n-form-item-row>
@@ -191,21 +192,19 @@ onMounted(async () => {
                             @keyup.enter="emailLogin" />
                     </n-form-item-row>
                     <Turnstile ref="loginTurnstileRef" v-if="openSettings.enableGlobalTurnstileCheck" v-model:value="loginCfToken" />
-                    <n-button @click="emailLogin" type="primary" block secondary strong>
+                    <n-button @click="emailLogin" type="primary" block size="large">
                         {{ t('login') }}
                     </n-button>
-                    <n-button @click="showModal = true" type="info" quaternary size="tiny">
-                        {{ t('forgotPassword') }}
-                    </n-button>
-                    <n-divider />
-                    <n-button @click="passkeyLogin" type="primary" block secondary strong>
-                        <template #icon>
-                            <n-icon :component="KeyFilled" />
-                        </template>
+                    <div class="forgot-password-action">
+                        <n-button @click="showModal = true" quaternary size="tiny">{{ t('forgotPassword') }}</n-button>
+                    </div>
+                    <n-divider title-placement="center"><span class="muted">{{ loginCommonT('or') }}</span></n-divider>
+                    <n-button @click="passkeyLogin" block secondary>
+                        <template #icon><n-icon :component="KeyFilled" /></template>
                         {{ t('loginWithPasskey') }}
                     </n-button>
                     <n-button @click="oauth2Login(item.clientID)" v-for="item in userOpenSettings.oauth2ClientIDs"
-                        :key="item.clientID" block secondary strong>
+                        :key="item.clientID" block secondary>
                         <template #icon v-if="item.icon">
                             <span class="oauth2-icon" v-html="item.icon"></span>
                         </template>
@@ -214,7 +213,7 @@ onMounted(async () => {
                 </n-form>
             </n-tab-pane>
             <n-tab-pane v-if="userOpenSettings.enable" name="signup" :tab="t('register')">
-                <n-form>
+                <n-form class="user-login-form">
                     <n-form-item-row :label="t('email')" required>
                         <n-input v-model:value="user.email" />
                     </n-form-item-row>
@@ -234,10 +233,10 @@ onMounted(async () => {
                         </n-input-group>
                     </n-form-item-row>
                     <Turnstile ref="signupTurnstileRef" v-if="!userOpenSettings.enableMailVerify" v-model:value="signupCfToken" />
+                    <n-button @click="emailSignup" type="primary" block size="large">
+                        {{ t('register') }}
+                    </n-button>
                 </n-form>
-                <n-button @click="emailSignup" type="primary" block secondary strong>
-                    {{ t('register') }}
-                </n-button>
             </n-tab-pane>
         </n-tabs>
         <n-modal v-model:show="showModal" style="max-width: 600px;" preset="card" :title="t('forgotPassword')">
@@ -274,17 +273,11 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.center {
-    display: flex;
-    text-align: center;
-    place-items: center;
-    justify-content: center;
-}
-
-.n-button {
-    margin-top: 10px;
-}
-
+.user-login { text-align: left; }
+.user-login-form { display: flex; flex-direction: column; gap: var(--space-3); }
+.user-login-form :deep(.n-form-item-row) { margin-bottom: 0; }
+.user-login-form :deep(.n-divider) { margin: var(--space-1) 0; }
+.forgot-password-action { display: flex; justify-content: flex-end; }
 .oauth2-icon {
     display: inline-flex;
     align-items: center;
@@ -292,9 +285,5 @@ onMounted(async () => {
     width: 18px;
     height: 18px;
 }
-
-.oauth2-icon :deep(svg) {
-    width: 100%;
-    height: 100%;
-}
+.oauth2-icon :deep(svg) { width: 100%; height: 100%; }
 </style>
