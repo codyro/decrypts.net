@@ -1,3 +1,27 @@
+<script>
+import { api } from '../../api'
+
+// The default new-address flow uploads the encryption public key. Overrides
+// (e.g. the Telegram mini-app) receive it via the optional 5th `options`
+// argument ({ encryptionPublicKey }) and forward it as `encryption_public_key`.
+export const defaultNewAddressPath = async (
+    address_name, domain, cf_token, enableRandomSubdomain, options = {}
+) => {
+    return await api.fetch("/api/new_address", {
+        method: "POST",
+        body: JSON.stringify({
+            name: address_name,
+            domain: domain,
+            cf_token: cf_token,
+            enableRandomSubdomain: enableRandomSubdomain,
+            ...(options.encryptionPublicKey
+                ? { encryption_public_key: options.encryptionPublicKey }
+                : {}),
+        }),
+    });
+}
+</script>
+
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useScopedI18n } from '@/i18n/app'
@@ -10,6 +34,9 @@ import Turnstile from '../../components/Turnstile.vue'
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { getRouterPathWithLang, hashPassword } from '../../utils'
+import { generateKeyPair } from '../../utils/mail-crypto'
+import { setPrivateKey, buildDecryptionLink } from '../../utils/mail-key-store'
+import { copyToClipboard } from '../../utils/clipboard'
 
 const props = defineProps({
     bindUserAddress: {
@@ -19,17 +46,7 @@ const props = defineProps({
     },
     newAddressPath: {
         type: Function,
-        default: async (address_name, domain, cf_token, enableRandomSubdomain) => {
-            return await api.fetch("/api/new_address", {
-                method: "POST",
-                body: JSON.stringify({
-                    name: address_name,
-                    domain: domain,
-                    cf_token: cf_token,
-                    enableRandomSubdomain: enableRandomSubdomain,
-                }),
-            });
-        },
+        default: defaultNewAddressPath,
         required: true
     },
 })
@@ -40,8 +57,23 @@ const router = useRouter()
 
 const {
     jwt, loading, openSettings,
-    showAddressCredential, userSettings, addressPassword
+    showAddressCredential, userSettings, addressPassword, settings
 } = useGlobalState()
+
+const enableMailEncryption = ref(false)
+const showEncryptionCreatedModal = ref(false)
+const createdDecryptionLink = ref('')
+
+const copyDecryptionLink = async () => {
+    if (!createdDecryptionLink.value) return
+    try {
+        await copyToClipboard(createdDecryptionLink.value)
+        message.success(t('copyDecryptionLinkSuccess'))
+    } catch (error) {
+        console.error(error)
+        message.error(t('copyDecryptionLinkFailed'))
+    }
+}
 
 const tabValue = ref('signin')
 const credential = ref('')
@@ -171,15 +203,29 @@ const newEmail = async () => {
         const domainToSend = subdomainMode.value === "custom"
             ? `${customSubdomain.value.trim()}.${emailDomain.value}`
             : emailDomain.value;
+        let keyPair = null;
+        if (enableMailEncryption.value) {
+            keyPair = await generateKeyPair();
+        }
         const res = await props.newAddressPath(
             nameToSend,
             domainToSend,
             cfToken.value,
-            subdomainMode.value === "random"
+            subdomainMode.value === "random",
+            keyPair ? { encryptionPublicKey: keyPair.publicKey } : {}
         );
         jwt.value = res["jwt"];
         addressPassword.value = res["password"] || '';
         await api.getSettings();
+        if (keyPair) {
+            // The private key never leaves this device; store it before
+            // showing the credential modal so the decryption link is copyable.
+            if (settings.value.address) {
+                setPrivateKey(settings.value.address, keyPair.privateKey);
+                createdDecryptionLink.value = buildDecryptionLink(settings.value.address);
+                showEncryptionCreatedModal.value = true;
+            }
+        }
         await router.push(getRouterPathWithLang("/", locale.value));
         showAddressCredential.value = true;
         try {
@@ -358,6 +404,15 @@ onMounted(async () => {
                             </div>
                         </n-form-item-row>
                         <Turnstile v-model:value="cfToken" />
+                        <template v-if="openSettings.enableMailEncryption">
+                            <n-checkbox v-model:checked="enableMailEncryption" style="margin-top: 10px;">
+                                {{ t('encryptMailCheckbox') }}
+                            </n-checkbox>
+                            <n-alert v-if="enableMailEncryption" type="warning" :show-icon="false" :bordered="false"
+                                style="margin-top: 8px; text-align: left;">
+                                {{ t('encryptMailWarning') }}
+                            </n-alert>
+                        </template>
                         <n-button type="primary" block size="large" @click="newEmail" :loading="loading"
                             :disabled="subdomainMode === 'custom' && !customSubdomain.trim()">
                             <template #icon>
@@ -385,6 +440,16 @@ onMounted(async () => {
                 <AdminContact />
             </n-tab-pane>
         </n-tabs>
+        <n-modal v-model:show="showEncryptionCreatedModal" preset="dialog" :title="t('encryptionCreatedTitle')">
+            <p style="text-align: left;">{{ t('encryptionCreatedTip') }}</p>
+            <n-input :value="createdDecryptionLink" type="textarea" readonly :autosize="{ minRows: 2 }" />
+            <p style="text-align: left;">{{ t('encryptMailKeyLostWarning') }}</p>
+            <template #action>
+                <n-button size="small" tertiary type="primary" @click="copyDecryptionLink">
+                    {{ t('copyDecryptionLink') }}
+                </n-button>
+            </template>
+        </n-modal>
     </div>
 </template>
 

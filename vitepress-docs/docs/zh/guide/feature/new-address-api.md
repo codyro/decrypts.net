@@ -39,6 +39,22 @@ res = requests.post(
 print(res.json())
 ```
 
+### 创建加密邮箱地址
+
+启用 `ENABLE_MAIL_ENCRYPTION` 并升级数据库后，`POST /api/new_address`、`POST /admin/new_address` 和 `POST /telegram/new_address`（Telegram 小程序）都支持可选字段 `encryption_public_key`（base64url 编码的 65 字节 P-256 未压缩公钥）。携带该字段创建的地址，收到的邮件将加密存储，私钥只在浏览器端（详见[邮箱加密](./mail-encryption.md)）。公钥非法或功能未启用时返回 400。管理端批量创建是逐地址调用 `/admin/new_address`，因此批量中每个地址都可以带各自的公钥。Bot `/new` 命令不支持该字段。
+
+```python
+res = requests.post(
+    "https://xxxx.xxxx/api/new_address",
+    json={
+        "name": "<邮箱名称>",
+        "domain": "<邮箱域名>",
+        # 可选：邮箱加密公钥（base64url, 65 字节 P-256 未压缩点）
+        "encryption_public_key": "<public key>",
+    },
+)
+```
+
 ### 创建子域名邮箱地址
 
 如果你已经把基础域名配置进 `DOMAINS` / `DEFAULT_DOMAINS` / `USER_ROLES`，并且开启了

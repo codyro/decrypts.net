@@ -1,17 +1,52 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { useScopedI18n } from '@/i18n/app'
+import { LockOutlined } from '@vicons/material'
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { onMounted, watch } from 'vue';
 import { processItem } from '../../utils/email-parser'
+import { importKeyOrLink } from '../../utils/mail-fragment'
 import { utcToLocalDate } from '../../utils';
 
 const { telegramApp, loading, useUTCDate } = useGlobalState()
 const { t } = useScopedI18n('components.MailContentRenderer')
 const route = useRoute()
+
+// The locked-mail UI reuses the MailContentRenderer message registry keys.
+const message = useMessage()
+
 const curMail = ref({});
 const showEMailTo = true
+
+const unlockInput = ref('');
+const unlockLoading = ref(false);
+
+const lockHint = computed(() => curMail.value.lockReason === 'decrypt_failed'
+    ? t('lockedDecryptFailed')
+    : t('lockedMissingKey'));
+
+// Paste a private key / decryption link, store it, then re-parse this mail in
+// place (curMail.raw still holds the encrypted envelope while locked).
+const handleUnlock = async () => {
+    if (unlockLoading.value) return;
+    unlockLoading.value = true;
+    try {
+        const { ok } = await importKeyOrLink(unlockInput.value, curMail.value.address);
+        if (!ok) {
+            message.error(t('unlockInvalid'));
+            return;
+        }
+        unlockInput.value = '';
+        message.success(t('unlockSuccess'));
+        await processItem(curMail.value);
+    } catch (error) {
+        console.error(error);
+        message.error(t('unlockInvalid'));
+    } finally {
+        unlockLoading.value = false;
+    }
+};
 
 watch(telegramApp, async () => {
     if (telegramApp.value.initData) {
@@ -47,7 +82,7 @@ onMounted(async () => {
 
 <template>
     <div class="center">
-        <div class="panel telegram-mail" v-if="curMail.message">
+        <div class="panel telegram-mail" v-if="curMail.message || curMail.locked">
             <div class="mail-details">
                 <div class="mail-address">
                     <span class="mail-address-label">{{ t('from') }}</span>
@@ -61,7 +96,21 @@ onMounted(async () => {
                     {{ utcToLocalDate(curMail.created_at, useUTCDate) }} · #{{ curMail.id }}
                 </div>
             </div>
-            <iframe :srcdoc="curMail.message" class="telegram-mail__iframe"></iframe>
+            <n-alert v-if="curMail.locked" type="warning" :show-icon="false" :bordered="false"
+                style="margin-top: 10px; text-align: left;">
+                <n-space align="center" :size="6">
+                    <n-icon :component="LockOutlined" />
+                    <span>{{ lockHint }}</span>
+                </n-space>
+                <n-space align="center" :size="6" style="margin-top: 8px;">
+                    <n-input v-model:value="unlockInput" size="small" :placeholder="t('unlockInputPlaceholder')"
+                        style="max-width: 320px;" @keyup.enter="handleUnlock" />
+                    <n-button size="small" type="primary" tertiary :loading="unlockLoading" @click="handleUnlock">
+                        {{ t('unlock') }}
+                    </n-button>
+                </n-space>
+            </n-alert>
+            <iframe v-else :srcdoc="curMail.message" class="telegram-mail__iframe"></iframe>
         </div>
     </div>
 </template>

@@ -3,6 +3,7 @@ import { createMimeMessage } from "mimetext";
 
 import { compressText } from "../gzip";
 import { getBooleanValue } from "../utils";
+import { encryptMail } from "../utils/mail_crypto";
 
 let rawMailTableColumns: Set<string> | undefined;
 
@@ -21,22 +22,58 @@ const getRawMailTableColumns = async (
     return columns;
 }
 
+/**
+ * Look up the encryption public key of an address. Only queries the
+ * encryption_public_key column when the feature is enabled, so deployments
+ * that have not migrated keep working with the feature off.
+ * Returns null for addresses without a key (stored plaintext).
+ */
+export const getAddressEncryptionPublicKey = async (
+    env: Bindings,
+    address: string
+): Promise<string | null> => {
+    if (!getBooleanValue(env.ENABLE_MAIL_ENCRYPTION)) return null;
+    const row = await env.DB.prepare(
+        `SELECT encryption_public_key FROM address WHERE name = ?`
+    ).bind(address).first<{ encryption_public_key: string | null }>();
+    return row?.encryption_public_key ?? null;
+};
+
 export const storeRawMail = async (
     env: Bindings,
     source: string,
     address: string,
     messageId: string | null,
     raw: string,
+    encryptionPublicKey?: string | null,
 ): Promise<D1Result> => {
     const gzipEnabled = getBooleanValue(env.ENABLE_MAIL_GZIP);
     const readStatusEnabled = getBooleanValue(env.ENABLE_MAIL_READ_STATUS);
     const requiredColumns: string[] = [];
-    if (gzipEnabled) requiredColumns.push('raw_blob');
+    if (gzipEnabled && !encryptionPublicKey) requiredColumns.push('raw_blob');
     if (readStatusEnabled) requiredColumns.push('is_unread');
 
     let tableColumns = new Set<string>();
     if (requiredColumns.length > 0) {
         tableColumns = await getRawMailTableColumns(env, requiredColumns);
+    }
+
+    if (encryptionPublicKey) {
+        // Encrypt the whole raw MIME before storage. The envelope always goes
+        // into the raw TEXT column (never raw_blob); the flag byte inside the
+        // envelope records whether the content was gzipped before encryption.
+        // Any encryption failure propagates: the store must fail, never fall
+        // back to plaintext.
+        const envelope = await encryptMail(encryptionPublicKey, raw, { gzip: gzipEnabled });
+        const storeUnreadStatus = readStatusEnabled && tableColumns.has('is_unread');
+        if (!storeUnreadStatus) {
+            return env.DB.prepare(
+                `INSERT INTO raw_mails (source, address, raw, message_id) VALUES (?, ?, ?, ?)`
+            ).bind(source, address, envelope, messageId).run();
+        }
+        return env.DB.prepare(
+            `INSERT INTO raw_mails (source, address, raw, message_id, is_unread) VALUES (?, ?, ?, ?, 1)`
+        ).bind(source, address, envelope, messageId).run();
     }
 
     let rawBlob: ArrayBuffer | undefined;
@@ -98,8 +135,12 @@ export const sendAdminInternalMail = async (
             data: text
         });
         const messageId = Math.random().toString(36).substring(2, 15);
+        // Encrypt for the destination address when it has an encryption key,
+        // so admin internal mails are never stored as plaintext for encrypted mailboxes.
+        const encryptionPublicKey = await getAddressEncryptionPublicKey(c.env, toMail);
         const { success } = await storeRawMail(
-            c.env, "admin@internal", toMail, messageId, msg.asRaw()
+            c.env, "admin@internal", toMail, messageId, msg.asRaw(),
+            encryptionPublicKey
         );
         if (!success) {
             console.log(`Failed save message from admin@internal to ${toMail}`);

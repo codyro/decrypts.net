@@ -31,11 +31,15 @@ const fetchData = async () => {
     }
 }
 
+// Accepts the optional 5th `options` argument ({ encryptionPublicKey }) like
+// the default /api/new_address flow, so the Login.vue encryption opt-in works
+// in the Telegram mini-app webview too.
 const newAddressPath = async (
     address_name: string,
     domain: string,
     cf_token: string,
-    enableRandomSubdomain: boolean
+    enableRandomSubdomain: boolean,
+    options: { encryptionPublicKey?: string } = {}
 ) => {
     return await api.fetch("/telegram/new_address", {
         method: "POST",
@@ -44,6 +48,9 @@ const newAddressPath = async (
             address: `${address_name}@${domain}`,
             cf_token: cf_token,
             enableRandomSubdomain,
+            ...(options.encryptionPublicKey
+                ? { encryption_public_key: options.encryptionPublicKey }
+                : {}),
         }),
     });
 }

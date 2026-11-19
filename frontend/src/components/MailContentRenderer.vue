@@ -3,10 +3,12 @@ import { ref, computed, watch, nextTick } from "vue";
 import { useThemeVars } from 'naive-ui';
 import { useScopedI18n } from '@/i18n/app'
 import { CloudDownloadRound, ReplyFilled, ForwardFilled, FullscreenRound, ImageRound, AttachFileRound,
-  MarkEmailReadRound, MarkEmailUnreadRound, MoreHorizRound, DeleteOutlineRound, TextSnippetRound, InfoOutlined } from '@vicons/material'
+  MarkEmailReadRound, MarkEmailUnreadRound, MoreHorizRound, DeleteOutlineRound, TextSnippetRound, InfoOutlined,
+  LockOutlined } from '@vicons/material'
 import ShadowHtmlComponent from "./ShadowHtmlComponent.vue";
 import AiExtractInfo from "./AiExtractInfo.vue";
-import { getDownloadEmlUrl } from '../utils/email-parser';
+import { getDownloadEmlUrl, processItem } from '../utils/email-parser';
+import { importKeyOrLink } from '../utils/mail-fragment';
 import { blockRemoteContent } from '../utils/remote-content-policy';
 import { utcToLocalDate } from '../utils';
 import { useGlobalState } from '../store';
@@ -14,6 +16,7 @@ import { useGlobalState } from '../store';
 const { preferShowTextMail, useIframeShowMail, useUTCDate, isDark, autoLoadRemoteImages } = useGlobalState();
 
 const { t } = useScopedI18n('components.MailContentRenderer')
+const message = useMessage()
 const themeVars = useThemeVars();
 const replyColor = computed(() => isDark.value ? themeVars.value.infoColor : themeVars.value.infoColorPressed);
 const neutralActionColor = computed(() =>
@@ -69,6 +72,38 @@ const props = defineProps({
     default: () => { }
   }
 });
+
+const emit = defineEmits(['unlock']);
+
+const unlockInput = ref('');
+const unlockLoading = ref(false);
+
+const lockHint = computed(() => props.mail.lockReason === 'decrypt_failed'
+  ? t('lockedDecryptFailed')
+  : t('lockedMissingKey'));
+
+// Paste a private key / decryption link, store it, then re-parse this mail
+// in place (item.raw still holds the encrypted envelope when locked).
+const handleUnlock = async () => {
+  if (unlockLoading.value) return;
+  unlockLoading.value = true;
+  try {
+    const { ok } = await importKeyOrLink(unlockInput.value, props.mail.address);
+    if (!ok) {
+      message.error(t('unlockInvalid'));
+      return;
+    }
+    unlockInput.value = '';
+    message.success(t('unlockSuccess'));
+    await processItem(props.mail);
+    if (!props.mail.locked) emit('unlock', props.mail);
+  } catch (error) {
+    console.error(error);
+    message.error(t('unlockInvalid'));
+  } finally {
+    unlockLoading.value = false;
+  }
+};
 
 const showTextMail = ref(preferShowTextMail.value);
 const showAttachments = ref(false);
@@ -190,7 +225,7 @@ const handleSaveToS3 = async (filename, blob) => {
       </div>
     </div>
     <n-flex class="mail-actions" align="center" justify="space-between" :size="4">
-      <n-space v-if="showReply || mail.attachments?.length" align="center" :size="4">
+      <n-space v-if="(showReply || mail.attachments?.length) && !mail.locked" align="center" :size="4">
         <n-button v-if="showReply" size="small" quaternary type="info" :color="replyColor" @click="handleReply">
           <template #icon><n-icon :component="ReplyFilled" /></template>
           {{ t('reply') }}
@@ -219,7 +254,7 @@ const handleSaveToS3 = async (filename, blob) => {
               </n-button>
             </template>
             <div class="mail-more-actions" @keydown.esc.stop.prevent="closeMoreActions">
-              <n-button ref="downloadMailButton" tag="a" target="_blank" block quaternary size="small" :download="mail.id + '.eml'"
+              <n-button v-if="!mail.locked" ref="downloadMailButton" tag="a" target="_blank" block quaternary size="small" :download="mail.id + '.eml'"
                 :href="getDownloadEmlUrl(mail.raw)" @click="closeMoreActions">
                 <template #icon><n-icon :component="CloudDownloadRound" /></template>
                 {{ t('downloadMail') }}
@@ -231,7 +266,7 @@ const handleSaveToS3 = async (filename, blob) => {
                 </template>
                 {{ mail.is_unread === 1 ? t('markAsRead') : t('markAsUnread') }}
               </n-button>
-              <n-button block quaternary size="small" @click="toggleTextMail">
+              <n-button v-if="!mail.locked" block quaternary size="small" @click="toggleTextMail">
                 <template #icon><n-icon :component="TextSnippetRound" /></template>
                 {{ showTextMail ? t('showHtmlMail') : t('showTextMail') }}
               </n-button>
@@ -275,8 +310,23 @@ const handleSaveToS3 = async (filename, blob) => {
     <!-- AI 提取信息 -->
     <AiExtractInfo :metadata="mail.metadata" />
 
+    <!-- 加密但未解锁的邮件 -->
+    <n-alert v-if="mail.locked" type="warning" :show-icon="false" :bordered="false" class="mail-locked-banner">
+      <n-space align="center" :size="6">
+        <n-icon :component="LockOutlined" />
+        <span>{{ lockHint }}</span>
+      </n-space>
+      <n-space align="center" :size="6" style="margin-top: 8px;">
+        <n-input v-model:value="unlockInput" size="small" :placeholder="t('unlockInputPlaceholder')"
+          style="max-width: 320px;" @keyup.enter="handleUnlock" />
+        <n-button size="small" type="primary" tertiary :loading="unlockLoading" @click="handleUnlock">
+          {{ t('unlock') }}
+        </n-button>
+      </n-space>
+    </n-alert>
+
     <!-- 邮件内容 -->
-    <div class="mail-content" :class="{ 'dark-mode': isDark }">
+    <div v-if="!mail.locked" class="mail-content" :class="{ 'dark-mode': isDark }">
       <pre v-if="showTextMail" class="mail-text">{{ mail.text }}</pre>
       <iframe v-else-if="useIframeShowMail" :srcdoc="processedMail.message" class="mail-iframe" sandbox="allow-same-origin allow-popups">
       </iframe>

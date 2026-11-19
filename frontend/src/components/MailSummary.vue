@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useThemeVars } from 'naive-ui';
+import { LockOutlined } from '@vicons/material';
 import { useGlobalState } from '../store';
 import { utcToLocalDate } from '../utils';
 import AiExtractInfo from './AiExtractInfo.vue';
@@ -21,6 +22,9 @@ const props = defineProps({
 });
 
 const receivedAt = computed(() => new Date(`${props.mail.created_at} UTC`));
+const lockHint = computed(() => props.mail.lockReason === 'decrypt_failed'
+  ? t('lockedDecryptFailed')
+  : t('lockedMissingKey'));
 </script>
 
 <template>
@@ -44,7 +48,11 @@ const receivedAt = computed(() => new Date(`${props.mail.created_at} UTC`));
       </n-ellipsis>
     </div>
     <div class="mail-summary-subject" :title="`ID: ${mail.id}\n${mail.subject || ''}`">
-      <n-ellipsis><n-text strong depth="1">{{ mail.subject || '—' }}</n-text></n-ellipsis>
+      <n-flex align="center" :wrap="false" :size="4">
+        <n-icon v-if="mail.locked" :component="LockOutlined" class="mail-summary-lock"
+          :title="mail.lockReason === 'decrypt_failed' ? t('lockedDecryptFailed') : t('lockedMissingKey')" />
+        <n-ellipsis><n-text strong depth="1">{{ mail.locked ? lockHint : (mail.subject || '—') }}</n-text></n-ellipsis>
+      </n-flex>
     </div>
     <div v-if="mail.text && previewLineClamp > 0" class="mail-summary-preview">
       <n-ellipsis :line-clamp="previewLineClamp" :tooltip="false"><n-text depth="3" class="mail-summary-muted">{{ mail.text }}</n-text></n-ellipsis>
@@ -115,6 +123,11 @@ const receivedAt = computed(() => new Date(`${props.mail.created_at} UTC`));
   height: 7px;
   border-radius: 50%;
   background: v-bind('themeVars.infoColor');
+}
+
+.mail-summary-lock {
+  flex: 0 0 auto;
+  color: v-bind(mutedTextColor);
 }
 
 .mail-summary :deep(.ai-extract-info) {

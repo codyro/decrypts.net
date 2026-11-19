@@ -61,6 +61,8 @@ To let agents consume the mailbox directly, the project adds **server-parsed** r
 
 **Attachment binary content is not included** in `parsed_*` responses — only metadata. If you need the bytes, fall back to `/api/mail/:id` and parse the raw source yourself.
 
+For addresses with mailbox encryption enabled (`ENABLE_MAIL_ENCRYPTION`), encrypted mail is NOT server-parsed: `raw` is a `cfte1.` ciphertext envelope and the parsed endpoints return an `encrypted: true` placeholder (`subject: "[Encrypted mail]"`, no text/html/attachments). When you see `encrypted: true`, tell the user this mail requires their private key to decrypt client-side and cannot be read via the API.
+
 ## Required headers
 
 - `Authorization: Bearer <JWT>` — required on every `/api/*` request

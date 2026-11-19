@@ -11,6 +11,10 @@
 ### Features
 
 - feat: |UI| Redesign the frontend: unified accent and spacing, mailbox page reduced to address bar + inbox, appearance moved to a Preferences drawer, About/GitHub/Status moved to the footer, Auto Reply and S3 attachments merged into Mailbox Settings
+- feat: |Mailbox Encryption| Add optional `ENABLE_MAIL_ENCRYPTION` per-mailbox end-to-end encryption of stored mail: the worker holds only the address public key and encrypts the whole raw MIME into a `cfte1.` envelope before storage; the private key lives only in the browser (URL fragment + localStorage) and the frontend decrypts client-side
+  - Run database migration before enabling it: `Admin -> Quick Setup -> Database -> Migrate Database`, or call `POST /admin/db_migration`
+  - Adds the `address.encryption_public_key` column and `GET/POST /api/address_encryption`; the create-address API accepts an optional `encryption_public_key` field; encrypted addresses skip forwarding, webhook, Telegram push, AI extraction, and another-worker RPC, and server-parsed endpoints return an `encrypted: true` placeholder
+  - Admin single/batch mailbox creation supports the encryption opt-in (one browser-generated key pair per address) and the batch export CSV includes `private_key`/`decryption_link` columns; the Telegram mini-app creation page supports the opt-in, while the bot `/new` command does not
 - feat: |Mail Forwarding| Add recipient address regex filters to forwarding rules, reusing internal delivery with any/all matching
 - feat: |Mailbox Login| Keep session-token access with expiry details, hiding legacy credential contents and blocking legacy cache switches in password-only mode while retaining cache removal
 - feat: |Mailbox Sessions| Extend renewable 30-day JWT issuance to mailbox creation and authorized user, admin, and Telegram access

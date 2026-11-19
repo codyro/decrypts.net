@@ -4,6 +4,7 @@ import { createAddressToken } from '../address_auth';
 import i18n from '../i18n'
 import { getBooleanValue } from '../utils'
 import { newAddress, handleListQuery } from '../common'
+import { validateOptionalEncryptionPublicKey } from '../utils/mail_encryption';
 import { unbindTelegramByAddress } from '../telegram_api/common'
 
 const listAddresses = async (c: Context<HonoCustomType>) => {
@@ -47,10 +48,16 @@ const listAddresses = async (c: Context<HonoCustomType>) => {
 };
 
 const createNewAddress = async (c: Context<HonoCustomType>) => {
-    const { name, domain, enablePrefix, enableRandomSubdomain } = await c.req.json();
+    const { name, domain, enablePrefix, enableRandomSubdomain, encryption_public_key } = await c.req.json();
     const msgs = i18n.getMessagesbyContext(c);
     if (!name) {
         return c.text(msgs.RequiredFieldMsg, 400)
+    }
+    // optional per-mailbox encryption public key: absent keeps the previous
+    // plaintext behavior, present requires the feature var and a valid key
+    const keyCheck = await validateOptionalEncryptionPublicKey(c, encryption_public_key, msgs);
+    if (!keyCheck.ok) {
+        return keyCheck.response;
     }
     try {
         const res = await newAddress(c, {
@@ -60,7 +67,8 @@ const createNewAddress = async (c: Context<HonoCustomType>) => {
             addressPrefix: null,
             checkAllowDomains: false,
             enableCheckNameRegex: false,
-            sourceMeta: 'admin'
+            sourceMeta: 'admin',
+            encryptionPublicKey: keyCheck.publicKey,
         });
         return c.json(res);
     } catch (e) {

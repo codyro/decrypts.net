@@ -39,6 +39,22 @@ res = requests.post(
 print(res.json())
 ```
 
+### Create an Encrypted Mailbox Address
+
+With `ENABLE_MAIL_ENCRYPTION` enabled and the database migrated, `POST /api/new_address`, `POST /admin/new_address` and `POST /telegram/new_address` (Telegram mini-app) accept an optional `encryption_public_key` field (base64url-encoded 65-byte uncompressed P-256 point). Mail received by such an address is stored encrypted; the private key lives only in the browser (see [Mailbox Encryption](./mail-encryption.md)). An invalid key, or the feature being disabled, returns 400. Admin batch creation issues one `/admin/new_address` call per address, so every address in a batch can carry its own key. The bot `/new` command does not support this field.
+
+```python
+res = requests.post(
+    "https://xxxx.xxxx/api/new_address",
+    json={
+        "name": "<email_name>",
+        "domain": "<email_domain>",
+        # Optional: mailbox encryption public key (base64url, 65-byte P-256 uncompressed point)
+        "encryption_public_key": "<public key>",
+    },
+)
+```
+
 ### Create a Subdomain Mailbox Address
 
 If your base domain is already configured in `DOMAINS` / `DEFAULT_DOMAINS` / `USER_ROLES`, and

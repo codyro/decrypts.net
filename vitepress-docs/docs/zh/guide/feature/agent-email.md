@@ -61,6 +61,8 @@
 
 **附件二进制不包含**在 `parsed_*` 响应里，只有元数据。需要原始字节时再退回 `/api/mail/:id` 自己解析。
 
+启用了邮箱加密（`ENABLE_MAIL_ENCRYPTION`）的地址，加密邮件不会被服务端解析：`raw` 是 `cfte1.` 密文信封，解析接口返回 `encrypted: true` 占位（`subject: "[Encrypted mail]"`，无正文/附件）。遇到 `encrypted: true` 时，告知用户该邮件需要其私钥才能在客户端解密，API 侧无法读取。
+
 ## 必要的请求头
 
 - `Authorization: Bearer <JWT>` — 所有 `/api/*` 请求必须携带

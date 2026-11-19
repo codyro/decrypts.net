@@ -1,6 +1,6 @@
 import { Context } from "hono";
 
-import { getJsonSetting, normalizeAddressDomain } from "../utils";
+import { getBooleanValue, getJsonSetting, normalizeAddressDomain } from "../utils";
 import { sendMailToTelegram } from "../telegram_api";
 import { auto_reply } from "./auto_reply";
 import { isBlocked } from "./black_list";
@@ -11,7 +11,7 @@ import { extractEmailInfo } from "./ai_extract";
 import { forwardEmail } from "./forward";
 import { EmailRuleSettings } from "../models";
 import { CONSTANTS } from "../constants";
-import { deleteRawMail, storeRawMail } from "./storage";
+import { deleteRawMail, getAddressEncryptionPublicKey, storeRawMail } from "./storage";
 
 
 async function receiveEmail(
@@ -67,10 +67,19 @@ async function receiveEmail(
         console.error("remove attachment error", error);
     }
 
+    // per-mailbox encryption: single key lookup, only when the feature is
+    // enabled (helper returns null without querying otherwise). The whole raw
+    // MIME is encrypted before storage; content-leaking ingest paths below
+    // (forward, AI extract, telegram, webhook, another-worker RPC) are skipped
+    // for encrypted mailboxes.
+    const encryptionPublicKey = await getAddressEncryptionPublicKey(env, toAddress);
+    const isMailEncrypted = !!encryptionPublicKey;
+
     const message_id = message.headers.get("Message-ID");
     // save email
     const storedMailId = await storeRawMail(
-        env, message.from, toAddress, message_id, parsedEmailContext.rawEmail
+        env, message.from, toAddress, message_id, parsedEmailContext.rawEmail,
+        encryptionPublicKey
     ).then(({ success, meta }) => {
         if (!success) {
             message.setReject(`Failed save message to ${toAddress}`);
@@ -79,54 +88,59 @@ async function receiveEmail(
         return success ? meta.last_row_id : undefined;
     }).catch((error) => {
         console.error("save email error", error);
+        message.setReject(`Failed save message to ${toAddress}`);
         return undefined;
     });
     if (storedMailId) onStored?.();
 
-    // forward email
-    const { deleteOriginal: deleteAfterForward } = allowForward
-        ? await forwardEmail(message, env, rawEmail,
-            (targetMessage, onTargetStored) => receiveEmail(targetMessage, env, ctx, false, onTargetStored))
-        : { deleteOriginal: false };
+    let deleteAfterForward = false;
+    if (!isMailEncrypted) {
+        // forward email
+        deleteAfterForward = (allowForward
+            ? await forwardEmail(message, env, rawEmail,
+                (targetMessage, onTargetStored) => receiveEmail(targetMessage, env, ctx, false, onTargetStored))
+            : { deleteOriginal: false }).deleteOriginal;
 
-    // AI email content extraction
-    const aiExtractResult = await extractEmailInfo(parsedEmailContext, env, storedMailId, toAddress);
+        // AI email content extraction
+        const aiExtractResult = await extractEmailInfo(parsedEmailContext, env, storedMailId, toAddress);
 
-    // send email to telegram
-    try {
-        await sendMailToTelegram(
-            { env: env } as Context<HonoCustomType>,
-            toAddress, parsedEmailContext, storedMailId, aiExtractResult);
-    } catch (error) {
-        console.error("send mail to telegram error", error);
-    }
-
-    // send webhook
-    try {
-        await triggerWebhook(
-            { env: env } as Context<HonoCustomType>,
-            toAddress, parsedEmailContext, storedMailId, aiExtractResult
-        );
-    } catch (error) {
-        console.error("send webhook error", error);
-    }
-
-    // trigger another worker
-    try {
-        const parsedEmail = (await commonParseMail(parsedEmailContext));
-        const parsedText = parsedEmail?.text ?? ""
-        const rpcEmail: RPCEmailMessage = {
-            from: message.from,
-            to: toAddress,
-            rawEmail: rawEmail,
-            headers: message.headers
+        // send email to telegram
+        try {
+            await sendMailToTelegram(
+                { env: env } as Context<HonoCustomType>,
+                toAddress, parsedEmailContext, storedMailId, aiExtractResult);
+        } catch (error) {
+            console.error("send mail to telegram error", error);
         }
-        await triggerAnotherWorker({ env: env } as Context<HonoCustomType>, rpcEmail, parsedText);
-    } catch (error) {
-        console.error("trigger another worker error", error);
+
+        // send webhook
+        try {
+            await triggerWebhook(
+                { env: env } as Context<HonoCustomType>,
+                toAddress, parsedEmailContext, storedMailId, aiExtractResult
+            );
+        } catch (error) {
+            console.error("send webhook error", error);
+        }
+
+        // trigger another worker
+        try {
+            const parsedEmail = (await commonParseMail(parsedEmailContext));
+            const parsedText = parsedEmail?.text ?? ""
+            const rpcEmail: RPCEmailMessage = {
+                from: message.from,
+                to: toAddress,
+                rawEmail: rawEmail,
+                headers: message.headers
+            }
+            await triggerAnotherWorker({ env: env } as Context<HonoCustomType>, rpcEmail, parsedText);
+        } catch (error) {
+            console.error("trigger another worker error", error);
+        }
     }
 
-    // auto reply email
+    // auto reply email (only uses message headers and configured content,
+    // never stores or sends the incoming plaintext anywhere)
     if (allowForward) await auto_reply(message, env, toAddress);
 
     const shouldDeleteMail = deleteAfterForward;

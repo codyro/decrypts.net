@@ -3,6 +3,7 @@ import { Context } from 'hono'
 import i18n from '../i18n';
 import { getBooleanValue, getJsonSetting, checkCfTurnstile, isAddressCountLimitReached } from '../utils';
 import { newAddress, getAddressPrefix, generateRandomName } from '../common'
+import { validateOptionalEncryptionPublicKey } from '../utils/mail_encryption';
 import { CONSTANTS } from '../constants'
 
 const createNewAddress = async (c: Context<HonoCustomType>) => {
@@ -18,6 +19,16 @@ const createNewAddress = async (c: Context<HonoCustomType>) => {
         return c.text(msgs.NewAddressDisabledMsg, 403)
     }
 
+    // eslint-disable-next-line prefer-const
+    let { name, domain, cf_token, enableRandomSubdomain, encryption_public_key } = await c.req.json();
+    // optional per-mailbox encryption public key: reject when the feature is
+    // disabled, validate before creating the address
+    const keyCheck = await validateOptionalEncryptionPublicKey(c, encryption_public_key, msgs);
+    if (!keyCheck.ok) {
+        return keyCheck.response;
+    }
+    encryption_public_key = keyCheck.publicKey;
+
     // 如果启用了禁止匿名创建，且用户已登录，检查地址数量限制
     if (getBooleanValue(c.env.DISABLE_ANONYMOUS_USER_CREATE_EMAIL) && userPayload) {
         const userRole = c.get("userRolePayload");
@@ -26,8 +37,6 @@ const createNewAddress = async (c: Context<HonoCustomType>) => {
         }
     }
 
-    // eslint-disable-next-line prefer-const
-    let { name, domain, cf_token, enableRandomSubdomain } = await c.req.json();
     // check cf turnstile
     try {
         await checkCfTurnstile(c, cf_token);
@@ -63,7 +72,8 @@ const createNewAddress = async (c: Context<HonoCustomType>) => {
             enableRandomSubdomain: getBooleanValue(enableRandomSubdomain),
             checkLengthByConfig: true,
             addressPrefix,
-            sourceMeta
+            sourceMeta,
+            encryptionPublicKey: encryption_public_key,
         });
         return c.json(res);
     } catch (e) {

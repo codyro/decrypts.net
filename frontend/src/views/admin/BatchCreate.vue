@@ -2,12 +2,15 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useScopedI18n } from '@/i18n/app'
 import { api } from '../../api'
+import { generateKeyPair } from '../../utils/mail-crypto'
 import BatchExportModal from './BatchExportModal.vue'
 
 const props = defineProps({
     options: { type: Object, required: true },
     addressRegex: { type: RegExp, required: true },
     disabled: Boolean,
+    // whether the deployment supports per-mailbox mail encryption
+    enableMailEncryption: Boolean,
 })
 const emit = defineEmits(['busy'])
 const { t } = useScopedI18n('views.admin.BatchCreate')
@@ -19,6 +22,9 @@ const batchCompleted = ref(0)
 const batchRequested = ref(0)
 const batchError = ref('')
 const showExportModal = ref(false)
+// one key pair per address is generated in this browser when enabled; the
+// private keys stay in component memory until exported or the view is left
+const encryptBatch = ref(false)
 let unmounted = false
 onBeforeUnmount(() => { unmounted = true })
 
@@ -48,13 +54,22 @@ const createBatch = async () => {
             if (!name || !/^[a-z0-9]{1,30}$/.test(name)) {
                 throw new Error(t('batchNameError'))
             }
+            // keygen is one awaited WebCrypto call per address inside the
+            // existing sequential loop, so the UI stays responsive
+            const keyPair = encryptBatch.value ? await generateKeyPair() : null
             const res = await api.fetch('/admin/new_address', {
                 method: 'POST',
-                body: JSON.stringify({ ...options, name }),
+                body: JSON.stringify({
+                    ...options, name,
+                    ...(keyPair ? { encryption_public_key: keyPair.publicKey } : {}),
+                }),
                 showLoading: false,
             })
             if (unmounted) break
-            batchRows.value.push({ address: res.address, jwt: res.jwt })
+            batchRows.value.push({
+                address: res.address, jwt: res.jwt,
+                ...(keyPair ? { privateKey: keyPair.privateKey } : {}),
+            })
             batchCompleted.value++
         }
     } catch (error) {
@@ -81,6 +96,15 @@ const clearBatch = () => {
             <n-input-number v-model:value="batchCount" :disabled="busy || disabled" :show-button="false"
                 :input-props="{ 'aria-label': t('batchCount') }" style="width: 100%;" />
         </n-form-item-row>
+        <template v-if="enableMailEncryption">
+            <n-checkbox v-model:checked="encryptBatch" :disabled="busy || disabled" style="margin-top: 10px;">
+                {{ t('encryptBatchCheckbox') }}
+            </n-checkbox>
+            <n-alert v-if="encryptBatch" type="warning" :show-icon="false" :bordered="false"
+                style="margin-top: 8px; text-align: left;">
+                {{ t('encryptBatchWarning') }}
+            </n-alert>
+        </template>
         <n-button @click="createBatch" type="primary" block :loading="busy"
             :disabled="busy || disabled || !validBatchCount">
             {{ t('createBatch') }}

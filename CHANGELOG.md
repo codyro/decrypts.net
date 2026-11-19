@@ -11,6 +11,10 @@
 ### Features
 
 - feat: |UI| 重新设计前端界面：统一主题色与间距，邮箱页精简为地址栏 + 收件箱，外观设置移至偏好设置抽屉，关于/GitHub/状态移至页脚，自动回复与 S3 附件并入邮箱设置
+- feat: |邮箱加密| 新增 `ENABLE_MAIL_ENCRYPTION` 可选的按邮箱端到端加密存储，Worker 只保存邮箱公钥，整封原始 MIME 入库前加密为 `cfte1.` 信封，私钥仅存于浏览器（URL fragment + localStorage），前端客户端解密后解析
+  - 启用前需先执行数据库迁移：`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema`，或调用接口 `POST /admin/db_migration`
+  - 新增 `address.encryption_public_key` 列与 `GET/POST /api/address_encryption` 接口；创建邮箱 API 支持可选 `encryption_public_key` 字段；加密邮箱跳过转发、Webhook、Telegram 推送、AI 识别和其他 Worker RPC，服务端解析接口返回 `encrypted: true` 占位
+  - 管理后台单个/批量创建邮箱支持加密选项（每地址一对浏览器生成密钥），批量导出 CSV 含 `private_key`/`decryption_link` 列；Telegram 小程序创建页支持加密选项，Bot `/new` 命令不支持加密
 - feat: |邮件转发| 规则新增收件人地址正则过滤，复用现有站内转发流程，支持任一或全部匹配
 - feat: |邮箱登录| 保留会话 Token 查看入口并显示到期时间，密码模式隐藏旧凭据内容并禁止旧缓存切换，保留缓存删除功能
 - feat: |邮箱会话| 将可续期的 30 天 JWT 签发扩展至创建邮箱及用户、管理员、Telegram 授权入口

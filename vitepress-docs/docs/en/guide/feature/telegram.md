@@ -91,6 +91,9 @@ Set `ENABLE_TG_PUSH_ATTACHMENT = true` to enable sending email attachments via T
 - Multiple attachments are sent in batches via `sendMediaGroup`, up to 6 per batch
 - The first attachment includes the sender and subject as caption
 
+> [!NOTE]
+> Addresses created with [mailbox encryption](./mail-encryption.md) (`encryption_public_key`) never receive Telegram push: pushing would require server-side decryption, so the content-leaking path is skipped by design. Use the web app or mini app to view encrypted mail.
+
 ## Mini App
 
 Can be deployed via command line or UI interface
@@ -127,3 +130,7 @@ pnpm run deploy:telegram --project-name=<your_project_name>
 - After deployment, please fill in the web URL in the `Settings` -> `Telegram Mini App` page `Telegram Mini App URL` in the admin backend.
 - Please execute `/setmenubutton` in `@BotFather`, then enter your web address to set the `Open App` button in the lower left corner.
 - Please execute `/newapp` in `@BotFather` to create a new app and register the mini app.
+
+### Mailbox Encryption in the Mini App
+
+When `ENABLE_MAIL_ENCRYPTION` is enabled, the mini app's bind/create tab shows an "enable mailbox encryption" option. The key pair is generated in the webview, only the public key is sent to `POST /telegram/new_address`, and the private key stays in the mini-app webview's localStorage — encrypted mail is decrypted client-side when viewing, and a locked mail can be unlocked by pasting a decryption link. The bot `/new` text command does not support encryption (no browser context), and encrypted addresses receive no Telegram push.

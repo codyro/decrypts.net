@@ -23,6 +23,9 @@ const messages: LocaleMessages = {
 
     TurnstileCheckFailedMsg: "Human verification check failed",
     NewAddressDisabledMsg: "New address is disabled, please contact the administrator",
+    MailEncryptionDisabledMsg: "Mail encryption is disabled, please contact the administrator",
+    InvalidMailEncryptionPublicKeyMsg: "Invalid encryption public key, expected base64url of a 65-byte uncompressed P-256 point",
+    EncryptedMailSubjectMsg: "[Encrypted mail]",
     NewAddressAnonymousDisabledMsg: "New address for anonymous user is disabled, please contact the administrator",
     FailedCreateAddressMsg: "Failed to create address",
     InvalidAddressMsg: "Invalid address",
@@ -166,6 +169,7 @@ const messages: LocaleMessages = {
     TgNoMailMsg: "No mail",
     TgGetMailFailedMsg: "Failed to get mail:",
     TgParseMailFailedMsg: "Failed to parse mail:",
+    TgEncryptedMailMsg: "This mail is encrypted and can only be viewed in the web app",
     TgViewMailBtnMsg: "View Mail",
     TgPrevBtnMsg: "Prev",
     TgNextBtnMsg: "Next",

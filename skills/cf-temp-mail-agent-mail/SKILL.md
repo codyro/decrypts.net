@@ -70,6 +70,8 @@ Do not send the Address JWT as `x-user-token` — that is a different JWT type a
 
 Attachments carry metadata only; no binary content.
 
+For mailboxes with per-mailbox encryption enabled (`ENABLE_MAIL_ENCRYPTION`), encrypted mail is NOT server-parsed: `raw` is a `cfte1.` ciphertext envelope and parsed endpoints return `encrypted: true` with an empty placeholder (`subject: "[Encrypted mail]"`, no text/html/attachments). Only the private key holder can decrypt client-side (see the docs' Mailbox Encryption page). If you encounter `encrypted: true`, tell the user this mail cannot be read via the API without their private key.
+
 ### 1. Smoke-test the JWT
 
 ```bash

@@ -91,6 +91,9 @@ Telegram Bot 支持 **每用户独立推送**，用户绑定地址后，该地�
 - 多附件通过 `sendMediaGroup` 批量发送，每批最多 6 个
 - 第一个附件会附带邮件发件人和主题信息作为 caption
 
+> [!NOTE]
+> 使用[邮箱加密](./mail-encryption.md)（`encryption_public_key`）创建的地址不会收到 Telegram 推送：推送需要服务端解密，该泄漏内容的链路按设计跳过。请在网页端或小程序内查看加密邮件。
+
 ## Mini App
 
 可以通过命令行部署，或者 UI 界面部署
@@ -127,3 +130,7 @@ pnpm run deploy:telegram --project-name=<你的项目名称>
 - 部署完成后，请在 admin 后台的 `设置` -> `电报小程序` 页面 `电报小程序 URL` 中填写网页 URL。
 - 请在 `@BotFather` 处执行 `/setmenubutton`，然后输入你的网页地址，设置左下角的 `Open App` 按钮。
 - 请在 `@BotFather` 处执行 `/newapp` 新建 app 来注册 mini app。
+
+### 小程序中的邮箱加密
+
+启用 `ENABLE_MAIL_ENCRYPTION` 后，小程序内绑定/创建页会显示"启用邮箱加密"选项。密钥对在 webview 中生成，只有公钥会发送到 `POST /telegram/new_address`，私钥保留在小程序 webview 的 localStorage 中——查看加密邮件时在客户端本地解密，锁定邮件可通过粘贴解密链接解锁。Bot `/new` 文本命令不支持加密（无浏览器环境），加密地址也不会收到 Telegram 推送。

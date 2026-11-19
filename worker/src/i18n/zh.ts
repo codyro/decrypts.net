@@ -23,6 +23,9 @@ const messages: LocaleMessages = {
 
     TurnstileCheckFailedMsg: "人机验证检查失败",
     NewAddressDisabledMsg: "新建邮箱地址已禁用, 请联系管理员",
+    MailEncryptionDisabledMsg: "邮件加密功能已禁用, 请联系管理员",
+    InvalidMailEncryptionPublicKeyMsg: "无效的加密公钥, 应为 65 字节未压缩 P-256 点的 base64url 编码",
+    EncryptedMailSubjectMsg: "[加密邮件]",
     NewAddressAnonymousDisabledMsg: "匿名用户新建邮箱地址已禁用, 请联系管理员",
     FailedCreateAddressMsg: "创建邮箱地址失败",
     InvalidAddressMsg: "无效的邮箱地址",
@@ -166,6 +169,7 @@ const messages: LocaleMessages = {
     TgNoMailMsg: "无邮件",
     TgGetMailFailedMsg: "获取邮件失败:",
     TgParseMailFailedMsg: "解析邮件失败:",
+    TgEncryptedMailMsg: "该邮件已加密, 请在网页端查看",
     TgViewMailBtnMsg: "查看邮件",
     TgPrevBtnMsg: "上一条",
     TgNextBtnMsg: "下一条",

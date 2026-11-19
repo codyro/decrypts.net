@@ -24,7 +24,8 @@ export const verifyTelegramBindingToken = async (c: Context<HonoCustomType>, tok
 export const tgUserNewAddress = async (
     c: Context<HonoCustomType>, userId: string, address: string,
     msgs: LocaleMessages,
-    enableRandomSubdomain: boolean = false
+    enableRandomSubdomain: boolean = false,
+    encryptionPublicKey: string | null = null
 ): Promise<{ address: string, jwt: string, password?: string | null }> => {
     if (c.env.RATE_LIMITER) {
         const { success } = await c.env.RATE_LIMITER.limit(
@@ -59,7 +60,8 @@ export const tgUserNewAddress = async (
         domain,
         enablePrefix: true,
         enableRandomSubdomain,
-        sourceMeta: `tg:${userId}`
+        sourceMeta: `tg:${userId}`,
+        encryptionPublicKey,
     });
     // for mail push to telegram
     const bindingToken = await createTelegramBindingToken(c, res.address, res.address_id);

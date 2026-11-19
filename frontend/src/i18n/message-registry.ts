@@ -287,6 +287,30 @@ export const MESSAGE_REGISTRY = {
     "size": {
       "en": "Size",
       "zh": "大小"
+    },
+    "lockedMissingKey": {
+      "en": "This mail is encrypted and the decryption key is not on this device.",
+      "zh": "此邮件已端到端加密，此设备上没有解密密钥。"
+    },
+    "lockedDecryptFailed": {
+      "en": "This mail could not be decrypted with the stored key.",
+      "zh": "无法使用已存储的密钥解密此邮件。"
+    },
+    "unlockInputPlaceholder": {
+      "en": "Paste private key or decryption link",
+      "zh": "粘贴私钥或解密链接"
+    },
+    "unlock": {
+      "en": "Unlock",
+      "zh": "解锁"
+    },
+    "unlockSuccess": {
+      "en": "Decryption key saved",
+      "zh": "解密密钥已保存"
+    },
+    "unlockInvalid": {
+      "en": "Invalid decryption key or link",
+      "zh": "解密密钥或链接无效"
     }
   },
   "components.Turnstile": {
@@ -415,6 +439,30 @@ export const MESSAGE_REGISTRY = {
     "autoLoginLink": {
       "en": "Auto-login link",
       "zh": "自动登录链接"
+    },
+    "decryptionLink": {
+      "en": "Decryption link (auto-login + key)",
+      "zh": "解密链接（自动登录 + 密钥）"
+    },
+    "decryptionLinkTip": {
+      "en": "Anyone with this link can log in and read the encrypted mail of this address. Do not share it.",
+      "zh": "任何获得此链接的人都可以登录并阅读此地址的加密邮件，请勿分享。"
+    },
+    "mailEncryption": {
+      "en": "End-to-end encryption",
+      "zh": "端到端加密"
+    },
+    "privateKey": {
+      "en": "Private key",
+      "zh": "私钥"
+    },
+    "privateKeyWarning": {
+      "en": "Anyone with this key or the links below can read the encrypted mail of this address. If the key is lost, the mail cannot be recovered by anyone, including the server. Save it now.",
+      "zh": "任何持有此私钥或下方链接的人都可以阅读此地址的加密邮件。如果丢失私钥，邮件将无法被任何人（包括服务器）恢复。请立即保存。"
+    },
+    "decryptionOnlyLink": {
+      "en": "Decryption link (key only)",
+      "zh": "解密链接（仅密钥）"
     },
     "autoLoginQrCode": {
       "en": "Scan to open on mobile",
@@ -1319,6 +1367,86 @@ export const MESSAGE_REGISTRY = {
     "success": {
       "en": "Success",
       "zh": "成功"
+    },
+    "mailEncryption": {
+      "en": "End-to-End Mail Encryption",
+      "zh": "端到端邮件加密"
+    },
+    "encryptionUnavailable": {
+      "en": "Mail encryption is not enabled on this server.",
+      "zh": "服务器未启用邮件加密。"
+    },
+    "encryptionDisabledStatus": {
+      "en": "Encryption is disabled for this address. Enable it to have incoming mail encrypted before it is stored.",
+      "zh": "此地址未启用加密。启用后，收到的邮件将在存储前被加密。"
+    },
+    "encryptionEnable": {
+      "en": "Enable",
+      "zh": "启用"
+    },
+    "encryptionEnabled": {
+      "en": "Encryption enabled",
+      "zh": "加密已启用"
+    },
+    "encryptionRotate": {
+      "en": "Rotate Key",
+      "zh": "更换密钥"
+    },
+    "encryptionRotateTip": {
+      "en": "A new key pair will be generated and only new mail will use it. Mail received before the rotation stays encrypted under the previous key and can still be read on this device; other devices need the old private key.",
+      "zh": "将生成新的密钥对，只有新收到的邮件会使用新密钥。更换密钥前已收到的邮件仍使用旧密钥加密，本设备仍可解密；其他设备需要导入旧私钥才能读取。"
+    },
+    "encryptionDisable": {
+      "en": "Disable",
+      "zh": "禁用"
+    },
+    "encryptionDisableTip": {
+      "en": "New mail will be stored in plaintext. Mail already received stays encrypted and can only be read with the matching private key.",
+      "zh": "禁用后新邮件将以明文存储。已收到的加密邮件仍保持加密，只有使用对应的私钥才能读取。"
+    },
+    "encryptionKeyMismatch": {
+      "en": "The public key on the server does not match any private key on this device. Import the private key below to read your mail.",
+      "zh": "服务器上的公钥与此设备上的私钥不匹配，请在下方导入私钥后才能读取邮件。"
+    },
+    "encryptionNoLocalKey": {
+      "en": "Encryption is enabled, but this device does not have the private key. Import it below.",
+      "zh": "已启用加密，但此设备上没有私钥，请在下方导入。"
+    },
+    "keyFingerprint": {
+      "en": "Key fingerprint",
+      "zh": "密钥指纹"
+    },
+    "copyDecryptionLink": {
+      "en": "Copy Decryption Link",
+      "zh": "复制解密链接"
+    },
+    "copySuccess": {
+      "en": "Copied",
+      "zh": "已复制"
+    },
+    "copyFailed": {
+      "en": "Copy failed",
+      "zh": "复制失败"
+    },
+    "encryptionExportKey": {
+      "en": "Export Private Key",
+      "zh": "导出私钥"
+    },
+    "encryptionExportKeyTip": {
+      "en": "Anyone holding this private key can read all encrypted mail of this address. Store it somewhere safe.",
+      "zh": "任何持有此私钥的人都可以阅读此地址的所有加密邮件，请妥善保管。"
+    },
+    "encryptionImport": {
+      "en": "Import",
+      "zh": "导入"
+    },
+    "encryptionImportPlaceholder": {
+      "en": "Paste private key or decryption link",
+      "zh": "粘贴私钥或解密链接"
+    },
+    "encryptionImportInvalid": {
+      "en": "Invalid decryption key or link",
+      "zh": "解密密钥或链接无效"
     }
   },
   "views.user.UserOauth2Callback": {
@@ -2527,6 +2655,10 @@ export const MESSAGE_REGISTRY = {
     "close": {
       "en": "Close",
       "zh": "关闭"
+    },
+    "encryptedExportWarning": {
+      "en": "This export contains the private keys needed to read the encrypted mail. The keys exist only in this file and in the results above — store it securely and delete it when done. Anyone with this file can read the mail.",
+      "zh": "此导出文件包含阅读加密邮件所需的私钥。这些私钥仅存在于此文件和上方的结果列表中——请妥善保管并在使用后删除。任何持有此文件的人都可以阅读这些邮件。"
     }
   },
   "views.admin.BatchCreate": {
@@ -2570,6 +2702,14 @@ export const MESSAGE_REGISTRY = {
     "batchSecurity": {
       "en": "Anyone holding these links can access the mailboxes. Private deployments still require site-access credentials. Results stay in memory until you leave this view or clear them.",
       "zh": "任何持有这些链接的人都可访问邮箱。私有部署仍需要站点访问凭据。结果仅保存在内存中，离开此页面或清空后即消失。"
+    },
+    "encryptBatchCheckbox": {
+      "en": "Encrypt received mail end-to-end (a key pair is generated per address in this browser)",
+      "zh": "端到端加密收到的邮件（每个地址都会在本浏览器中生成一对密钥）"
+    },
+    "encryptBatchWarning": {
+      "en": "Only the public keys are sent to the server. The private keys exist only in the export you download afterwards — if it is lost, the mail cannot be recovered.",
+      "zh": "仅公钥会发送到服务器。私钥只存在于你随后下载的导出文件中——如果丢失，邮件将无法恢复。"
     },
   },
   "views.admin.CreateAccount": {
@@ -2632,6 +2772,14 @@ export const MESSAGE_REGISTRY = {
     "successTip": {
       "en": "Success Created",
       "zh": "创建成功"
+    },
+    "encryptMailCheckbox": {
+      "en": "Encrypt received mail end-to-end (only the key holder can read it; incompatible with forwarding, webhook, Telegram and AI extraction)",
+      "zh": "端到端加密收到的邮件（只有密钥持有者能阅读；与转发、Webhook、Telegram 和 AI 提取不兼容）"
+    },
+    "encryptMailWarning": {
+      "en": "A key pair is generated in this browser and only the public key is sent to the server. The private key is shown once in the result dialog and is not saved on this device — copy it somewhere safe, or the mail cannot be recovered.",
+      "zh": "密钥对在本浏览器中生成，仅公钥会发送到服务器。私钥只会在结果弹窗中显示一次，且不会保存到本设备——请立即复制并妥善保存，否则邮件将无法恢复。"
     }
   },
   "views.admin.UserSettings": {
@@ -3210,6 +3358,38 @@ export const MESSAGE_REGISTRY = {
     "randomSubdomainTip": {
       "en": "When enabled, the created address will use a random subdomain. Recommended for receiving only. Requires a wildcard MX DNS record on the base domain — see the random subdomain docs.",
       "zh": "启用后，创建出来的地址会自动挂在随机子域名下，建议仅用于收件。需要在基础域名 DNS 中配置通配 MX 记录，详见随机子域名文档。"
+    },
+    "encryptMailCheckbox": {
+      "en": "Encrypt received mail end-to-end (only you can read it; incompatible with forwarding, webhook, Telegram and AI extraction)",
+      "zh": "端到端加密收到的邮件（只有你能阅读；与转发、Webhook、Telegram 和 AI 提取不兼容）"
+    },
+    "encryptMailWarning": {
+      "en": "The private key is generated in your browser and never sent to the server. If you lose it, encrypted mail cannot be recovered by anyone.",
+      "zh": "私钥在浏览器中生成，绝不会发送到服务器。如果丢失私钥，加密邮件将无法被任何人恢复。"
+    },
+    "encryptionCreatedTitle": {
+      "en": "End-to-End Encryption Enabled",
+      "zh": "已启用端到端加密"
+    },
+    "encryptionCreatedTip": {
+      "en": "Save the decryption link below somewhere safe. Opening it on another device imports the decryption key there. Anyone with this link can read your encrypted mail.",
+      "zh": "请妥善保存下面的解密链接，在其他设备上打开该链接即可导入解密密钥。任何获得此链接的人都可以阅读你的加密邮件。"
+    },
+    "encryptMailKeyLostWarning": {
+      "en": "Warning: if you lose the private key, encrypted mail becomes unrecoverable. The server cannot decrypt it for you.",
+      "zh": "警告：如果丢失私钥，加密邮件将无法恢复，服务器也无法替你解密。"
+    },
+    "copyDecryptionLink": {
+      "en": "Copy Decryption Link",
+      "zh": "复制解密链接"
+    },
+    "copyDecryptionLinkSuccess": {
+      "en": "Decryption link copied",
+      "zh": "解密链接已复制"
+    },
+    "copyDecryptionLinkFailed": {
+      "en": "Copy failed",
+      "zh": "复制失败"
     }
   },
   "views.Redeem": {

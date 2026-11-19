@@ -7,6 +7,7 @@ import auto_reply from './auto_reply'
 import webhook_settings from './webhook_settings';
 import s3_attachment from './s3_attachment';
 import address_auth from './address_auth';
+import address_encryption from './address_encryption';
 
 export const api = new Hono<HonoCustomType>()
 
@@ -42,6 +43,10 @@ api.post('/api/new_address', new_address.createNewAddress)
 api.delete('/api/delete_address', mails_crud.deleteAddress)
 api.delete('/api/clear_inbox', mails_crud.clearInbox)
 api.delete('/api/clear_sent_items', mails_crud.clearSentItems)
+
+// per-mailbox mail encryption (public key upload/rotate/clear)
+api.get('/api/address_encryption', address_encryption.getAddressEncryption)
+api.post('/api/address_encryption', address_encryption.saveAddressEncryption)
 
 // address auth
 api.post('/api/address_change_password', address_auth.changePassword)

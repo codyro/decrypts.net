@@ -1,4 +1,74 @@
 import PostalMime from 'postal-mime';
+import { isEncryptedRaw, decryptMail } from './mail-crypto';
+import { getPrivateKeys } from './mail-key-store';
+
+const LOCKED_SUBJECT_PLACEHOLDER = '🔒';
+
+// Resolved lazily so this module (and its unit tests) do not hard-depend on
+// the global store; set once from the app entry to enable the
+// "current logged-in address" fallback for decrypting mails whose item.address
+// is missing.
+let loggedInAddressResolver = null;
+export const setLoggedInAddressResolver = (resolver) => {
+    loggedInAddressResolver = resolver;
+};
+
+const resolveLoggedInAddress = async () => {
+    if (loggedInAddressResolver) {
+        try {
+            return await loggedInAddressResolver();
+        } catch {
+            return '';
+        }
+    }
+    try {
+        const { useGlobalState } = await import('../store');
+        const { settings } = useGlobalState();
+        return settings.value.address || '';
+    } catch {
+        return '';
+    }
+};
+
+/**
+ * Decrypt an encrypted raw MIME in place when possible.
+ * On success item.raw becomes the plaintext MIME and item.encrypted stays true.
+ * On missing key / decrypt failure item.locked is set and item.raw is NOT
+ * exposed in any display field.
+ */
+const decryptItemIfNeeded = async (item) => {
+    if (!isEncryptedRaw(item.raw)) return;
+    item.encrypted = true;
+    let keys = getPrivateKeys(item.address);
+    if (keys.length === 0) {
+        const loggedInAddress = await resolveLoggedInAddress();
+        if (loggedInAddress && loggedInAddress !== item.address) {
+            keys = getPrivateKeys(loggedInAddress);
+        }
+    }
+    let decrypted = null;
+    for (const key of keys) {
+        try {
+            decrypted = await decryptMail(key, item.raw);
+            break;
+        } catch {
+            // try the next stored key (rotation may have left several)
+        }
+    }
+    if (decrypted !== null) {
+        item.raw = decrypted;
+        delete item.locked;
+        delete item.lockReason;
+        return;
+    }
+    item.locked = true;
+    item.lockReason = keys.length > 0 ? 'decrypt_failed' : 'missing_key';
+    item.originalSource = item.source;
+    item.subject = LOCKED_SUBJECT_PLACEHOLDER;
+    item.message = '';
+    item.text = '';
+    item.attachments = [];
+};
 
 function humanFileSize(size) {
     const i = size === 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
@@ -6,6 +76,15 @@ function humanFileSize(size) {
 }
 
 export async function processItem(item) {
+    // Decrypt first when the raw MIME is a "cfte1." envelope; the plaintext
+    // parsing below then runs unchanged. Locked mails return early so the
+    // encrypted raw never leaks into subject/message/attachments.
+    try {
+        await decryptItemIfNeeded(item);
+    } catch (error) {
+        console.warn('Failed to process encrypted mail', error);
+    }
+    if (item.locked) return item;
     // Try to parse the email using mail-parser-wasm
     item.originalSource = item.source;
     try {
