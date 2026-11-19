@@ -10,6 +10,7 @@ import { sendTelegramAttachments } from "./tg_file_upload";
 import { bindTelegramAddress, deleteTelegramAddress, jwtListToAddressData, tgUserNewAddress, unbindTelegramAddress, unbindTelegramByAddress } from "./common";
 import { commonParseMail } from "../common";
 import { resolveRawEmail } from "../gzip";
+import { isEncryptedRaw } from "../utils/mail_crypto";
 import { UserFromGetMe } from "telegraf/types";
 import i18n from "../i18n";
 import { LocaleMessages } from "../i18n/type";
@@ -362,6 +363,10 @@ export function newTelegramBot(c: Context<HonoCustomType>, token: string): Teleg
         const raw = mailRow ? await resolveRawEmail(mailRow) : undefined;
         const mailId = mailRow?.id;
         const created_at = mailRow?.created_at;
+        if (raw && isEncryptedRaw(raw)) {
+            // Encrypted mail cannot be shown in Telegram; view in web app.
+            return await ctx.reply(msgs.TgEncryptedMailMsg);
+        }
         const { mail } = raw
             ? await parseMail(msgs, { rawEmail: raw }, queryAddress, created_at, mailRow?.metadata)
             : { mail: msgs.TgNoMoreMailsMsg };

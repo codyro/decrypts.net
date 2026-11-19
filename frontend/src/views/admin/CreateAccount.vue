@@ -4,6 +4,7 @@ import { useScopedI18n } from '@/i18n/app'
 
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
+import { generateKeyPair } from '../../utils/mail-crypto'
 import AddressCredentialModal from '../../components/AddressCredentialModal.vue'
 import BatchCreate from './BatchCreate.vue'
 
@@ -23,9 +24,13 @@ const showReultModal = ref(false)
 const result = ref("")
 const addressPassword = ref("")
 const createdAddress = ref("")
+// private key of the just-created address, kept in memory only (never stored
+// on this device by default — the admin usually creates mailboxes for others)
+const createdPrivateKey = ref("")
 
 const busy = ref(false)
 const creationMode = ref('single')
+const enableMailEncryption = ref(false)
 
 const invalidDomain = computed(() => !emailDomain.value
     || (subdomainMode.value === "custom" && !customSubdomain.value.trim()))
@@ -95,6 +100,9 @@ const newEmail = async () => {
         const domain = subdomainMode.value === "custom"
             ? `${customSubdomain.value.trim()}.${emailDomain.value}`
             : emailDomain.value
+        const keyPair = enableMailEncryption.value && openSettings.value.enableMailEncryption
+            ? await generateKeyPair()
+            : null
         const res = await api.fetch(`/admin/new_address`, {
             method: 'POST',
             body: JSON.stringify({
@@ -102,11 +110,13 @@ const newEmail = async () => {
                 enableRandomSubdomain: subdomainMode.value === "random",
                 name: emailName.value,
                 domain,
+                ...(keyPair ? { encryption_public_key: keyPair.publicKey } : {}),
             })
         })
         result.value = res["jwt"];
         addressPassword.value = res["password"] || '';
         createdAddress.value = res["address"] || '';
+        createdPrivateKey.value = keyPair ? keyPair.privateKey : '';
         message.success(t('successTip'))
         showReultModal.value = true
     } catch (error) {
@@ -127,7 +137,7 @@ onMounted(async () => {
 <template>
     <div class="center">
         <AddressCredentialModal v-model:show="showReultModal" :address="createdAddress" :jwt="result"
-            :address-password="addressPassword" />
+            :address-password="addressPassword" :mail-private-key="createdPrivateKey" />
         <n-card :bordered="false" embedded style="max-width: 600px;">
             <n-form-item-row :label="t('creationMode')">
                 <n-radio-group v-model:value="creationMode" name="admin-creation-mode" :disabled="busy || generateNameLoading">
@@ -176,12 +186,24 @@ onMounted(async () => {
                     </n-input-group>
                 </div>
             </n-form-item-row>
+            <n-form-item-row v-if="openSettings.enableMailEncryption && creationMode === 'single'">
+                <div style="width: 100%;">
+                    <n-checkbox v-model:checked="enableMailEncryption" :disabled="busy">
+                        {{ t('encryptMailCheckbox') }}
+                    </n-checkbox>
+                    <n-alert v-if="enableMailEncryption" type="warning" :show-icon="false" :bordered="false"
+                        style="margin-top: 8px; text-align: left;">
+                        {{ t('encryptMailWarning') }}
+                    </n-alert>
+                </div>
+            </n-form-item-row>
             <n-button v-if="creationMode === 'single'" @click="newEmail" type="primary" block :loading="loading"
                 :disabled="busy || generateNameLoading || invalidDomain">
                 {{ t('createEmailAddress') }}
             </n-button>
             <BatchCreate v-show="creationMode === 'batch'" :options="batchOptions" :address-regex="addressRegex"
-                :disabled="invalidDomain || generateNameLoading || creationMode !== 'batch'" @busy="busy = $event" />
+                :disabled="invalidDomain || generateNameLoading || creationMode !== 'batch'"
+                :enable-mail-encryption="openSettings.enableMailEncryption" @busy="busy = $event" />
         </n-card>
     </div>
 </template>

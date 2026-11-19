@@ -291,6 +291,15 @@ const onSpiltSizeChange = (size) => {
   mailboxSplitSize.value = size;
 }
 
+// Re-parse still-locked mails in place after the user imported a decryption
+// key (their raw is still the encrypted envelope, so processItem retries).
+const reprocessLockedMails = async () => {
+  rawData.value = await Promise.all(rawData.value.map(async (item) => {
+    if (!item.locked) return item;
+    return await processItem(item);
+  }));
+}
+
 const saveToS3Proxy = async (filename, blob) => {
   await props.saveToS3(curMail.value.id, filename, blob);
 }
@@ -490,7 +499,8 @@ onBeforeUnmount(() => {
             <MailContentRenderer :mail="curMail" :showEMailTo="showEMailTo"
               :enableUserDeleteEmail="enableUserDeleteEmail" :showReply="showReply" :showSaveS3="showSaveS3"
               :enableMailReadStatus="enableMailReadStatus" :onUpdateMailReadStatus="toggleCurrentMailUnread"
-              :onDelete="deleteMail" :onReply="replyMail" :onForward="forwardMail" :onSaveToS3="saveToS3Proxy" />
+              :onDelete="deleteMail" :onReply="replyMail" :onForward="forwardMail" :onSaveToS3="saveToS3Proxy"
+              @unlock="reprocessLockedMails" />
           </n-card>
           <n-card :bordered="false" embedded class="mail-item" v-else>
             <n-result status="info" :title="count === 0 ? t('emptyInbox') : t('pleaseSelectMail')">
@@ -550,7 +560,7 @@ onBeforeUnmount(() => {
               :enableUserDeleteEmail="enableUserDeleteEmail" :showReply="showReply" :showSaveS3="showSaveS3"
               :enableMailReadStatus="enableMailReadStatus" :onUpdateMailReadStatus="toggleCurrentMailUnread"
               :onDelete="deleteMail" :onReply="replyMail" :onForward="forwardMail"
-              :onSaveToS3="saveToS3Proxy" />
+              :onSaveToS3="saveToS3Proxy" @unlock="reprocessLockedMails" />
           </div>
         </n-drawer-content>
       </n-drawer>

@@ -11,6 +11,7 @@ import {
     replaceLocaleInFullPath,
     resolveSupportedLocale,
 } from '../i18n/utils'
+import { stripDecryptionFragment } from '../utils/mail-fragment'
 
 const { jwt, preferredLocale } = useGlobalState()
 
@@ -76,7 +77,10 @@ router.beforeEach((to, from, next) => {
         next({
             path: to.path,
             query,
-            hash: to.hash,
+            // Never carry a decryption-key fragment into the redirect: the
+            // router location may have been snapshotted before main.js
+            // ingested and stripped it from the address bar.
+            hash: stripDecryptionFragment(to.hash),
             replace: true,
         })
         return
@@ -85,12 +89,12 @@ router.beforeEach((to, from, next) => {
     if (routeLocale) {
         const canonicalRoutePath = replaceLocaleInFullPath(to.fullPath, routeLocale)
         if (canonicalRoutePath !== to.fullPath) {
-            return next(canonicalRoutePath)
+            return next(stripDecryptionFragment(canonicalRoutePath))
         }
     }
 
     if (routeLocale === DEFAULT_LOCALE) {
-        return next(replaceLocaleInFullPath(to.fullPath, DEFAULT_LOCALE))
+        return next(stripDecryptionFragment(replaceLocaleInFullPath(to.fullPath, DEFAULT_LOCALE)))
     }
 
     next()

@@ -65,6 +65,27 @@ print(response.json())
 
 **注意**：后端 API 已移除关键词过滤功能。如需按内容过滤邮件，请使用前端界面的过滤输入框，该功能可过滤当前显示的页面。
 
+## 邮箱加密 API
+
+启用 `ENABLE_MAIL_ENCRYPTION` 并升级数据库后可使用，详见[邮箱加密](./mail-encryption.md)。
+
+查询当前地址的加密公钥：
+
+```
+GET /api/address_encryption
+# -> { "enabled": true, "publicKey": <base64url P-256 公钥或 null> }
+```
+
+设置或清除公钥（请求体为 `{ "publicKey": <base64url|null> }`，需要 `Authorization: Bearer <地址JWT>`）：
+
+```
+POST /api/address_encryption
+```
+
+- `publicKey` 为 `null` 表示清除；之后新邮件按明文存储，已加密邮件保持加密
+- 加密邮箱收到的邮件，`/api/mails` / `/api/mail/:id` 的 `raw` 返回 `cfte1.` 密文信封，需用私钥在客户端解密（解密示例见[邮箱加密](./mail-encryption.md)）
+- `/api/parsed_mails` / `/api/parsed_mail/:id` 对加密邮件返回占位：`encrypted: true`、`subject: "[Encrypted mail]"`（中文界面为 `[加密邮件]`）、`text`/`html` 为空、`attachments` 为 `[]`
+
 ## 邮件已读状态 API
 
 启用 `ENABLE_MAIL_READ_STATUS` 并升级数据库后可使用。历史邮件的 `is_unread` 为 `NULL`，视为已读；新邮件为 `1`。用户在网页邮件列表中点击未读邮件后会将其设为已读，也可以在邮件详情中手动切换状态；刷新页面不会自动标记：

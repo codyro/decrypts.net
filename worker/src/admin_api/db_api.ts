@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS address (
     name TEXT UNIQUE,
     password TEXT,
     source_meta TEXT,
+    encryption_public_key TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -225,6 +226,18 @@ export default {
                 await c.env.DB.exec(
                     `ALTER TABLE raw_mails ADD COLUMN is_unread INTEGER;`
                 );
+            }
+        }
+        if (version && compareVersions(version, "v0.0.10") <= 0) {
+            // migration to v0.0.11: add encryption_public_key column for per-mailbox mail encryption
+            const tableInfo = await c.env.DB.prepare(
+                `PRAGMA table_info(address)`
+            ).all();
+            const hasEncryptionPublicKey = tableInfo.results?.some(
+                (col: any) => col.name === 'encryption_public_key'
+            );
+            if (!hasEncryptionPublicKey) {
+                await c.env.DB.exec(`ALTER TABLE address ADD COLUMN encryption_public_key TEXT;`);
             }
         }
         if (!version || compareVersions(version, CONSTANTS.DB_VERSION) < 0) {

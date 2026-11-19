@@ -6,6 +6,7 @@ import { APP_CONFIG } from '@/config'
 
 import { useGlobalState } from '../store'
 import { decodeAddressToken } from '../utils/local-address-cache'
+import { getPrivateKey } from '../utils/mail-key-store'
 
 const props = defineProps({
   address: {
@@ -17,6 +18,12 @@ const props = defineProps({
     default: '',
   },
   addressPassword: {
+    type: String,
+    default: '',
+  },
+  // base64url PKCS8 private key for a just-created encrypted mailbox, held in
+  // memory by the caller (not necessarily in this device's key store)
+  mailPrivateKey: {
     type: String,
     default: '',
   },
@@ -44,6 +51,24 @@ const agentDocUrl = computed(() => `https://temp-mail-docs.awsl.uk/${docLocale.v
 const smtpImapDocUrl = computed(() => `https://temp-mail-docs.awsl.uk/${docLocale.value}/guide/feature/config-smtp-proxy.html`)
 const agentSkillUrl = 'https://github.com/dreamhunter2333/cloudflare_temp_email/blob/main/skills/cf-temp-mail-agent-mail/SKILL.md'
 const autoLoginUrl = computed(() => `${frontendBaseUrl.value}/?jwt=${encodeURIComponent(props.jwt)}`)
+// Combined auto-login + decryption link from the in-memory key provided by
+// the caller (e.g. admin just created this encrypted mailbox), independent
+// of this device's key store.
+const decryptionAutoLoginUrlFromKey = computed(() => {
+  if (!props.mailPrivateKey || !props.address) return ''
+  return `${autoLoginUrl.value}#k=${encodeURIComponent(props.mailPrivateKey)}&a=${encodeURIComponent(props.address)}`
+})
+const decryptionOnlyUrl = computed(() => {
+  if (!props.mailPrivateKey || !props.address) return ''
+  return `${frontendBaseUrl.value}/#k=${encodeURIComponent(props.mailPrivateKey)}&a=${encodeURIComponent(props.address)}`
+})
+// Combined auto-login + decryption link, only when this device holds the
+// private key for this address.
+const decryptionAutoLoginUrl = computed(() => {
+  const key = props.address ? getPrivateKey(props.address) : null
+  if (!key) return ''
+  return `${autoLoginUrl.value}#k=${encodeURIComponent(key)}&a=${encodeURIComponent(props.address)}`
+})
 const showAgent = computed(() => !!openSettings.value.enableAgentEmailInfo)
 const smtpImapConfig = computed(() => openSettings.value.smtpImapProxyConfig || {})
 const smtpConfig = computed(() => smtpImapConfig.value.smtp || {})
@@ -223,6 +248,49 @@ const copyText = async (text) => {
         </div>
       </n-collapse-item>
 
+      <n-collapse-item v-if="mailPrivateKey" name="mail-encryption" :title="t('mailEncryption')">
+        <template #header-extra>
+          <n-button size="tiny" tertiary type="primary" @click.stop="copyText(decryptionAutoLoginUrlFromKey)">
+            {{ t('copySection') }}
+          </n-button>
+        </template>
+        <div class="credential-section">
+          <n-alert type="warning" :show-icon="false" :bordered="false" style="text-align: left;">
+            {{ t('privateKeyWarning') }}
+          </n-alert>
+          <div class="credential-field">
+            <span class="credential-label">{{ t('privateKey') }}</span>
+            <div class="credential-copy-row">
+              <code data-testid="address-credential-private-key" class="credential-code">{{ mailPrivateKey }}</code>
+              <n-button size="tiny" tertiary type="primary" @click="copyText(mailPrivateKey)">
+                {{ t('copySection') }}
+              </n-button>
+            </div>
+          </div>
+          <div class="credential-field">
+            <span class="credential-label">{{ t('decryptionOnlyLink') }}</span>
+            <div class="credential-copy-row">
+              <code data-testid="address-credential-decryption-link" class="credential-code">{{ decryptionOnlyUrl }}</code>
+              <n-button size="tiny" tertiary type="primary" @click="copyText(decryptionOnlyUrl)">
+                {{ t('copySection') }}
+              </n-button>
+            </div>
+          </div>
+          <div class="credential-field">
+            <span class="credential-label">{{ t('decryptionLink') }}</span>
+            <div class="credential-copy-row">
+              <code data-testid="address-credential-decryption-auto-login-link" class="credential-code">
+                {{ decryptionAutoLoginUrlFromKey }}
+              </code>
+              <n-button size="tiny" tertiary type="primary" @click="copyText(decryptionAutoLoginUrlFromKey)">
+                {{ t('copySection') }}
+              </n-button>
+            </div>
+            <p class="credential-tip">{{ t('decryptionLinkTip') }}</p>
+          </div>
+        </div>
+      </n-collapse-item>
+
       <n-collapse-item name="share-link" :title="t('autoLoginLink')">
         <template #header-extra>
           <n-button size="tiny" tertiary type="primary" @click.stop="copyText(autoLoginUrl)">
@@ -232,6 +300,16 @@ const copyText = async (text) => {
         <div class="credential-section">
           <div class="credential-field">
             <code class="credential-code">{{ autoLoginUrl }}</code>
+          </div>
+          <div v-if="decryptionAutoLoginUrl" class="credential-field">
+            <span class="credential-label">{{ t('decryptionLink') }}</span>
+            <div class="credential-copy-row">
+              <code class="credential-code">{{ decryptionAutoLoginUrl }}</code>
+              <n-button size="tiny" tertiary type="primary" @click="copyText(decryptionAutoLoginUrl)">
+                {{ t('copySection') }}
+              </n-button>
+            </div>
+            <p class="credential-tip">{{ t('decryptionLinkTip') }}</p>
           </div>
           <div class="credential-field">
             <span class="credential-label">{{ t('autoLoginQrCode') }}</span>

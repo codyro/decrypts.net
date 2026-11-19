@@ -22,6 +22,12 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  // base64url PKCS8 private key for a just-created encrypted mailbox, held in
+  // memory by the caller (not necessarily in this device's key store)
+  mailPrivateKey: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:show'])
@@ -36,6 +42,7 @@ const modalShow = computed({
 <template>
   <n-modal v-model:show="modalShow" preset="card" :title="t('title')"
     style="width: min(760px, calc(100vw - 32px));">
-    <AddressCredentialContent :address="address" :jwt="jwt" :address-password="addressPassword" />
+    <AddressCredentialContent :address="address" :jwt="jwt" :address-password="addressPassword"
+        :mail-private-key="mailPrivateKey" />
   </n-modal>
 </template>

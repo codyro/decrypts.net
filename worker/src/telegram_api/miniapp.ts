@@ -4,6 +4,7 @@ import { CONSTANTS } from "../constants";
 import { bindTelegramAddress, jwtListToAddressData, tgUserNewAddress, unbindTelegramAddress, verifyTelegramBindingToken } from "./common";
 import { checkCfTurnstile, checkIsAdmin, getBooleanValue } from "../utils";
 import { resolveRawEmailRow } from "../gzip";
+import { validateOptionalEncryptionPublicKey } from "../utils/mail_encryption";
 import { TelegramSettings } from "./settings";
 import i18n from "../i18n";
 
@@ -84,8 +85,15 @@ async function getTelegramBindAddress(c: Context<HonoCustomType>): Promise<Respo
 }
 
 async function newTelegramAddress(c: Context<HonoCustomType>): Promise<Response> {
-    const { initData, address, cf_token, enableRandomSubdomain } = await c.req.json();
+    const { initData, address, cf_token, enableRandomSubdomain, encryption_public_key } = await c.req.json();
     const msgs = i18n.getMessagesbyContext(c);
+    // optional per-mailbox encryption public key: reject when the feature is
+    // disabled, validate before turnstile/auth and before the address quota
+    // and rate limit inside tgUserNewAddress are consumed
+    const keyCheck = await validateOptionalEncryptionPublicKey(c, encryption_public_key, msgs);
+    if (!keyCheck.ok) {
+        return keyCheck.response;
+    }
     // check cf turnstile
     try {
         await checkCfTurnstile(c, cf_token);
@@ -100,7 +108,8 @@ async function newTelegramAddress(c: Context<HonoCustomType>): Promise<Response>
             userId,
             address,
             msgs,
-            getBooleanValue(enableRandomSubdomain)
+            getBooleanValue(enableRandomSubdomain),
+            keyCheck.publicKey,
         )
         return c.json(res);
     }

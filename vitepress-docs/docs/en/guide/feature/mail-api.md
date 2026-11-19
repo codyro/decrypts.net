@@ -65,6 +65,27 @@ print(response.json())
 
 **Note**: Keyword filtering has been removed from the backend API. If you need to filter emails by content, please use the frontend filter input in the UI, which filters the currently displayed page.
 
+## Mailbox Encryption API
+
+Requires `ENABLE_MAIL_ENCRYPTION` and the database migration; see [Mailbox Encryption](./mail-encryption.md).
+
+Get the encryption public key of the current address:
+
+```
+GET /api/address_encryption
+# -> { "enabled": true, "publicKey": <base64url P-256 public key or null> }
+```
+
+Set or clear the key (body is `{ "publicKey": <base64url|null> }`, requires `Authorization: Bearer <address JWT>`):
+
+```
+POST /api/address_encryption
+```
+
+- `publicKey: null` clears the key; new mail is then stored as plaintext while already encrypted mail stays encrypted
+- For encrypted addresses, `/api/mails` / `/api/mail/:id` return the `cfte1.` ciphertext envelope in `raw`; decrypt it client-side with the private key (see the decrypt snippet in [Mailbox Encryption](./mail-encryption.md))
+- `/api/parsed_mails` / `/api/parsed_mail/:id` return a placeholder for encrypted mail: `encrypted: true`, `subject: "[Encrypted mail]"`, empty `text`/`html`, and `attachments: []`
+
 ## Mail Read Status API
 
 Enable `ENABLE_MAIL_READ_STATUS` and upgrade the database first. Historical mail has `is_unread = NULL` and is treated as read; new mail has `is_unread = 1`. Opening unread mail from the web mail list marks it as read, and its detail view can switch the state manually. Refreshing the page does not mark it as read:

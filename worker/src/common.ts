@@ -9,6 +9,7 @@ import { AddressCreationSettings, AdminWebhookSettings, ExtractResult, WebhookMa
 import i18n from './i18n';
 import { formatWebhookBody, getWebhookAttachments } from './utils/webhook';
 import { compileFilter, type FilterValues } from './utils/filter';
+import { isEncryptedRaw } from './utils/mail_crypto';
 
 const DEFAULT_NAME_REGEX = /[^a-z0-9]/g;
 const DEFAULT_RANDOM_SUBDOMAIN_LENGTH = 8;
@@ -323,9 +324,21 @@ const insertAddressRecord = async (
     c: Context<HonoCustomType>,
     address: string,
     sourceMeta: string | undefined | null,
-    msgs: ReturnType<typeof i18n.getMessagesbyContext>
+    msgs: ReturnType<typeof i18n.getMessagesbyContext>,
+    encryptionPublicKey?: string | null
 ): Promise<void> => {
     try {
+        // The encryption_public_key column is only referenced when a key is
+        // provided, which is only possible when the feature is enabled.
+        if (encryptionPublicKey) {
+            const result = await c.env.DB.prepare(
+                `INSERT INTO address(name, source_meta, encryption_public_key) VALUES(?, ?, ?)`
+            ).bind(address, sourceMeta, encryptionPublicKey).run();
+            if (!result.success) {
+                throw new Error(msgs.FailedCreateAddressMsg)
+            }
+            return;
+        }
         const result = await c.env.DB.prepare(
             `INSERT INTO address(name, source_meta) VALUES(?, ?)`
         ).bind(address, sourceMeta).run();
@@ -360,6 +373,7 @@ export const newAddress = async (
         checkAllowDomains = true,
         enableCheckNameRegex = true,
         sourceMeta = null,
+        encryptionPublicKey = null,
     }: {
         name: string, domain: string | undefined | null,
         enablePrefix: boolean,
@@ -369,6 +383,7 @@ export const newAddress = async (
         checkAllowDomains?: boolean,
         enableCheckNameRegex?: boolean,
         sourceMeta?: string | undefined | null,
+        encryptionPublicKey?: string | null,
     }
 ): Promise<{ address: string, jwt: string, password?: string | null, address_id: number }> => {
     const msgs = i18n.getMessagesbyContext(c);
@@ -439,7 +454,7 @@ export const newAddress = async (
         const address = `${name}@${addressDomain}`;
 
         try {
-            await insertAddressRecord(c, address, sourceMeta, msgs);
+            await insertAddressRecord(c, address, sourceMeta, msgs, encryptionPublicKey);
             await updateAddressUpdatedAt(c, address);
 
             const address_id = await c.env.DB.prepare(
@@ -766,6 +781,11 @@ export const commonParseMail = async (parsedEmailContext: ParsedEmailContext): P
         return parsedEmailContext.parsedEmail;
     }
     const raw_mail = parsedEmailContext.rawEmail;
+    // Encrypted envelopes can only be decrypted client-side with the mailbox
+    // private key; never attempt to parse them server-side.
+    if (isEncryptedRaw(raw_mail)) {
+        return undefined;
+    }
     // NOTE: WASM parse email
     // try {
     //     const { parse_message_wrapper } = await import('mail-parser-wasm-worker');
