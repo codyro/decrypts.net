@@ -6,7 +6,7 @@
   <a href="CHANGELOG_EN.md">English</a>
 </p>
 
-## v1.14.0(main)
+## v1.15.0(main)
 
 ### Features
 
@@ -15,6 +15,15 @@
   - Run database migration before enabling it: `Admin -> Quick Setup -> Database -> Migrate Database`, or call `POST /admin/db_migration`
   - Adds the `address.encryption_public_key` column and `GET/POST /api/address_encryption`; the create-address API accepts an optional `encryption_public_key` field; encrypted addresses skip forwarding, webhook, Telegram push, AI extraction, and another-worker RPC, and server-parsed endpoints return an `encrypted: true` placeholder
   - Admin single/batch mailbox creation supports the encryption opt-in (one browser-generated key pair per address) and the batch export CSV includes `private_key`/`decryption_link` columns; the Telegram mini-app creation page supports the opt-in, while the bot `/new` command does not
+
+### Bug Fixes
+
+### Improvements
+
+## v1.14.0
+
+### Features
+
 - feat: |Mail Forwarding| Add recipient address regex filters to forwarding rules, reusing internal delivery with any/all matching
 - feat: |Mailbox Login| Keep session-token access with expiry details, hiding legacy credential contents and blocking legacy cache switches in password-only mode while retaining cache removal
 - feat: |Mailbox Sessions| Extend renewable 30-day JWT issuance to mailbox creation and authorized user, admin, and Telegram access
