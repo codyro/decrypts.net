@@ -6,6 +6,7 @@ import { getBooleanValue } from '../utils';
 import i18n from '../i18n';
 
 import { commonParseMail } from '../common';
+import { isEncryptedMailRow } from '../utils/mail_crypto';
 import {
     WEBHOOK_ATTACHMENT_TTL_SECONDS, SAFE_INLINE_IMAGE_TYPES,
     decodeBase32, getSigningKey, getSignaturePayload
@@ -36,6 +37,9 @@ export const getWebhookAttachment = async (
         `SELECT * FROM raw_mails WHERE id = ?`
     ).bind(mailId).first<RawMailRow>();
     if (!mail?.address || !mail.created_at) return c.text('Not Found', 404);
+    // Encrypted envelopes are never parsed server-side (same as the previous
+    // prefix-refusal behaviour: no attachments, 404).
+    if (isEncryptedMailRow(mail)) return c.text('Not Found', 404);
 
     const valid = await crypto.subtle.verify(
         'HMAC', await getSigningKey(c.env.JWT_SECRET), decodeBase32(signatureValue),

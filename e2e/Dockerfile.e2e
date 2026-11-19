@@ -9,6 +9,8 @@ RUN npm ci
 COPY e2e/ .
 COPY worker/src/ /app/worker/src/
 COPY worker/package.json /app/worker/package.json
+# statistics unit tests load the canonical schema from db/schema.sql
+COPY db/schema.sql /app/db/schema.sql
 RUN ln -s /app/e2e/node_modules /app/worker/node_modules
 COPY frontend/src/utils/filter.ts frontend/src/utils/local-address-cache.ts frontend/src/utils/mail-crypto.js /app/frontend/src/utils/
 COPY frontend/src/i18n/locales/source/ /app/frontend/src/i18n/locales/source/

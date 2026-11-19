@@ -30,10 +30,10 @@ const lockHint = computed(() => props.mail.lockReason === 'decrypt_failed'
 <template>
   <div class="mail-summary">
     <n-flex align="center" :wrap="false" :size="6">
-      <div class="mail-summary-sender" :title="mail.source">
+      <div class="mail-summary-sender" :title="mail.locked ? lockHint : mail.source">
         <span v-if="enableMailReadStatus && mail.is_unread === 1" class="mail-summary-unread-dot" />
         <n-ellipsis>
-          <n-text v-if="showEMailTo" depth="3" class="mail-summary-muted">{{ t('from') }}: </n-text><n-text depth="2">{{ mail.source || '—' }}</n-text>
+          <n-text v-if="showEMailTo" depth="3" class="mail-summary-muted">{{ t('from') }}: </n-text><n-text depth="2">{{ mail.locked ? lockHint : (mail.source || '—') }}</n-text>
         </n-ellipsis>
       </div>
       <n-text depth="3" class="mail-summary-date mail-summary-muted" :title="utcToLocalDate(mail.created_at, useUTCDate)">

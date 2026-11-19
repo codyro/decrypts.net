@@ -123,4 +123,58 @@ test.describe('Telegram new address with mail encryption', () => {
       await deleteAddress(request, mailbox.jwt);
     }
   });
+
+  test('encrypted mail triggers a content-free Telegram push with no subject, sender, or body', async ({ request }) => {
+    const owner = Date.now();
+    const { publicKey } = await generateKeyPair();
+    const res = await newTelegramAddress(request, owner, { encryption_public_key: publicKey });
+    expect(res.ok(), await res.text()).toBe(true);
+    const mailbox = await res.json();
+
+    const subject = `TG Push Encrypted ${Date.now()}`;
+    const text = 'telegram push secret body';
+    try {
+      await request.post(`${WORKER_URL}/__test/telegram_binding`, {
+        data: { userId: owner, address: mailbox.address, jwt: mailbox.jwt },
+      });
+
+      const boundary = `----TG${Date.now()}`;
+      const raw = [
+        `From: Sender <sender@test.example.com>`,
+        `To: ${mailbox.address}`,
+        `Subject: ${subject}`,
+        `Message-ID: <tg-push-${Date.now()}@test>`,
+        `MIME-Version: 1.0`,
+        `Content-Type: multipart/alternative; boundary="${boundary}"`,
+        ``,
+        `--${boundary}`,
+        `Content-Type: text/plain; charset=utf-8`,
+        ``,
+        text,
+        `--${boundary}--`,
+      ].join('\r\n');
+
+      const receiveRes = await request.post(`${WORKER_URL}/__test/receive_mail`, {
+        data: { from: 'sender@test.example.com', to: mailbox.address, raw, record_telegram: true },
+      });
+      expect(receiveRes.ok(), await receiveRes.text()).toBe(true);
+      const result = await receiveRes.json();
+      expect(result.success).toBe(true);
+      expect(result.telegramCalls).toHaveLength(1);
+      expect(result.telegramCalls[0].method).toBe('sendMessage');
+      const messageText = result.telegramCalls[0].payload.text as string;
+      expect(messageText.length).toBeGreaterThan(0);
+      // fixed content-free notice: no subject, sender, or body leaked
+      expect(messageText).not.toContain(subject);
+      expect(messageText).not.toContain(text);
+      expect(messageText).not.toContain('sender@test.example.com');
+
+      // and the stored mail is still an encrypted envelope
+      const results = await getMails(request, mailbox.jwt);
+      expect(results[0].raw.startsWith(ENC_PREFIX)).toBe(true);
+      expect(results[0].is_encrypted).toBe(1);
+    } finally {
+      await deleteAddress(request, mailbox.jwt);
+    }
+  });
 });

@@ -165,8 +165,80 @@ test.describe('Mailbox encryption (ENABLE_MAIL_ENCRYPTION)', () => {
       expect(results[0].text).toBe('');
       expect(results[0].html).toBe('');
       expect(results[0].attachments).toEqual([]);
-      // plaintext metadata is still available
-      expect(results[0].source).toContain('sender@test.example.com');
+      // plaintext metadata is replaced by placeholders; the real sender and
+      // Message-ID live inside the encrypted MIME headers
+      expect(results[0].source).toBe('');
+      expect(results[0].message_id).toBeNull();
+      expect(results[0].is_encrypted).toBe(1);
+    } finally {
+      await deleteAddress(request, jwt);
+    }
+  });
+
+  test('encrypted rows store placeholder source/message_id and is_encrypted=1 at rest', async ({ request }) => {
+    const { publicKey } = await generateKeyPair();
+    const { jwt, address } = await createAddressWithKey(request, 'enc-meta', publicKey);
+    const subject = `Metadata Placeholder ${Date.now()}`;
+    try {
+      await seedTestMail(request, address, { subject, text: 'metadata placeholder body' });
+
+      const res = await request.get(`${WORKER_URL}/__test/query`, {
+        params: { sql: `SELECT source, message_id, is_encrypted, substr(raw, 1, 6) AS raw_prefix FROM raw_mails WHERE address = '${address}'` },
+      });
+      expect(res.ok(), await res.text()).toBe(true);
+      const { results } = await res.json();
+      expect(results).toHaveLength(1);
+      expect(results[0].is_encrypted).toBe(1);
+      expect(results[0].raw_prefix).toBe('cfte1.');
+      expect(results[0].source).toBe('');
+      expect(results[0].message_id).toBeNull();
+
+      // /api/mails exposes the flag as well
+      const mails = await getMails(request, jwt);
+      expect(mails[0].is_encrypted).toBe(1);
+    } finally {
+      await deleteAddress(request, jwt);
+    }
+  });
+
+  test('plaintext address rows keep is_encrypted=0', async ({ request }) => {
+    const { jwt, address } = await createTestAddress(request, 'enc-plainflag');
+    try {
+      await seedTestMail(request, address, { subject: `Plain Flag ${Date.now()}`, text: 'plain body' });
+
+      const mails = await getMails(request, jwt);
+      expect(mails).toHaveLength(1);
+      expect(mails[0].is_encrypted).toBe(0);
+      expect(mails[0].source).toContain('sender@test.example.com');
+      expect(mails[0].message_id).toContain('@test');
+    } finally {
+      await deleteAddress(request, jwt);
+    }
+  });
+
+  test('sender-controlled plaintext starting with cfte1. is NOT treated as encrypted on a migrated DB', async ({ request }) => {
+    const { jwt, address } = await createTestAddress(request, 'enc-prefix');
+    const fakeEnvelope = 'cfte1. dGhpcyBpcyBubyBlbnZlbG9wZSBhdCBhbGw';
+    try {
+      // Direct insert through the test fixture (bypasses the email handler)
+      // so the stored raw really starts with the envelope prefix.
+      const seedRes = await request.post(`${WORKER_URL}/__test/seed_mail`, {
+        data: { address, source: 'sender@test.example.com', raw: fakeEnvelope },
+      });
+      expect(seedRes.ok(), await seedRes.text()).toBe(true);
+
+      const mails = await getMails(request, jwt);
+      expect(mails).toHaveLength(1);
+      expect(mails[0].raw.startsWith('cfte1.')).toBe(true);
+      // the explicit flag is authoritative, not the prefix
+      expect(mails[0].is_encrypted).toBe(0);
+
+      const parsedRes = await request.get(`${WORKER_URL}/api/parsed_mails?limit=10&offset=0`, {
+        headers: { Authorization: `Bearer ${jwt}`, 'x-lang': 'en' },
+      });
+      const { results } = await parsedRes.json();
+      expect(results[0].encrypted).toBeUndefined();
+      expect(results[0].subject).not.toBe('[Encrypted mail]');
     } finally {
       await deleteAddress(request, jwt);
     }
@@ -234,7 +306,7 @@ test.describe('Mailbox encryption (ENABLE_MAIL_ENCRYPTION)', () => {
     }
   });
 
-  test('webhook is not called for encrypted addresses, and is called again after the key is cleared', async ({ request }) => {
+  test('webhook for encrypted addresses is content-free, and is called again after the key is cleared', async ({ request }) => {
     const { publicKey } = await generateKeyPair();
     const { jwt, address } = await createAddressWithKey(request, 'enc-webhook', publicKey);
     const { server, requests, url } = await startWebhookReceiver();
@@ -251,15 +323,23 @@ test.describe('Mailbox encryption (ENABLE_MAIL_ENCRYPTION)', () => {
       });
       expect(saveRes.ok()).toBe(true);
 
-      // Encrypted mail must not trigger the webhook
+      // Encrypted mail triggers the webhook with a content-free payload only
       await seedTestMail(request, address, {
         subject: `Webhook Encrypted ${Date.now()}`,
         text: 'must not reach the webhook',
       });
-      await expect(new Promise((resolve) => setTimeout(resolve, 3_000))).resolves.toBeUndefined();
-      expect(requests).toHaveLength(0);
+      await expect.poll(() => requests.length, { timeout: 10_000 }).toBe(1);
+      const payload = JSON.parse((await requests[0]).body);
+      expect(payload).toEqual({
+        encrypted: true,
+        address,
+        mail_id: expect.any(Number),
+        created_at: expect.any(String),
+      });
+      // no subject, sender, body, raw, or attachments anywhere in the payload
+      expect(JSON.stringify(payload)).not.toContain('must not reach the webhook');
 
-      // After clearing the key, plaintext mail triggers the webhook again
+      // After clearing the key, plaintext mail triggers the normal webhook
       const clearRes = await request.post(`${WORKER_URL}/api/address_encryption`, {
         headers: { Authorization: `Bearer ${jwt}` },
         data: { publicKey: null },
@@ -268,9 +348,9 @@ test.describe('Mailbox encryption (ENABLE_MAIL_ENCRYPTION)', () => {
 
       const plainSubject = `Webhook Plain ${Date.now()}`;
       await seedTestMail(request, address, { subject: plainSubject, text: 'should reach the webhook' });
-      await expect.poll(() => requests.length, { timeout: 10_000 }).toBe(1);
-      const payload = JSON.parse((await requests[0]).body);
-      expect(payload.subject).toBe(plainSubject);
+      await expect.poll(() => requests.length, { timeout: 10_000 }).toBe(2);
+      const plainPayload = JSON.parse((await requests[1]).body);
+      expect(plainPayload.subject).toBe(plainSubject);
     } finally {
       server.close();
       await deleteAddress(request, jwt);

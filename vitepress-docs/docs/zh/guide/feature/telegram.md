@@ -92,7 +92,7 @@ Telegram Bot 支持 **每用户独立推送**，用户绑定地址后，该地�
 - 第一个附件会附带邮件发件人和主题信息作为 caption
 
 > [!NOTE]
-> 使用[邮箱加密](./mail-encryption.md)（`encryption_public_key`）创建的地址不会收到 Telegram 推送：推送需要服务端解密，该泄漏内容的链路按设计跳过。请在网页端或小程序内查看加密邮件。
+> 使用[邮箱加密](./mail-encryption.md)（`encryption_public_key`）创建的地址，推送内容不会泄漏：收到邮件时只推送固定的"收到新的加密邮件"提示，不含发件人、主题、正文和附件；配置了小程序地址时仍附带小程序按钮。请在网页端或小程序内查看加密邮件内容。
 
 ## Mini App
 
@@ -133,4 +133,4 @@ pnpm run deploy:telegram --project-name=<你的项目名称>
 
 ### 小程序中的邮箱加密
 
-启用 `ENABLE_MAIL_ENCRYPTION` 后，小程序内绑定/创建页会显示"启用邮箱加密"选项。密钥对在 webview 中生成，只有公钥会发送到 `POST /telegram/new_address`，私钥保留在小程序 webview 的 localStorage 中——查看加密邮件时在客户端本地解密，锁定邮件可通过粘贴解密链接解锁。Bot `/new` 文本命令不支持加密（无浏览器环境），加密地址也不会收到 Telegram 推送。
+启用 `ENABLE_MAIL_ENCRYPTION` 后，小程序内绑定/创建页会显示"启用邮箱加密"选项。密钥对在 webview 中生成，只有公钥会发送到 `POST /telegram/new_address`，私钥保留在小程序 webview 的 localStorage 中——查看加密邮件时在客户端本地解密，锁定邮件可通过粘贴解密链接解锁。Bot `/new` 文本命令不支持加密（无浏览器环境）。加密地址会收到一条固定的"收到新的加密邮件"无内容推送，不含发件人、主题、正文和附件。

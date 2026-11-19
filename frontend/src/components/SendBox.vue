@@ -1,10 +1,13 @@
 <script setup>
 import { watch, onMounted, ref, computed } from "vue";
 import { useMessage } from 'naive-ui'
+import { LockOutlined } from '@vicons/material'
 import { useScopedI18n } from '@/i18n/app'
 import { useGlobalState } from '../store'
 import { useIsMobile } from '../utils/composables'
 import { utcToLocalDate } from '../utils';
+import { isEncryptedRow, decryptMail } from '../utils/mail-crypto'
+import { getPrivateKeys } from '../utils/mail-key-store'
 import { SendRound, RefreshRound } from '@vicons/material'
 
 const message = useMessage()
@@ -49,6 +52,85 @@ const multiActionDeleteProgress = ref({ percentage: 0, tip: '0/0' })
 const { t } = useScopedI18n('components.SendBox')
 const { t: rt } = useScopedI18n('components.MailContentRenderer')
 
+// Map a parsed sendbox JSON body onto the row, exactly like the plaintext
+// path does. The decrypted content of an encrypted row is the same JSON
+// string the plaintext path stores.
+const applySendboxJson = (item, data) => {
+  if (data.version == "v2") {
+    item.to_mail = data.to_name ? `${data.to_name} <${data.to_mail}>` : data.to_mail;
+    item.subject = data.subject;
+    item.is_html = data.is_html;
+    item.content = data.content;
+    item.raw = JSON.stringify(data, null, 2);
+  } else {
+    item.to_mail = data?.personalizations?.map(
+      (p) => p.to?.map((t) => t.email).join(',')
+    ).join(';');
+    item.subject = data.subject;
+    item.is_html = (data.content[0]?.type != 'text/plain');
+    item.content = data.content[0]?.value;
+    item.raw = JSON.stringify(data, null, 2);
+  }
+}
+
+const lockHintFor = (row) => row.lockReason === 'decrypt_failed'
+  ? rt('lockedDecryptFailed')
+  : rt('lockedMissingKey')
+
+/**
+ * Decrypt an encrypted sendbox raw in place when possible. On success the
+ * row renders exactly like a plaintext row; on missing key / decrypt
+ * failure the row is marked locked and the encrypted envelope never leaks
+ * into any display field.
+ */
+const decryptSendboxItemIfNeeded = async (item) => {
+  // The explicit is_encrypted flag is authoritative on migrated databases;
+  // only fall back to the "cfte1." prefix check when it is absent.
+  if (!isEncryptedRow(item)) return false;
+  item.encrypted = true;
+  const keys = getPrivateKeys(item.address);
+  let decrypted = null;
+  for (const key of keys) {
+    try {
+      decrypted = await decryptMail(key, item.raw);
+      break;
+    } catch {
+      // try the next stored key (rotation may have left several)
+    }
+  }
+  if (decrypted !== null) {
+    try {
+      applySendboxJson(item, JSON.parse(decrypted));
+      delete item.locked;
+      delete item.lockReason;
+      return true;
+    } catch (error) {
+      console.log(error);
+      // decrypted content is not a sendbox JSON: fall through to locked so
+      // it is never displayed as a sendbox row.
+    }
+  }
+  item.locked = true;
+  item.lockReason = keys.length > 0 ? 'decrypt_failed' : 'missing_key';
+  item.subject = lockHintFor(item);
+  item.to_mail = '';
+  item.is_html = false;
+  item.content = '';
+  return true;
+}
+
+const parseSendboxItem = async (item) => {
+  if (await decryptSendboxItemIfNeeded(item)) {
+    return item;
+  }
+  try {
+    applySendboxJson(item, JSON.parse(item.raw));
+  } catch (error) {
+    console.log(error);
+  }
+  return item;
+}
+
 watch([page, pageSize], async ([page, pageSize], [oldPage, oldPageSize]) => {
   if (page !== oldPage || pageSize !== oldPageSize) {
     await refresh();
@@ -60,29 +142,7 @@ const refresh = async () => {
     const { results, count: totalCount } = await props.fetchMailData(
       pageSize.value, (page.value - 1) * pageSize.value
     );
-    data.value = results.map((item) => {
-      try {
-        const data = JSON.parse(item.raw);
-        if (data.version == "v2") {
-          item.to_mail = data.to_name ? `${data.to_name} <${data.to_mail}>` : data.to_mail;
-          item.subject = data.subject;
-          item.is_html = data.is_html;
-          item.content = data.content;
-          item.raw = JSON.stringify(data, null, 2);
-        } else {
-          item.to_mail = data?.personalizations?.map(
-            (p) => p.to?.map((t) => t.email).join(',')
-          ).join(';');
-          item.subject = data.subject;
-          item.is_html = (data.content[0]?.type != 'text/plain');
-          item.content = data.content[0]?.value;
-          item.raw = JSON.stringify(data, null, 2);
-        }
-      } catch (error) {
-        console.log(error);
-      }
-      return item;
-    });
+    data.value = await Promise.all(results.map((item) => parseSendboxItem(item)));
     if (totalCount > 0) {
       count.value = totalCount;
     }
@@ -213,9 +273,10 @@ onMounted(async () => {
             <n-list hoverable clickable>
               <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)" :class="mailItemClass(row)">
                 <template #prefix v-if="multiActionMode"><n-checkbox v-model:checked="row.checked" /></template>
-                <n-thing :title="row.subject">
+                <n-thing :title="row.locked ? lockHintFor(row) : row.subject">
                   <template #description>
                     <n-text depth="3" class="sent-meta">
+                      <n-icon v-if="row.locked" :component="LockOutlined" class="sent-lock" />
                       <template v-if="showEMailFrom">{{ rt('from') }} {{ row.address }} · </template>{{ rt('to') }} {{ row.to_mail }} · {{ utcToLocalDate(row.created_at, useUTCDate) }}
                     </n-text>
                   </template>
@@ -233,15 +294,23 @@ onMounted(async () => {
               <div class="muted sent-detail-footer">{{ utcToLocalDate(curMail.created_at, useUTCDate) }} · #{{ curMail.id }}</div>
             </div>
             <div class="toolbar sent-detail-actions">
-              <n-button size="small" quaternary @click="showCode = !showCode">{{ t('showCode') }}</n-button>
+              <n-button v-if="!curMail.locked" size="small" quaternary @click="showCode = !showCode">{{ t('showCode') }}</n-button>
               <n-popconfirm v-if="enableUserDeleteEmail" @positive-click="deleteMail">
                 <template #trigger><n-button quaternary type="error" size="small">{{ t('delete') }}</n-button></template>
                 {{ t('deleteMailTip') }}
               </n-popconfirm>
             </div>
-            <pre v-if="showCode">{{ curMail.raw }}</pre>
-            <pre v-else-if="!curMail.is_html">{{ curMail.content }}</pre>
-            <div v-else v-html="curMail.content"></div>
+            <n-alert v-if="curMail.locked" type="warning" :show-icon="false" :bordered="false" class="mail-locked-banner">
+              <n-space align="center" :size="6">
+                <n-icon :component="LockOutlined" />
+                <span>{{ lockHintFor(curMail) }}</span>
+              </n-space>
+            </n-alert>
+            <template v-else>
+              <pre v-if="showCode">{{ curMail.raw }}</pre>
+              <pre v-else-if="!curMail.is_html">{{ curMail.content }}</pre>
+              <div v-else v-html="curMail.content"></div>
+            </template>
           </n-card>
           <div v-else class="empty-state">
             <n-icon class="empty-state__icon" :component="SendRound" />
@@ -265,9 +334,10 @@ onMounted(async () => {
       <div v-else class="sent-list-scroll">
         <n-list hoverable clickable>
           <n-list-item v-for="row in data" v-bind:key="row.id" @click="() => clickRow(row)">
-            <n-thing :title="row.subject">
+            <n-thing :title="row.locked ? lockHintFor(row) : row.subject">
               <template #description>
                 <n-text depth="3" class="sent-meta">
+                  <n-icon v-if="row.locked" :component="LockOutlined" class="sent-lock" />
                   <template v-if="showEMailFrom">{{ rt('from') }} {{ row.address }} · </template>{{ rt('to') }} {{ row.to_mail }} · {{ utcToLocalDate(row.created_at, useUTCDate) }}
                 </n-text>
               </template>
@@ -285,15 +355,23 @@ onMounted(async () => {
               <div class="muted sent-detail-footer">{{ utcToLocalDate(curMail.created_at, useUTCDate) }} · #{{ curMail.id }}</div>
             </div>
             <div class="toolbar sent-detail-actions">
-              <n-button size="small" quaternary @click="showCode = !showCode">{{ t('showCode') }}</n-button>
+              <n-button v-if="!curMail.locked" size="small" quaternary @click="showCode = !showCode">{{ t('showCode') }}</n-button>
               <n-popconfirm v-if="enableUserDeleteEmail" @positive-click="deleteMail">
                 <template #trigger><n-button quaternary type="error" size="small">{{ t('delete') }}</n-button></template>
                 {{ t('deleteMailTip') }}
               </n-popconfirm>
             </div>
-            <pre v-if="showCode">{{ curMail.raw }}</pre>
-            <pre v-else-if="!curMail.is_html">{{ curMail.content }}</pre>
-            <div v-else v-html="curMail.content"></div>
+            <n-alert v-if="curMail.locked" type="warning" :show-icon="false" :bordered="false" class="mail-locked-banner">
+              <n-space align="center" :size="6">
+                <n-icon :component="LockOutlined" />
+                <span>{{ lockHintFor(curMail) }}</span>
+              </n-space>
+            </n-alert>
+            <template v-else>
+              <pre v-if="showCode">{{ curMail.raw }}</pre>
+              <pre v-else-if="!curMail.is_html">{{ curMail.content }}</pre>
+              <div v-else v-html="curMail.content"></div>
+            </template>
           </div>
         </n-drawer-content>
       </n-drawer>
@@ -329,6 +407,7 @@ onMounted(async () => {
 .sent-list-column { border-right: 1px solid var(--app-divider); }
 .sent-list-scroll :deep(.n-list-item.overlay) { box-shadow: inset 3px 0 0 var(--app-accent); }
 .sent-meta { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.sent-lock { vertical-align: -2px; margin-right: 4px; }
 .mail-details { padding-bottom: 12px; border-bottom: 1px solid var(--app-divider); font-size: 13px; }
 .mail-address { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 8px; overflow-wrap: anywhere; }
 .mail-address-label { color: var(--app-text-3); font-size: 11px; }

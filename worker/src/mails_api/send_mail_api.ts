@@ -11,6 +11,7 @@ import { GeoData } from '../models'
 import { handleListQuery, isSendMailBindingEnabled, updateAddressUpdatedAt } from '../common'
 import { getSendBalanceState, requestSendMailAccess } from './send_balance';
 import { ensureSendMailLimit, increaseSendMailLimitCount } from './send_mail_limit_utils';
+import { getAddressEncryptionPublicKey, storeSendboxRaw } from '../email/storage';
 
 
 export const api = new Hono<HonoCustomType>()
@@ -237,14 +238,19 @@ export const sendMail = async (
             ...reqJson,
             geoData: geoData,
         };
-        const { success: success2 } = await c.env.DB.prepare(
-            `INSERT INTO sendbox (address, raw) VALUES (?, ?)`
-        ).bind(address, JSON.stringify(body)).run();
+        // Encrypt the sendbox raw at rest for encrypted addresses. On an
+        // encryption failure the sendbox save is skipped (never stored as
+        // plaintext); the mail itself has already been sent, so failing the
+        // whole request here would only mislead the caller.
+        const encryptionPublicKey = await getAddressEncryptionPublicKey(c.env, address);
+        const { success: success2 } = await storeSendboxRaw(
+            c.env, address, JSON.stringify(body), encryptionPublicKey
+        );
         if (!success2) {
             console.warn(`Failed to save to sendbox for ${address}`);
         }
     } catch (e) {
-        console.warn(`Failed to save to sendbox for ${address}`);
+        console.warn(`Failed to save to sendbox for ${address}`, e);
     }
 }
 

@@ -12,6 +12,15 @@ testApi.post('/expire_redeem_code', async c => {
     .bind(code).run();
   return c.json({ updated: meta.changes });
 });
+// Read-only D1 access for tests that need to inspect stored rows directly.
+testApi.get('/query', async c => {
+  const sql = c.req.query('sql');
+  if (!sql || !/^\s*select\b/i.test(sql)) {
+    return c.json({ error: 'only SELECT queries are allowed' }, 400);
+  }
+  const { results } = await c.env.DB.prepare(sql).all();
+  return c.json({ results });
+});
 testApi.get('/telegram_binding', async c => {
   const userId = c.req.query('userId');
   if (userId) return c.json(await c.env.KV.get(`${CONSTANTS.TG_KV_PREFIX}:${userId}`, 'json'));

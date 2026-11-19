@@ -4,6 +4,7 @@ vitepress-docs/
 smtp_proxy_server/
 mail-parser-wasm/
 db/
+!db/schema.sql
 **/.wrangler/
 **/dist/
 **/test-results/

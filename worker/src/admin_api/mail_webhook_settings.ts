@@ -5,6 +5,7 @@ import { commonParseMail, sendWebhook, compileWebhookFilter } from "../common";
 import { resolveRawEmail } from "../gzip";
 import i18n from "../i18n";
 import { getWebhookAttachments } from '../utils/webhook';
+import { isEncryptedMailRow } from "../utils/mail_crypto";
 
 async function getWebhookSettings(c: Context<HonoCustomType>): Promise<Response> {
     const settings = await c.env.KV.get<WebhookSettings>(
@@ -53,7 +54,11 @@ async function checkWebhookFilter(c: Context<HonoCustomType>): Promise<Response>
     ).first<RawMailRow>();
     if (!mailRow) return c.text(msgs.MailNotFoundMsg, 404);
     const raw = await resolveRawEmail(mailRow);
-    const parsedEmail = await commonParseMail({ rawEmail: raw });
+    // Encrypted envelopes are never parsed server-side; keep the existing
+    // locked behaviour (filter evaluation fails) for encrypted rows.
+    const parsedEmail = isEncryptedMailRow(mailRow)
+        ? undefined
+        : await commonParseMail({ rawEmail: raw });
     try {
         return c.json({ success: true, matched: match(parsedEmail, mailRow.address ?? '') });
     } catch {
@@ -81,8 +86,12 @@ async function testWebhookSettings(c: Context<HonoCustomType>): Promise<Response
         return c.text(msgs.MailNotFoundMsg, 404);
     }
     const raw = mailRow ? await resolveRawEmail(mailRow) : "";
+    // Encrypted envelopes are never parsed server-side; the test webhook
+    // keeps its existing placeholder fields for encrypted rows.
     const parsedEmailContext: ParsedEmailContext = { rawEmail: raw };
-    const parsedEmail = await commonParseMail(parsedEmailContext);
+    const parsedEmail = mailRow && isEncryptedMailRow(mailRow)
+        ? undefined
+        : await commonParseMail(parsedEmailContext);
     const res = await sendWebhook(settings, {
         attachments: await getWebhookAttachments(c.env, mailRow, parsedEmail?.attachments),
         id: mailId || "0",

@@ -214,7 +214,7 @@ const handleSaveToS3 = async (filename, blob) => {
     <div class="mail-details">
       <div class="mail-address">
         <n-text depth="3" class="mail-address-label">{{ t('from') }}</n-text>
-        <n-text depth="2">{{ mail.source }}</n-text>
+        <n-text depth="2">{{ mail.locked ? lockHint : mail.source }}</n-text>
       </div>
       <div v-if="showEMailTo" class="mail-address">
         <n-text depth="3" class="mail-address-label">{{ t('to') }}</n-text>
@@ -338,7 +338,7 @@ const handleSaveToS3 = async (filename, blob) => {
     class="mail-details-modal" style="width: min(480px, calc(100vw - 32px));">
     <n-descriptions :column="1" label-placement="left" :content-style="{ overflowWrap: 'anywhere' }">
       <n-descriptions-item v-if="mail.subject" label="Subject">{{ mail.subject }}</n-descriptions-item>
-      <n-descriptions-item label="From">{{ mail.source }}</n-descriptions-item>
+      <n-descriptions-item label="From">{{ mail.locked ? lockHint : mail.source }}</n-descriptions-item>
       <n-descriptions-item v-if="mail.originalSource && mail.originalSource !== mail.source"
         label="SMTP envelope sender">{{ mail.originalSource }}</n-descriptions-item>
       <n-descriptions-item v-if="showEMailTo" label="To">{{ mail.address }}</n-descriptions-item>

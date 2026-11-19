@@ -10,7 +10,7 @@ import { sendTelegramAttachments } from "./tg_file_upload";
 import { bindTelegramAddress, deleteTelegramAddress, jwtListToAddressData, tgUserNewAddress, unbindTelegramAddress, unbindTelegramByAddress } from "./common";
 import { commonParseMail } from "../common";
 import { resolveRawEmail } from "../gzip";
-import { isEncryptedRaw } from "../utils/mail_crypto";
+import { isEncryptedMailRow } from "../utils/mail_crypto";
 import { UserFromGetMe } from "telegraf/types";
 import i18n from "../i18n";
 import { LocaleMessages } from "../i18n/type";
@@ -363,7 +363,7 @@ export function newTelegramBot(c: Context<HonoCustomType>, token: string): Teleg
         const raw = mailRow ? await resolveRawEmail(mailRow) : undefined;
         const mailId = mailRow?.id;
         const created_at = mailRow?.created_at;
-        if (raw && isEncryptedRaw(raw)) {
+        if (mailRow && isEncryptedMailRow(mailRow)) {
             // Encrypted mail cannot be shown in Telegram; view in web app.
             return await ctx.reply(msgs.TgEncryptedMailMsg);
         }
@@ -476,7 +476,8 @@ export async function sendMailToTelegram(
     c: Context<HonoCustomType>, address: string,
     parsedEmailContext: ParsedEmailContext,
     mailId: number | undefined,
-    aiExtract?: ExtractResult | null
+    aiExtract?: ExtractResult | null,
+    opts?: { encrypted?: boolean }
 ) {
     if (!c.env.TELEGRAM_BOT_TOKEN || !c.env.KV) {
         return;
@@ -490,11 +491,16 @@ export async function sendMailToTelegram(
     const bot = newTelegramBot(c, c.env.TELEGRAM_BOT_TOKEN);
 
     const buildAndSend = async (targetUserId: string, msgs: LocaleMessages) => {
-        const { mail } = await parseMail(
-            msgs, parsedEmailContext, address, new Date().toUTCString(), aiExtract
-        );
+        const encrypted = opts?.encrypted === true;
+        const mail = encrypted
+            // Content-free push for encrypted mailboxes: no sender, subject,
+            // body, or attachments — the mail can only be read in the web app.
+            ? msgs.TgEncryptedMailPushMsg
+            : (await parseMail(
+                msgs, parsedEmailContext, address, new Date().toUTCString(), aiExtract
+            )).mail;
         if (!mail) return;
-        const attachments = parsedEmailContext.parsedEmail?.attachments || [];
+        const attachments = encrypted ? [] : parsedEmailContext.parsedEmail?.attachments || [];
         const buttons = [];
         if (settings?.miniAppUrl && mailId) {
             const url = new URL(settings.miniAppUrl);
@@ -506,7 +512,7 @@ export async function sendMailToTelegram(
             ...Markup.inlineKeyboard([...buttons])
         });
         // send attachments via native fetch (telegraf multipart upload is incompatible with CF Workers)
-        if (getBooleanValue(c.env.ENABLE_TG_PUSH_ATTACHMENT) && attachments.length > 0) {
+        if (!encrypted && getBooleanValue(c.env.ENABLE_TG_PUSH_ATTACHMENT) && attachments.length > 0) {
             const caption = `From: ${parsedEmailContext.parsedEmail?.sender || ""}\nSubject: ${parsedEmailContext.parsedEmail?.subject || ""}`;
             await sendTelegramAttachments(c.env.TELEGRAM_BOT_TOKEN, targetUserId, attachments, caption);
         }

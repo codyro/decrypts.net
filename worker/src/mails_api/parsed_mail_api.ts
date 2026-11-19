@@ -3,16 +3,15 @@ import { Context } from 'hono'
 import i18n from '../i18n';
 import { commonParseMail, handleMailListQuery, updateAddressUpdatedAt } from '../common'
 import { resolveRawEmailRow } from '../gzip'
-import { isEncryptedRaw } from '../utils/mail_crypto'
+import { isEncryptedMailRow } from '../utils/mail_crypto'
 import { LocaleMessages } from '../i18n/type';
 
 const toParsedMailRow = async (
     row: Record<string, unknown>,
     msgs: LocaleMessages
 ): Promise<Record<string, unknown>> => {
-    const raw = typeof row.raw === 'string' ? row.raw : '';
     const { raw: _raw, ...rest } = row;
-    if (isEncryptedRaw(raw)) {
+    if (isEncryptedMailRow(row)) {
         // Server-side parsing is impossible for encrypted mail; the frontend
         // decrypts the raw envelope client-side. Return a clear placeholder.
         return {
@@ -25,6 +24,7 @@ const toParsedMailRow = async (
             encrypted: true,
         };
     }
+    const raw = typeof row.raw === 'string' ? row.raw : '';
     const parsed = raw ? await commonParseMail({ rawEmail: raw }) : undefined;
     return {
         ...rest,

@@ -6,7 +6,7 @@
 
 ## 威胁模型
 
-- 服务器端只保存原始 MIME 的密文（`cfte1.` 信封）。明文保留的元数据只有：发件人/信封来源（`source`）、邮箱地址、`message_id`、时间戳、已读状态。
+- 服务器端只保存原始 MIME 的密文（`cfte1.` 信封）。加密行不再明文保存元数据：`source` 置空、`message_id` 置为 `NULL`（真实发件人和 Message-ID 在加密后的 MIME 头内，由浏览器解密后展示）。明文保留的元数据只有：邮箱地址、时间戳、已读状态、大小和 `is_encrypted` 标记。
 - 邮件在到达瞬间会以明文经过 Worker：垃圾邮件检查、超大附件移除、自动回复仍会运行（自动回复只使用邮件头和配置内容）。
 - **这保护的是静态数据（data at rest）**。恶意或被攻陷的 Worker 仍可在加密前的接收瞬间捕获邮件内容；该功能不防御 Worker 本身被攻陷。
 
@@ -15,12 +15,25 @@
 为了不出泄漏内容，配置了加密公钥的邮箱会跳过以下依赖服务器解析正文的功能：
 
 - 邮件转发（站内转发规则与全局转发）
-- Webhook 推送
-- Telegram 推送（互动查询历史邮件时回复"该邮件已加密，请在网页端查看"，不含内容）
 - AI 邮件识别
 - 其他 Worker RPC 增强
 
 垃圾邮件/黑名单/未知地址检查和自动回复不受影响。
+
+## 无内容通知
+
+以下通知链路不再整体跳过，但对加密邮箱只发送不含任何内容的通知：
+
+- Telegram 推送发送固定的"收到新的加密邮件"提示，不含发件人、主题、正文和附件；配置了小程序地址时仍附带小程序按钮。Bot 互动查询历史加密邮件时仍只回复"该邮件已加密"而不含内容。
+- 每一个已启用的 Webhook（全局与按地址，凡启用者）都会被调用，但请求体只包含 `{ "encrypted": true, "address": "<邮箱地址>", "mail_id": <数字>, "created_at": "<SQLite UTC 时间戳>" }`，配置的 Body 模板与过滤规则全部被绕过。
+
+## 发件箱（sendbox）
+
+加密地址的已发送邮件原文同样以 `cfte1.` 信封存储（信封明文与明文路径存储的 JSON 完全相同），并标记 `is_encrypted = 1`；加密失败时跳过发件箱保存，绝不回退明文。网页端发件箱在客户端解密后照常展示，缺少可用私钥时显示为锁定；管理端和用户中心的发件箱视图没有私钥，加密行始终显示为锁定。
+
+## is_encrypted 标记
+
+数据库 v0.0.12 为 `raw_mails` 和 `sendbox` 增加显式 `is_encrypted` 列并回填历史信封（执行 `Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`）。已迁移数据库以该标记判定加密，发件人伪造 `cfte1.` 前缀的明文不会被误认为加密邮件；未迁移数据库回退到前缀检测，伪造前缀的明文会显示为锁定。邮件列表、详情和发件箱接口的行都带 `is_encrypted` 字段（0/1），客户端无需检查 `raw` 前缀即可区分。
 
 ## 信封格式
 
@@ -39,16 +52,17 @@ cfte1. + base64url( ephPubRaw(65B, P-256 uncompressed) || iv(12B) || AES-GCM(cip
 - localStorage 按邮箱地址保存私钥数组（最新在前），轮换密钥后旧邮件仍可用旧密钥解密。
 - 前端提供"复制解密链接"按钮，可在其他设备上导入密钥。
 - **丢失私钥 = 邮件不可恢复**：服务器无法解密，也没有后门。
+- **加密已有邮件不可逆**：明文行一旦被替换为信封，只有私钥持有者才能读取；丢失私钥后这些邮件将永久不可恢复（详见下文 API）。
 - 关闭加密（清除公钥）后新邮件恢复明文存储，但已加密的旧邮件仍保持加密状态。
 - localStorage 中的私钥意味着本机 XSS 可以读取邮件明文；请在可信设备上使用，并注意浏览器扩展安全。
 
 ## 使用流程
 
 1. 部署者：设置 `ENABLE_MAIL_ENCRYPTION = true`（Worker 变量），并先执行数据库迁移（`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`），确保 `address.encryption_public_key` 列存在。
-2. 用户：创建邮箱时勾选"启用邮箱加密"，或在登录后于"账号设置"中开启/轮换/关闭加密。
+2. 用户：创建邮箱时勾选"启用邮箱加密"，或在登录后于"账号设置"中开启/轮换/关闭加密。开启或轮换后，如果该邮箱仍有明文邮件，前端会提示"加密已有邮件"；账号设置中也始终提供该按钮，执行时显示进度并支持取消。
 3. 创建时前端自动生成密钥对，上传公钥，并展示解密链接供保存。
 4. 管理员：在 `Admin -> 账号` 中，单个创建提供同样的加密选项；批量创建会在浏览器中为每个地址生成一对密钥，导出 CSV 在存在加密地址时包含 `private_key` 和 `decryption_link` 列。
-5. Telegram 小程序：小程序内的绑定/创建页提供同样的加密勾选，私钥保存在小程序 webview 的 localStorage 中。Bot `/new` 文本命令没有浏览器环境生成/保存密钥，**不支持**加密（创建的地址均为明文）。加密地址不会收到 Telegram 推送，Bot 邮件查询（`/mails`）只会回复"该邮件已加密"而不含内容——请在网页端或小程序内查看加密邮件（客户端本地解密）。
+5. Telegram 小程序：小程序内的绑定/创建页提供同样的加密勾选，私钥保存在小程序 webview 的 localStorage 中。Bot `/new` 文本命令没有浏览器环境生成/保存密钥，**不支持**加密（创建的地址均为明文）。加密地址会收到一条固定的"收到新的加密邮件"无内容推送（配置了小程序地址时附带小程序按钮），Bot 邮件查询（`/mails`）仍只回复"该邮件已加密"而不含内容——请在网页端或小程序内查看加密邮件（客户端本地解密）。
 
 ## API（供脚本 / Agent 使用）
 
@@ -68,9 +82,47 @@ POST /api/address_encryption          body: { "publicKey": <b64url|null> }
 
 `POST /api/new_address`、`POST /admin/new_address` 和 `POST /telegram/new_address`（Telegram 小程序）都支持可选字段 `encryption_public_key`（b64url 65 字节 P-256 公钥）。非法公钥或功能未启用时返回 400。管理端批量创建是逐地址调用 `/admin/new_address`，因此每个地址都可以带各自的公钥。Bot `/new` 命令不支持该字段。
 
+### 加密已有邮件
+
+两个地址 JWT 接口供脚本把该邮箱已存储的明文邮件重新加密（浏览器流程即上文所述：开启/轮换密钥后前端主动提示，账号设置中也有常驻按钮，支持进度显示与取消）：
+
+```
+GET  /api/encrypt_existing/pending?box=inbox|sendbox&limit=<1..50>&after_id=<n>
+# -> { "publicKey": <b64url>, "remaining": <剩余明文数>, "results": [{ "id": <n>, "raw": "<明文>" }] }
+
+POST /api/encrypt_existing
+# body: { "box": "inbox"|"sendbox", "items": [{ "id": <n>, "raw": "<cfte1. 信封>" }] }
+# -> { "success": true, "encrypted": [<id>...], "skipped": [{ "id": <id>, "reason": "invalid_envelope"|"not_found"|"already_encrypted" }] }
+```
+
+- 功能未启用或地址未设置公钥时两个接口均返回 400。
+- `limit` 取值 1..50（默认 20）；每次 POST 最多 50 项；信封解码后须在 94 B..2 MiB 之间。
+- 每一项必须是当前 JWT 地址名下、当前为明文状态的行，否则被跳过（`not_found` 也覆盖其他地址的邮件）。
+- 服务器只校验信封格式，**永不解密**，也无法验证信封是用哪把公钥加密的——上传一个格式正确但用错误公钥加密的信封会让该行不可读，请先用返回的 `publicKey` 加密。
+- 收件箱行上传成功后还会清空 `raw_blob`、置 `is_encrypted = 1`，并将 `source` 置空、`message_id` 置为 `NULL`。
+- 整个流程幂等、可断点续跑：重复执行只会加密剩余的明文邮件。
+
+循环逻辑的伪代码（加密部分与上文解密示例使用同一套 WebCrypto 方案）：
+
+```js
+// 每轮取一批明文，用服务器返回的 publicKey 加密后上传
+let afterId = 0;
+for (;;) {
+    const { publicKey, results } = await get(
+        `/api/encrypt_existing/pending?box=inbox&limit=20&after_id=${afterId}`);
+    if (!results.length) break;
+    const items = [];
+    for (const row of results) {
+        items.push({ id: row.id, raw: await encryptMail(publicKey, row.raw, { gzip: false }) });
+    }
+    await post('/api/encrypt_existing', { box: 'inbox', items });
+    afterId = Math.max(...results.map((row) => row.id));
+}
+```
+
 ### 读取与解密邮件
 
-`/api/mails`、`/api/mail/:id` 的 `raw` 字段对加密邮件返回 `cfte1.` 信封字符串。`/api/parsed_mails`、`/api/parsed_mail/:id` 对加密邮件返回占位：
+`/api/mails`、`/api/mail/:id` 的 `raw` 字段对加密邮件返回 `cfte1.` 信封字符串（行内带 `is_encrypted: 1`）；发件箱接口（`/api/sendbox`、`/user_api/sendbox`、`/admin/sendbox` 等）对加密地址的发件记录同样返回信封。`/api/parsed_mails`、`/api/parsed_mail/:id` 对加密邮件返回占位：
 
 ```json
 { "encrypted": true, "subject": "[Encrypted mail]", "sender": "", "text": "", "html": "", "attachments": [] }
@@ -108,7 +160,7 @@ export async function decryptMail(privateKeyB64u, envelope) {
 
 ## 限制
 
-- 服务端解析接口（`/api/parsed_mails` 等）对加密邮件只返回占位，无法提供主题/正文/附件；Webhook 测试发送与 Telegram 解析同样不可用。
-- 非加密邮箱上，发件人可控、原始内容恰好以 `cfte1.` 开头的邮件会在前端显示为锁定状态（这是按设计的行为，以信封前缀判断加密）。
+- 服务端解析接口（`/api/parsed_mails` 等）对加密邮件只返回占位，无法提供主题/正文/附件；Webhook 测试发送与 Telegram 解析同样不可用，Webhook 发件人过滤条件也无法匹配加密邮件（无内容推送整体绕过过滤规则）。加密行的 `source` 为空，依赖发件人的服务端能力（如按发件人搜索、按发件人统计）不包含加密邮件。
+- 未迁移数据库上，发件人可控、原始内容恰好以 `cfte1.` 开头的明文会显示为锁定状态（此前缀会被误认为是信封）。执行数据库迁移（v0.0.12）后以显式 `is_encrypted` 标记判定加密，这类邮件会按明文正常展示。
 - 私钥保存在 localStorage，清理浏览器数据会丢失密钥（除非已保存解密链接）。
-- 加密地址不会收到 Telegram 推送，Bot `/new` 命令也无法创建加密地址。
+- Bot `/new` 命令无法创建加密地址。

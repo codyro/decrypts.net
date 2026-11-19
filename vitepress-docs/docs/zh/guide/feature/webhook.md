@@ -121,6 +121,16 @@ JSON 与下拉框使用同一操作符，不需要额外的大小写选项。下
 
 后端通用模块 `worker/src/utils/filter.ts` 通过 `compileFilter(expression, isFieldAllowed, operators)` 编译并校验规则，返回接收字符串/字符串列表字段映射的匹配函数；扩展操作符只需注册参数编译函数。邮件字段映射和投递列表过滤放在 `common.ts` 原有 Webhook 处理函数旁，检查接口放在各自已有的 Webhook 设置 API 文件，路由直接引用。前端通用 `FilterEditor.vue` 接收 `v-model`、`fields` 和 `operators`（包括选项编辑配置），不依赖 Webhook API；已有 `WebhookComponent.vue` 直接配置字段、操作符和独立检查弹框，不增加 Webhook 专属 Filter 包装层。原发送测试函数与弹框不变。其他功能可提供自己的配置复用编辑器。
 
+## 加密邮箱的推送
+
+地址启用[邮箱加密](./mail-encryption.md)后，每一个已启用的 Webhook（全局与按地址，凡启用者）仍会对其邮件发起调用，但请求体固定为不含内容的 JSON，配置的 Body 模板与过滤规则全部被绕过：
+
+```json
+{ "encrypted": true, "address": "xxxx@你的域名", "mail_id": 123, "created_at": "2026-11-19 12:00:00" }
+```
+
+`created_at` 为 SQLite UTC 时间戳。推送中不含主题、发件人、正文、附件和原文，因此 Webhook 发件人过滤条件无法匹配加密邮件（无内容推送整体绕过过滤），"测试"发送对加密邮件也只做占位处理、不解析正文。
+
 ## Webhook 模板示例
 
 ### Telegram Bot 推送

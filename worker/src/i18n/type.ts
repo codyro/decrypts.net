@@ -22,6 +22,7 @@ export type LocaleMessages = {
     TurnstileCheckFailedMsg: string
     NewAddressDisabledMsg: string
     MailEncryptionDisabledMsg: string
+    MailEncryptionNoPublicKeyMsg: string
     InvalidMailEncryptionPublicKeyMsg: string
     EncryptedMailSubjectMsg: string
     NewAddressAnonymousDisabledMsg: string
@@ -168,6 +169,7 @@ export type LocaleMessages = {
     TgGetMailFailedMsg: string
     TgParseMailFailedMsg: string
     TgEncryptedMailMsg: string
+    TgEncryptedMailPushMsg: string
     TgViewMailBtnMsg: string
     TgPrevBtnMsg: string
     TgNextBtnMsg: string

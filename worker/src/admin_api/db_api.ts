@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS raw_mails (
     raw_blob BLOB,
     metadata TEXT,
     is_unread INTEGER,
+    is_encrypted INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS sendbox (
     id INTEGER PRIMARY KEY,
     address TEXT,
     raw TEXT,
+    is_encrypted INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -238,6 +240,26 @@ export default {
             );
             if (!hasEncryptionPublicKey) {
                 await c.env.DB.exec(`ALTER TABLE address ADD COLUMN encryption_public_key TEXT;`);
+            }
+        }
+        if (version && compareVersions(version, "v0.0.11") <= 0) {
+            // migration to v0.0.12: add explicit is_encrypted flag on stored
+            // mail (raw_mails and sendbox) so a sender-controlled plaintext
+            // starting with "cfte1." is not mistaken for an envelope. Existing
+            // envelopes are backfilled to is_encrypted = 1.
+            for (const table of ['raw_mails', 'sendbox']) {
+                const tableInfo = await c.env.DB.prepare(
+                    `PRAGMA table_info(${table})`
+                ).all();
+                const hasEncryptedFlag = tableInfo.results?.some(
+                    (col: any) => col.name === 'is_encrypted'
+                );
+                if (!hasEncryptedFlag) {
+                    await c.env.DB.exec(`ALTER TABLE ${table} ADD COLUMN is_encrypted INTEGER DEFAULT 0;`);
+                    await c.env.DB.exec(
+                        `UPDATE ${table} SET is_encrypted = 1 WHERE substr(raw, 1, 6) = 'cfte1.';`
+                    );
+                }
             }
         }
         if (!version || compareVersions(version, CONSTANTS.DB_VERSION) < 0) {

@@ -1447,6 +1447,34 @@ export const MESSAGE_REGISTRY = {
     "encryptionImportInvalid": {
       "en": "Invalid decryption key or link",
       "zh": "解密密钥或链接无效"
+    },
+    "encryptExisting": {
+      "en": "Encrypt Existing Mail",
+      "zh": "加密已有邮件"
+    },
+    "encryptExistingTip": {
+      "en": "Mail stored before encryption was enabled is still plaintext on the server. This re-encrypts all stored mail on the server irreversibly: afterwards it can only be read with this address's private key, and losing the private key makes it unrecoverable. Continue?",
+      "zh": "启用加密前已存储的邮件在服务器上仍是明文。此操作会将所有已存储的邮件在服务器上不可逆地重新加密：之后只能使用此地址的私钥读取，一旦丢失私钥将无法恢复。是否继续？"
+    },
+    "encryptExistingRunning": {
+      "en": "Encrypting existing mail… {done} done, about {remaining} remaining",
+      "zh": "正在加密已有邮件… 已处理 {done} 封，剩余约 {remaining} 封"
+    },
+    "encryptExistingCancel": {
+      "en": "Cancel",
+      "zh": "取消"
+    },
+    "encryptExistingCancelled": {
+      "en": "Encryption cancelled. Remaining plaintext mail is unchanged and you can resume at any time.",
+      "zh": "已取消加密。剩余明文邮件未受影响，可随时重新开始。"
+    },
+    "encryptExistingDone": {
+      "en": "Finished encrypting existing mail: {encrypted} encrypted, {skipped} skipped.",
+      "zh": "已有邮件加密完成：已加密 {encrypted} 封，跳过 {skipped} 封。"
+    },
+    "encryptExistingFailed": {
+      "en": "Failed to encrypt existing mail: {msg}",
+      "zh": "加密已有邮件失败：{msg}"
     }
   },
   "views.user.UserOauth2Callback": {

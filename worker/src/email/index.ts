@@ -70,8 +70,9 @@ async function receiveEmail(
     // per-mailbox encryption: single key lookup, only when the feature is
     // enabled (helper returns null without querying otherwise). The whole raw
     // MIME is encrypted before storage; content-leaking ingest paths below
-    // (forward, AI extract, telegram, webhook, another-worker RPC) are skipped
-    // for encrypted mailboxes.
+    // (forward, AI extract, another-worker RPC) are skipped for encrypted
+    // mailboxes, while Telegram and webhook only receive content-free
+    // notifications.
     const encryptionPublicKey = await getAddressEncryptionPublicKey(env, toAddress);
     const isMailEncrypted = !!encryptionPublicKey;
 
@@ -136,6 +137,27 @@ async function receiveEmail(
             await triggerAnotherWorker({ env: env } as Context<HonoCustomType>, rpcEmail, parsedText);
         } catch (error) {
             console.error("trigger another worker error", error);
+        }
+    } else {
+        // Encrypted mailboxes: forwarding, AI extraction and RPC enhancement
+        // stay skipped, but content-free notifications still go out. The
+        // Telegram push is a fixed "new encrypted mail" message and the
+        // webhook payload carries no content at all.
+        try {
+            await sendMailToTelegram(
+                { env: env } as Context<HonoCustomType>,
+                toAddress, parsedEmailContext, storedMailId, undefined, { encrypted: true }
+            );
+        } catch (error) {
+            console.error("send mail to telegram error", error);
+        }
+        try {
+            await triggerWebhook(
+                { env: env } as Context<HonoCustomType>,
+                toAddress, parsedEmailContext, storedMailId, undefined, { encrypted: true }
+            );
+        } catch (error) {
+            console.error("send webhook error", error);
         }
     }
 

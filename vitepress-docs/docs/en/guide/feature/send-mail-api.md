@@ -98,6 +98,9 @@ The same user-address API group also provides:
 
 All endpoints require a User JWT. Address-scoped endpoints verify that `address_id` is bound to the current user, while user-level sent-item endpoints only return or delete records for the user's bound addresses. The user access token is only used to apply optional role permissions.
 
+> [!NOTE]
+> When an address has [mailbox encryption](./mail-encryption.md) enabled, the sendbox raw (the sent-item JSON) is likewise stored as a `cfte1.` envelope flagged `is_encrypted = 1`; on encryption failure the sendbox save is skipped and plaintext is never stored. The sendbox APIs return the envelope rather than plaintext — decrypt it client-side with the private key. The web sendbox view decrypts automatically and shows the row locked when no usable private key is stored.
+
 ## Send Email via SMTP
 
 Please first refer to [Configure SMTP Proxy](/en/guide/feature/config-smtp-proxy.html).

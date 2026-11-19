@@ -13,10 +13,19 @@
 - feat: |UI| Redesign the frontend: unified accent and spacing, mailbox page reduced to address bar + inbox, appearance moved to a Preferences drawer, About/GitHub/Status moved to the footer, Auto Reply and S3 attachments merged into Mailbox Settings
 - feat: |Mailbox Encryption| Add optional `ENABLE_MAIL_ENCRYPTION` per-mailbox end-to-end encryption of stored mail: the worker holds only the address public key and encrypts the whole raw MIME into a `cfte1.` envelope before storage; the private key lives only in the browser (URL fragment + localStorage) and the frontend decrypts client-side
   - Run database migration before enabling it: `Admin -> Quick Setup -> Database -> Migrate Database`, or call `POST /admin/db_migration`
-  - Adds the `address.encryption_public_key` column and `GET/POST /api/address_encryption`; the create-address API accepts an optional `encryption_public_key` field; encrypted addresses skip forwarding, webhook, Telegram push, AI extraction, and another-worker RPC, and server-parsed endpoints return an `encrypted: true` placeholder
+  - Adds the `address.encryption_public_key` column and `GET/POST /api/address_encryption`; the create-address API accepts an optional `encryption_public_key` field; encrypted addresses skip forwarding, AI extraction, and another-worker RPC, and server-parsed endpoints return an `encrypted: true` placeholder
+  - Adds explicit `raw_mails.is_encrypted` and `sendbox.is_encrypted` flag columns (DB version v0.0.12, backfilling existing envelopes): on a migrated database the flag — not the `cfte1.` prefix — decides whether a row is encrypted, so sender-controlled plaintext with a forged prefix is not mistaken for an envelope; un-migrated databases fall back to the prefix check, and writers stay compatible with un-migrated tables
+  - The sendbox raw for encrypted addresses is likewise encrypted into a `cfte1.` envelope before storage (`is_encrypted=1`); on encryption failure the sendbox save is skipped and plaintext is never stored
+  - Encrypted mail rows no longer store the sender `source` or `message_id` in plaintext (placeholders are stored; the real values live inside the encrypted MIME headers and are shown by the browser after decryption)
+  - Encrypted addresses no longer skip notifications entirely: the Telegram push becomes a fixed content-free "new encrypted mail" notice, and webhooks (global and per-address, whichever are enabled) receive a content-free JSON payload containing only `{encrypted, address, mail_id, created_at}` — no subject, sender, body, or attachments
+  - Adds the "encrypt existing mail" endpoints `GET /api/encrypt_existing/pending` and `POST /api/encrypt_existing` (the browser encrypts and the server only validates/stores envelopes, max 50 items per call, skip reasons reported as `invalid_envelope`/`not_found`/`already_encrypted`); the frontend offers the flow after enabling/rotating a key and keeps a persistent "Encrypt existing mail" button in Account Settings with progress and cancel support
+  - The web sendbox view decrypts encrypted rows client-side and renders them as usual (locked when no usable private key is stored); admin and user-center sendbox views have no keys, so encrypted rows always stay locked
+  - Server-side parsing now recognises encrypted mail by the row-level `is_encrypted` flag (falling back to the prefix check on un-migrated databases); webhook filter checks and test-send keep the locked/placeholder behaviour for encrypted rows instead of refusing to parse by prefix
   - Admin single/batch mailbox creation supports the encryption opt-in (one browser-generated key pair per address) and the batch export CSV includes `private_key`/`decryption_link` columns; the Telegram mini-app creation page supports the opt-in, while the bot `/new` command does not
 
 ### Bug Fixes
+
+- fix: |E2E| `e2e/Dockerfile.e2e` now copies `db/schema.sql` (loaded by the statistics unit tests), fixing the e2e runner aborting at the unit-test stage
 
 ### Improvements
 

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS raw_mails (
     raw_blob BLOB,
     metadata TEXT,
     is_unread INTEGER,
+    is_encrypted INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -65,6 +66,7 @@ CREATE TABLE IF NOT EXISTS sendbox (
     id INTEGER PRIMARY KEY,
     address TEXT,
     raw TEXT,
+    is_encrypted INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

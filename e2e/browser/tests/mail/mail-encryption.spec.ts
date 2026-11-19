@@ -5,6 +5,7 @@ import {
   WORKER_URL,
   TEST_DOMAIN,
   seedTestMail,
+  createTestAddress,
   deleteAddress,
 } from '../../../fixtures/test-helpers';
 
@@ -76,6 +77,131 @@ test.describe('Mailbox encryption browser flow', () => {
       await expect(summary.locator('.mail-summary-lock')).toBeVisible();
       // The plaintext subject must not leak into the list
       await expect(summary).not.toContainText('Locked Subject');
+    } finally {
+      await deleteAddress(api, jwt);
+      await api.dispose();
+    }
+  });
+
+  test('sent mail in an encrypted address shows decrypted content in the sendbox', async ({ page }) => {
+    const api = await apiRequest.newContext();
+    let jwt = '';
+    try {
+      const mailbox = await createEncryptedAddress(api, 'enc-sendbox');
+      jwt = mailbox.jwt;
+      const subject = `Sendbox Decrypt ${Date.now()}`;
+      const sendRes = await api.post(`${WORKER_URL}/api/send_mail`, {
+        headers: { Authorization: `Bearer ${mailbox.jwt}` },
+        data: {
+          from_name: '', from_mail: mailbox.address,
+          to_name: '', to_mail: `recipient-${Date.now()}@test.example.com`,
+          subject, content: 'sendbox decrypted body', is_html: false,
+        },
+      });
+      expect(sendRes.ok(), await sendRes.text()).toBe(true);
+
+      await page.goto(
+        `${FRONTEND_URL}/en/?jwt=${mailbox.jwt}`
+        + `#k=${encodeURIComponent(mailbox.privateKey)}&a=${encodeURIComponent(mailbox.address)}`,
+      );
+      await expect.poll(() => new URL(page.url()).hash).toBe('');
+
+      await page.getByText('Sent', { exact: true }).click();
+      const row = page.locator('.sent-list-scroll .n-list-item').first();
+      await expect(row).toContainText(subject);
+      await expect(row.locator('.sent-lock')).toHaveCount(0);
+
+      // The stored sendbox raw is an envelope, never shown as content
+      await row.click();
+      const detail = page.locator('.mail-item, .sent-mobile-detail').first();
+      await expect(detail).toContainText('sendbox decrypted body');
+      await expect(detail).not.toContainText('cfte1.');
+    } finally {
+      await deleteAddress(api, jwt);
+      await api.dispose();
+    }
+  });
+
+  test('a plaintext mail starting with cfte1. renders as plaintext on a migrated database', async ({ page }) => {
+    const api = await apiRequest.newContext();
+    let jwt = '';
+    try {
+      const mailbox = await createTestAddress(api, 'encplain');
+      jwt = mailbox.jwt;
+      // Plaintext row whose body starts with the envelope prefix: on a
+      // migrated DB the explicit is_encrypted=0 flag is authoritative.
+      const marker = `cfte1.${'A'.repeat(64)}`;
+      const subject = `Plain Prefix ${Date.now()}`;
+      await seedTestMail(api, mailbox.address, { subject, text: marker });
+
+      await page.goto(`${FRONTEND_URL}/en/?jwt=${mailbox.jwt}`);
+      const summary = page.locator('.mail-summary').first();
+      // is_encrypted=0 is authoritative: no lock, real subject
+      await expect(summary.locator('.mail-summary-lock')).toHaveCount(0);
+      await expect(summary).toContainText(subject);
+
+      await summary.click();
+      await expect(page.locator('.mail-content-renderer')).toContainText(marker);
+    } finally {
+      await deleteAddress(api, jwt);
+      await api.dispose();
+    }
+  });
+
+  test('"Encrypt existing mail" re-encrypts plaintext inbox mail and it still reads correctly', async ({ page }) => {
+    const api = await apiRequest.newContext();
+    let jwt = '';
+    try {
+      // Seed plaintext mail BEFORE the public key is set: mail received
+      // while a key is set is already stored encrypted.
+      const mailbox = await createTestAddress(api, 'encexist');
+      jwt = mailbox.jwt;
+      const subjects = [`Existing One ${Date.now()}`, `Existing Two ${Date.now()}`];
+      for (const subject of subjects) {
+        await seedTestMail(api, mailbox.address, { subject, text: `body of ${subject}` });
+      }
+      const { publicKey, privateKey } = await generateKeyPair();
+      const enableRes = await api.post(`${WORKER_URL}/api/address_encryption`, {
+        headers: { Authorization: `Bearer ${mailbox.jwt}` },
+        data: { publicKey },
+      });
+      expect(enableRes.ok(), await enableRes.text()).toBe(true);
+
+      await page.goto(
+        `${FRONTEND_URL}/en/?jwt=${mailbox.jwt}`
+        + `#k=${encodeURIComponent(privateKey)}&a=${encodeURIComponent(mailbox.address)}`,
+      );
+      await expect.poll(() => new URL(page.url()).hash).toBe('');
+
+      await page.getByText('Mailbox Settings', { exact: true }).click();
+      await page.getByRole('button', { name: 'Encrypt Existing Mail', exact: true }).click();
+      const dialog = page.locator('.n-modal');
+      await expect(dialog).toContainText('irreversibly');
+      await dialog.getByRole('button', { name: 'Encrypt Existing Mail', exact: true }).click();
+
+      await expect(page.locator('.enc-existing')).toContainText('2 encrypted, 0 skipped');
+
+      // The mail still reads correctly in the UI after re-encryption
+      await page.getByText('Inbox', { exact: true }).click();
+      const summary = page.locator('.mail-summary-subject').first();
+      await expect(summary).toContainText(subjects[1]);
+      await summary.click();
+      await expect(page.locator('.mail-content-renderer')).toContainText(`body of ${subjects[1]}`);
+
+      // The DB rows are now encrypted envelopes
+      const query = await api.get(`${WORKER_URL}/__test/query`, {
+        params: {
+          sql: `SELECT is_encrypted, substr(raw, 1, 6) AS prefix FROM raw_mails`
+            + ` WHERE address = '${mailbox.address}' ORDER BY id`,
+        },
+      });
+      expect(query.ok(), await query.text()).toBe(true);
+      const { results } = await query.json();
+      expect(results).toHaveLength(2);
+      for (const row of results) {
+        expect(row.is_encrypted).toBe(1);
+        expect(row.prefix).toBe('cfte1.');
+      }
     } finally {
       await deleteAddress(api, jwt);
       await api.dispose();

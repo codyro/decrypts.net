@@ -20,6 +20,9 @@ ADMIN_PASSWORDS = '["e2e-admin-pass"]'
 ENABLE_WEBHOOK = true
 BACKEND_URL = "http://worker-gzip:8788"
 ENABLE_MAIL_GZIP = true
+# Encryption is enabled only so encrypt-existing flows can be tested against
+# gzip raw_blob rows; addresses without a key keep storing plaintext gzip.
+ENABLE_MAIL_ENCRYPTION = true
 SMTP_CONFIG = """
 {"test.example.com":{"host":"mailpit","port":1025,"secure":false}}
 """

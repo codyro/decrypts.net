@@ -25,6 +25,66 @@ export const isEncryptedRaw = (raw: string | null | undefined): boolean => {
     return typeof raw === "string" && raw.startsWith(MAIL_ENCRYPTION_PREFIX);
 }
 
+// Maximum decoded envelope size accepted for storage. D1 rows are limited in
+// size (order of ~1-2 MB per row), so anything larger cannot be a legitimate
+// stored envelope anyway.
+export const MAIL_ENCRYPTION_MAX_ENVELOPE_BYTES = 2 * 1024 * 1024;
+// base64url encodes 3 bytes into 4 chars (unpadded).
+export const MAIL_ENCRYPTION_MAX_ENVELOPE_CHARS =
+    MAIL_ENCRYPTION_PREFIX.length + Math.ceil(MAIL_ENCRYPTION_MAX_ENVELOPE_BYTES / 3) * 4;
+
+const BASE64URL_RE = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * Strictly validate a "cfte1." envelope before storing it as an encrypted row.
+ * Checks the prefix, the unpadded base64url charset, the decoded size bounds
+ * and the uncompressed-point first byte of the ephemeral public key.
+ *
+ * NOTE: the server only ever holds the address public key, so it cannot
+ * verify that the envelope was really encrypted to this address's current
+ * key — and it must never attempt to decrypt. This only enforces the
+ * envelope shape so that no plaintext or garbage is ever stored as an
+ * "encrypted" row.
+ */
+export const validateEnvelope = (raw: unknown): boolean => {
+    if (typeof raw !== "string") return false;
+    if (!raw.startsWith(MAIL_ENCRYPTION_PREFIX)) return false;
+    const body = raw.slice(MAIL_ENCRYPTION_PREFIX.length);
+    if (body.length === 0 || body.length > MAIL_ENCRYPTION_MAX_ENVELOPE_CHARS - MAIL_ENCRYPTION_PREFIX.length) {
+        return false;
+    }
+    if (!BASE64URL_RE.test(body)) return false;
+    let bytes: Uint8Array;
+    try {
+        bytes = base64UrlToBytes(body);
+    } catch {
+        return false;
+    }
+    if (bytes.length < EPHEMERAL_PUBLIC_KEY_LENGTH + IV_LENGTH + 16 + 1) return false;
+    if (bytes.length > MAIL_ENCRYPTION_MAX_ENVELOPE_BYTES) return false;
+    if (bytes[0] !== 0x04) return false;
+    return true;
+}
+
+/**
+ * Decide whether a raw_mails/sendbox row holds an encrypted envelope.
+ *
+ * On a migrated database the explicit `is_encrypted` column is authoritative:
+ * a sender-controlled plaintext starting with "cfte1." must NOT be treated as
+ * encrypted. Only when the row carries no `is_encrypted` property (un-migrated
+ * database) do we fall back to the envelope prefix check so those deployments
+ * keep working.
+ */
+export const isEncryptedMailRow = (
+    row: { is_encrypted?: unknown; raw?: unknown } | null | undefined
+): boolean => {
+    if (!row) return false;
+    if (row.is_encrypted !== undefined) {
+        return Number(row.is_encrypted) === 1;
+    }
+    return isEncryptedRaw(typeof row.raw === "string" ? row.raw : null);
+}
+
 const bytesToBase64Url = (bytes: Uint8Array): string => {
     let binary = "";
     for (const byte of bytes) binary += String.fromCharCode(byte);

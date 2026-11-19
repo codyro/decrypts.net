@@ -13,10 +13,19 @@
 - feat: |UI| 重新设计前端界面：统一主题色与间距，邮箱页精简为地址栏 + 收件箱，外观设置移至偏好设置抽屉，关于/GitHub/状态移至页脚，自动回复与 S3 附件并入邮箱设置
 - feat: |邮箱加密| 新增 `ENABLE_MAIL_ENCRYPTION` 可选的按邮箱端到端加密存储，Worker 只保存邮箱公钥，整封原始 MIME 入库前加密为 `cfte1.` 信封，私钥仅存于浏览器（URL fragment + localStorage），前端客户端解密后解析
   - 启用前需先执行数据库迁移：`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema`，或调用接口 `POST /admin/db_migration`
-  - 新增 `address.encryption_public_key` 列与 `GET/POST /api/address_encryption` 接口；创建邮箱 API 支持可选 `encryption_public_key` 字段；加密邮箱跳过转发、Webhook、Telegram 推送、AI 识别和其他 Worker RPC，服务端解析接口返回 `encrypted: true` 占位
+  - 新增 `address.encryption_public_key` 列与 `GET/POST /api/address_encryption` 接口；创建邮箱 API 支持可选 `encryption_public_key` 字段；加密邮箱跳过转发、AI 识别和其他 Worker RPC，服务端解析接口返回 `encrypted: true` 占位
+  - 新增 `raw_mails.is_encrypted` 与 `sendbox.is_encrypted` 显式标记列（DB 版本 v0.0.12，含历史信封回填）：已迁移数据库以标记为准判定加密，发件人伪造 `cfte1.` 前缀的明文不会被误认为加密邮件；未迁移数据库回退到前缀检测，写入端兼容未迁移表结构
+  - 加密邮箱的发件箱（sendbox）原文入库前同样加密为 `cfte1.` 信封（标记 `is_encrypted=1`）；加密失败时跳过发件箱保存，绝不回退明文
+  - 加密邮件行不再明文存储发件人 `source` 与 `message_id`（以占位符存储，真实值在加密 MIME 头内，由浏览器解密后展示）
+  - 加密邮箱不再整体跳过通知：Telegram 推送改为固定的“收到新的加密邮件”无内容提示；Webhook（全局与按地址，凡启用者）改为仅含 `{encrypted, address, mail_id, created_at}` 的无内容 JSON，不泄露主题、发件人、正文与附件
+  - 新增 `GET /api/encrypt_existing/pending` 与 `POST /api/encrypt_existing`“加密已有邮件”接口（浏览器加密、服务端只校验并存储信封，单次最多 50 项，按 `invalid_envelope`/`not_found`/`already_encrypted` 反馈跳过原因）；前端在开启/轮换密钥后主动提示，并在账号设置提供常驻“加密已有邮件”按钮（进度显示、可取消）
+  - 网页端发件箱对加密行客户端解密后照常展示（缺少私钥显示锁定），管理端与用户中心发件箱无私钥、加密行始终锁定
+  - 服务端解析统一按行级 `is_encrypted` 标记（未迁移库回退前缀检测）识别加密邮件；Webhook 过滤检查与测试发送对加密行保持锁定/占位行为，不再按前缀拒绝解析
   - 管理后台单个/批量创建邮箱支持加密选项（每地址一对浏览器生成密钥），批量导出 CSV 含 `private_key`/`decryption_link` 列；Telegram 小程序创建页支持加密选项，Bot `/new` 命令不支持加密
 
 ### Bug Fixes
+
+- fix: |E2E| `e2e/Dockerfile.e2e` 复制 `db/schema.sql`（统计单元测试加载该文件），修复 e2e runner 在单元测试阶段中止的问题
 
 ### Improvements
 

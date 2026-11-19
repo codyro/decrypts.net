@@ -83,7 +83,9 @@ POST /api/address_encryption
 ```
 
 - `publicKey: null` clears the key; new mail is then stored as plaintext while already encrypted mail stays encrypted
-- For encrypted addresses, `/api/mails` / `/api/mail/:id` return the `cfte1.` ciphertext envelope in `raw`; decrypt it client-side with the private key (see the decrypt snippet in [Mailbox Encryption](./mail-encryption.md))
+- For encrypted addresses, `/api/mails` / `/api/mail/:id` return the `cfte1.` ciphertext envelope in `raw`; decrypt it client-side with the private key (see the decrypt snippet in [Mailbox Encryption](./mail-encryption.md)). The sendbox APIs likewise return envelopes for sent mail of encrypted addresses.
+- Rows returned by the mail, sendbox, list, and detail APIs all carry an `is_encrypted` field (0/1), so clients can tell encrypted rows apart without inspecting the `raw` prefix.
+- Existing plaintext mail can be re-encrypted via `GET /api/encrypt_existing/pending` + `POST /api/encrypt_existing`; see [Mailbox Encryption](./mail-encryption.md).
 - `/api/parsed_mails` / `/api/parsed_mail/:id` return a placeholder for encrypted mail: `encrypted: true`, `subject: "[Encrypted mail]"`, empty `text`/`html`, and `attachments: []`
 
 ## Mail Read Status API

@@ -27,6 +27,23 @@ export const isEncryptedRaw = (raw) => {
     return typeof raw === 'string' && raw.startsWith(MAIL_ENCRYPTION_PREFIX)
 }
 
+/**
+ * Decide whether a raw_mails/sendbox row holds an encrypted envelope.
+ *
+ * On a migrated database the explicit `is_encrypted` column is authoritative:
+ * a sender-controlled plaintext starting with "cfte1." must NOT be treated
+ * as encrypted. Only when the row carries no `is_encrypted` property
+ * (un-migrated database) do we fall back to the envelope prefix check so
+ * those deployments keep working.
+ */
+export const isEncryptedRow = (row) => {
+    if (!row) return false
+    if (row.is_encrypted !== undefined) {
+        return Number(row.is_encrypted) === 1
+    }
+    return isEncryptedRaw(typeof row.raw === 'string' ? row.raw : null)
+}
+
 export const bytesToBase64Url = (bytes) => {
     let binary = ''
     for (const byte of bytes) binary += String.fromCharCode(byte)
@@ -94,6 +111,12 @@ export const publicKeyFromPrivate = async (privateKeyB64u) => {
 const gunzip = async (bytes) => {
     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
     return new Response(stream).text()
+}
+
+const gzip = async (text) => {
+    const stream = new Blob([new TextEncoder().encode(text)]).stream()
+        .pipeThrough(new CompressionStream('gzip'))
+    return new Uint8Array(await new Response(stream).arrayBuffer())
 }
 
 /**
@@ -186,4 +209,84 @@ export const decryptMail = async (privateKeyB64u, envelope) => {
         }
     }
     throw new Error(`Unknown encrypted mail content flag: ${flag}`)
+}
+
+/**
+ * Encrypt a raw string (MIME mail or sendbox JSON) into a "cfte1." envelope
+ * for the given base64url raw P-256 public key. Identical algorithm and
+ * format to the worker-side encryptor (worker/src/utils/mail_crypto.ts):
+ * ECDH with an ephemeral key, HKDF-SHA256(salt = ephPubRaw,
+ * info = "cf-temp-email/mail-encryption/v1"), AES-256-GCM with AAD "cfte1",
+ * plaintext = 1 flag byte (0 raw UTF-8, 1 gzip) || content.
+ *
+ * Used by the "encrypt existing mail" flow: the browser encrypts plaintext
+ * rows fetched from the server and uploads only the envelope, so the server
+ * never sees the private key nor any plaintext. Throws on any failure.
+ */
+export const encryptMail = async (publicKeyB64u, raw, opts = {}) => {
+    const recipientKey = await crypto.subtle.importKey(
+        'raw',
+        base64UrlToBytes(publicKeyB64u),
+        { name: 'ECDH', namedCurve: 'P-256' },
+        false,
+        []
+    )
+
+    const ephemeralKeyPair = await crypto.subtle.generateKey(
+        { name: 'ECDH', namedCurve: 'P-256' },
+        true,
+        ['deriveBits']
+    )
+    const ephemeralPublicKeyRaw = new Uint8Array(
+        await crypto.subtle.exportKey('raw', ephemeralKeyPair.publicKey)
+    )
+
+    const sharedSecret = await crypto.subtle.deriveBits(
+        { name: 'ECDH', public: recipientKey },
+        ephemeralKeyPair.privateKey,
+        256
+    )
+    const hkdfKey = await crypto.subtle.importKey(
+        'raw',
+        sharedSecret,
+        { name: 'HKDF' },
+        false,
+        ['deriveBits']
+    )
+    const aesKeyBits = await crypto.subtle.deriveBits(
+        { name: 'HKDF', salt: ephemeralPublicKeyRaw, info: new TextEncoder().encode(HKDF_INFO), hash: 'SHA-256' },
+        hkdfKey,
+        256
+    )
+    const aesKey = await crypto.subtle.importKey(
+        'raw',
+        aesKeyBits,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt']
+    )
+
+    const useGzip = opts?.gzip === true
+    const content = useGzip
+        ? await gzip(raw)
+        : new TextEncoder().encode(raw)
+    const plaintext = new Uint8Array(1 + content.length)
+    plaintext[0] = useGzip ? FLAG_GZIP : FLAG_RAW
+    plaintext.set(content, 1)
+
+    const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
+    const ciphertext = new Uint8Array(await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(ENVELOPE_AAD) },
+        aesKey,
+        plaintext
+    ))
+
+    const envelope = new Uint8Array(
+        ephemeralPublicKeyRaw.length + iv.length + ciphertext.length
+    )
+    envelope.set(ephemeralPublicKeyRaw, 0)
+    envelope.set(iv, ephemeralPublicKeyRaw.length)
+    envelope.set(ciphertext, ephemeralPublicKeyRaw.length + iv.length)
+
+    return MAIL_ENCRYPTION_PREFIX + bytesToBase64Url(envelope)
 }

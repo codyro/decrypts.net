@@ -8,6 +8,7 @@ import webhook_settings from './webhook_settings';
 import s3_attachment from './s3_attachment';
 import address_auth from './address_auth';
 import address_encryption from './address_encryption';
+import encrypt_existing from './encrypt_existing';
 
 export const api = new Hono<HonoCustomType>()
 
@@ -47,6 +48,10 @@ api.delete('/api/clear_sent_items', mails_crud.clearSentItems)
 // per-mailbox mail encryption (public key upload/rotate/clear)
 api.get('/api/address_encryption', address_encryption.getAddressEncryption)
 api.post('/api/address_encryption', address_encryption.saveAddressEncryption)
+
+// encrypt existing plaintext mail (browser encrypts, server stores envelope only)
+api.get('/api/encrypt_existing/pending', encrypt_existing.getPending)
+api.post('/api/encrypt_existing', encrypt_existing.postEncrypt)
 
 // address auth
 api.post('/api/address_change_password', address_auth.changePassword)

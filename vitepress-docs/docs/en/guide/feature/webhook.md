@@ -121,6 +121,16 @@ Existing `/api/webhook/test` and `/admin/mail_webhook/test` accept settings plus
 
 The generic backend module `worker/src/utils/filter.ts` exposes `compileFilter(expression, isFieldAllowed, operators)`, validating/compiling an expression into a function accepting string/string-array fields. Register a parameter compiler to extend operators. Mail-specific mapping and delivery-list filtering live beside the existing webhook processing functions in `common.ts`; check handlers live in their existing webhook settings API files and are referenced directly by routes. The generic frontend `FilterEditor.vue` accepts `v-model`, `fields` and `operators` (including option editor definitions), without depending on webhook APIs. The existing `WebhookComponent.vue` configures fields, operators and its independent check dialog directly, without a webhook-specific Filter wrapper. The existing delivery-test function and dialog remain unchanged. Other features can supply their own configuration to reuse the editor.
 
+## Webhooks for encrypted mailboxes
+
+When an address has [mailbox encryption](./mail-encryption.md) enabled, every enabled webhook (global and per-address, whichever are enabled) is still called for its mail, but the request body is a fixed content-free JSON — the configured body template and filters are bypassed:
+
+```json
+{ "encrypted": true, "address": "xxxx@your-domain", "mail_id": 123, "created_at": "2026-11-19 12:00:00" }
+```
+
+`created_at` is a SQLite UTC timestamp. The push contains no subject, sender, body, attachments, or raw content, so webhook sender filters cannot match encrypted mail (the content-free push bypasses filters entirely), and the webhook **Test** send only uses placeholder fields for encrypted mail without parsing its body.
+
 ## Webhook Template Examples
 
 ### Telegram Bot Push

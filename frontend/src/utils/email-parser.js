@@ -1,5 +1,5 @@
 import PostalMime from 'postal-mime';
-import { isEncryptedRaw, decryptMail } from './mail-crypto';
+import { isEncryptedRow, decryptMail } from './mail-crypto';
 import { getPrivateKeys } from './mail-key-store';
 
 const LOCKED_SUBJECT_PLACEHOLDER = '🔒';
@@ -37,7 +37,9 @@ const resolveLoggedInAddress = async () => {
  * exposed in any display field.
  */
 const decryptItemIfNeeded = async (item) => {
-    if (!isEncryptedRaw(item.raw)) return;
+    // The explicit is_encrypted flag is authoritative on migrated databases;
+    // only fall back to the "cfte1." prefix check when it is absent.
+    if (!isEncryptedRow(item)) return;
     item.encrypted = true;
     let keys = getPrivateKeys(item.address);
     if (keys.length === 0) {

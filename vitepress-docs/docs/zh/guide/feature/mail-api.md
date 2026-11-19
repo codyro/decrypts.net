@@ -83,7 +83,9 @@ POST /api/address_encryption
 ```
 
 - `publicKey` 为 `null` 表示清除；之后新邮件按明文存储，已加密邮件保持加密
-- 加密邮箱收到的邮件，`/api/mails` / `/api/mail/:id` 的 `raw` 返回 `cfte1.` 密文信封，需用私钥在客户端解密（解密示例见[邮箱加密](./mail-encryption.md)）
+- 加密邮箱收到的邮件，`/api/mails` / `/api/mail/:id` 的 `raw` 返回 `cfte1.` 密文信封，需用私钥在客户端解密（解密示例见[邮箱加密](./mail-encryption.md)）；发件箱接口对加密地址的发件记录同样返回信封
+- 邮件、发件箱列表和详情接口的行都带 `is_encrypted` 字段（0/1），无需检查 `raw` 前缀即可判断该行是否加密
+- 已有明文邮件可通过 `GET /api/encrypt_existing/pending` + `POST /api/encrypt_existing` 重新加密，详见[邮箱加密](./mail-encryption.md)
 - `/api/parsed_mails` / `/api/parsed_mail/:id` 对加密邮件返回占位：`encrypted: true`、`subject: "[Encrypted mail]"`（中文界面为 `[加密邮件]`）、`text`/`html` 为空、`attachments` 为 `[]`
 
 ## 邮件已读状态 API

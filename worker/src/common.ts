@@ -9,7 +9,6 @@ import { AddressCreationSettings, AdminWebhookSettings, ExtractResult, WebhookMa
 import i18n from './i18n';
 import { formatWebhookBody, getWebhookAttachments } from './utils/webhook';
 import { compileFilter, type FilterValues } from './utils/filter';
-import { isEncryptedRaw } from './utils/mail_crypto';
 
 const DEFAULT_NAME_REGEX = /[^a-z0-9]/g;
 const DEFAULT_RANDOM_SUBDOMAIN_LENGTH = 8;
@@ -781,11 +780,6 @@ export const commonParseMail = async (parsedEmailContext: ParsedEmailContext): P
         return parsedEmailContext.parsedEmail;
     }
     const raw_mail = parsedEmailContext.rawEmail;
-    // Encrypted envelopes can only be decrypted client-side with the mailbox
-    // private key; never attempt to parse them server-side.
-    if (isEncryptedRaw(raw_mail)) {
-        return undefined;
-    }
     // NOTE: WASM parse email
     // try {
     //     const { parse_message_wrapper } = await import('mail-parser-wasm-worker');
@@ -928,12 +922,41 @@ export async function sendWebhook(
     return { success: true }
 }
 
+export type EncryptedWebhookPayload = {
+    encrypted: true;
+    address: string;
+    mail_id: number | null;
+    created_at: string | null;
+}
+
+/**
+ * Content-free webhook notification for encrypted mailboxes. The configured
+ * body template is bypassed so the payload contains only the fields below —
+ * never subject, sender, body, attachments, or raw content.
+ */
+export async function sendEncryptedWebhook(
+    settings: WebhookSettings,
+    payload: EncryptedWebhookPayload
+): Promise<{ success: boolean, message?: string }> {
+    const response = await fetch(settings.url, {
+        method: settings.method,
+        headers: JSON.parse(settings.headers),
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        console.log("send encrypted webhook error", response.status, response.statusText);
+        return { success: false, message: `send webhook error: ${response.status} ${response.statusText}` };
+    }
+    return { success: true }
+}
+
 export async function triggerWebhook(
     c: Context<HonoCustomType>,
     address: string,
     parsedEmailContext: ParsedEmailContext,
     storedMailId: number | undefined,
-    aiExtract?: ExtractResult | null
+    aiExtract?: ExtractResult | null,
+    opts?: { encrypted?: boolean }
 ): Promise<void> {
     if (!c.env.KV || !getBooleanValue(c.env.ENABLE_WEBHOOK)) {
         return
@@ -960,6 +983,27 @@ export async function triggerWebhook(
     // no webhook
     if (webhookList.length === 0) {
         return
+    }
+    if (opts?.encrypted) {
+        // Content-free notification for encrypted mailboxes. Every enabled
+        // webhook (admin and per-address) is called with a fixed payload that
+        // leaks no content: no subject, sender, body, attachments, or raw.
+        const mailRow = storedMailId ? await c.env.DB.prepare(
+            `SELECT id, created_at FROM raw_mails WHERE id = ? AND address = ?`
+        ).bind(storedMailId, address).first<{ id: number, created_at: string }>() : null;
+        const payload: EncryptedWebhookPayload = {
+            encrypted: true,
+            address: address,
+            mail_id: mailRow?.id ?? storedMailId ?? null,
+            created_at: mailRow?.created_at ?? null,
+        };
+        for (const settings of webhookList) {
+            const res = await sendEncryptedWebhook(settings, payload);
+            if (!res.success) {
+                console.error(res.message);
+            }
+        }
+        return;
     }
     const parsedEmail = await commonParseMail(parsedEmailContext);
     const matchingWebhooks = filterWebhooks(webhookList, parsedEmail, address);

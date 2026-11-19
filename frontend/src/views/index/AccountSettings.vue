@@ -13,6 +13,7 @@ import {
     getPrivateKeys, setPrivateKey, buildDecryptionLink
 } from '../../utils/mail-key-store'
 import { importKeyOrLink } from '../../utils/mail-fragment'
+import { encryptExistingMail } from '../../utils/encrypt-existing'
 
 const {
     jwt, settings, showAddressCredential, loading, openSettings
@@ -38,6 +39,12 @@ const encBusy = ref(false)
 const showRotateConfirm = ref(false)
 const showDisableConfirm = ref(false)
 const showExportKeyConfirm = ref(false)
+const showEncryptExistingConfirm = ref(false)
+const encExistingRunning = ref(false)
+const encExistingProgress = ref(null) // { done, remaining }
+const encExistingResult = ref(null) // { encrypted, skipped } final summary
+const encExistingError = ref('')
+const encExistingAbort = ref(null)
 const encImportInput = ref('')
 
 const shortHash = async (value) => {
@@ -87,12 +94,32 @@ const uploadNewKeyPair = async () => {
     await refreshEncryptionStatus()
 }
 
+// True when the address still has plaintext rows in inbox or sendbox.
+const hasPlaintextMailLeft = async () => {
+    try {
+        const sum = async (box) => {
+            const res = await api.fetch(`/api/encrypt_existing/pending?box=${box}&limit=1`, { showLoading: false })
+            return res.remaining ?? 0
+        }
+        return (await sum('inbox')) + (await sum('sendbox')) > 0
+    } catch {
+        return false
+    }
+}
+
+const offerEncryptExisting = async () => {
+    if (await hasPlaintextMailLeft()) {
+        showEncryptExistingConfirm.value = true
+    }
+}
+
 const enableEncryption = async () => {
     if (encBusy.value) return
     encBusy.value = true
     try {
         await uploadNewKeyPair()
         message.success(t('encryptionEnabled'))
+        await offerEncryptExisting()
     } catch (error) {
         message.error(error.message || 'error')
     } finally {
@@ -107,11 +134,47 @@ const rotateEncryption = async () => {
     try {
         await uploadNewKeyPair()
         message.success(t('encryptionEnabled'))
+        await offerEncryptExisting()
     } catch (error) {
         message.error(error.message || 'error')
     } finally {
         encBusy.value = false
     }
+}
+
+const startEncryptExisting = async () => {
+    showEncryptExistingConfirm.value = false
+    if (encExistingRunning.value) return
+    encExistingRunning.value = true
+    encExistingResult.value = null
+    encExistingError.value = ''
+    encExistingProgress.value = { done: 0, remaining: 0 }
+    const controller = new AbortController()
+    encExistingAbort.value = controller
+    try {
+        const totals = await encryptExistingMail({
+            signal: controller.signal,
+            onProgress: (progress) => {
+                encExistingProgress.value = { done: progress.done, remaining: progress.remaining }
+            },
+        })
+        encExistingResult.value = totals
+        message.success(t('encryptExistingDone', totals))
+    } catch (error) {
+        if (error?.name === 'AbortError') {
+            message.info(t('encryptExistingCancelled'))
+        } else {
+            encExistingError.value = error.message || 'error'
+            message.error(t('encryptExistingFailed', { msg: error.message || 'error' }))
+        }
+    } finally {
+        encExistingRunning.value = false
+        encExistingAbort.value = null
+    }
+}
+
+const cancelEncryptExisting = () => {
+    encExistingAbort.value?.abort()
 }
 
 const disableEncryption = async () => {
@@ -168,6 +231,12 @@ const importEncryptionKey = async () => {
 
 const encryptionLocalKeyCount = computed(() => settings.value.address
     ? getPrivateKeys(settings.value.address).length : 0)
+
+const encExistingPercentage = computed(() => {
+    const { done = 0, remaining = 0 } = encExistingProgress.value || {}
+    const total = done + remaining
+    return total > 0 ? Math.min(100, Math.round(done / total * 100)) : 0
+})
 
 // openSettings may be fetched after this component mounts (lazy tab), so
 // watch instead of a one-shot onMounted.
@@ -320,6 +389,10 @@ const changePassword = async () => {
                             @click="showDisableConfirm = true">
                             {{ t('encryptionDisable') }}
                         </n-button>
+                        <n-button size="small" secondary :loading="encExistingRunning"
+                            @click="showEncryptExistingConfirm = true">
+                            {{ t('encryptExisting') }}
+                        </n-button>
                     </template>
                     <n-button v-if="encryptionLocalKeyCount > 0" size="small" secondary @click="copyDecryptionLink">
                         {{ t('copyDecryptionLink') }}
@@ -336,6 +409,26 @@ const changePassword = async () => {
                     <n-button size="small" secondary @click="importEncryptionKey">
                         {{ t('encryptionImport') }}
                     </n-button>
+                </div>
+                <div v-if="encExistingRunning || encExistingResult || encExistingError" class="enc-existing">
+                    <n-progress v-if="encExistingRunning" type="line" :percentage="encExistingPercentage"
+                        :show-indicator="false" status="default" processing />
+                    <p v-if="encExistingRunning" class="muted enc-existing__line">
+                        {{ t('encryptExistingRunning', {
+                            done: encExistingProgress?.done ?? 0,
+                            remaining: encExistingProgress?.remaining ?? 0,
+                        }) }}
+                        <n-button size="tiny" quaternary type="warning" style="margin-left: 8px;"
+                            @click="cancelEncryptExisting">
+                            {{ t('encryptExistingCancel') }}
+                        </n-button>
+                    </p>
+                    <n-alert v-else-if="encExistingResult" type="success" :show-icon="false" :bordered="false">
+                        {{ t('encryptExistingDone', encExistingResult) }}
+                    </n-alert>
+                    <n-alert v-else-if="encExistingError" type="error" :show-icon="false" :bordered="false">
+                        {{ t('encryptExistingFailed', { msg: encExistingError }) }}
+                    </n-alert>
                 </div>
             </template>
             <n-alert v-else type="info" :show-icon="false" :bordered="false">
@@ -411,6 +504,15 @@ const changePassword = async () => {
                 </n-button>
             </template>
         </n-modal>
+        <n-modal v-model:show="showEncryptExistingConfirm" preset="dialog" :title="t('encryptExisting')">
+            <p>{{ t('encryptExistingTip') }}</p>
+            <template #action>
+                <n-button :loading="encExistingRunning" size="small" tertiary type="warning" @click="startEncryptExisting">
+                    {{ t('encryptExisting') }}
+                </n-button>
+            </template>
+        </n-modal>
+
         <n-modal v-model:show="showExportKeyConfirm" preset="dialog" :title="t('encryptionExportKey')">
             <p>{{ t('encryptionExportKeyTip') }}</p>
             <template #action>
@@ -429,4 +531,6 @@ const changePassword = async () => {
 .danger-tip { margin: 0 0 var(--space-2); }
 .enc-fingerprint { margin: var(--space-2) 0 0; }
 .enc-actions, .enc-import { margin-top: var(--space-3); }
+.enc-existing { margin-top: var(--space-3); }
+.enc-existing__line { margin: var(--space-2) 0 0; }
 </style>

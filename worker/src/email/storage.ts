@@ -5,21 +5,34 @@ import { compressText } from "../gzip";
 import { getBooleanValue } from "../utils";
 import { encryptMail } from "../utils/mail_crypto";
 
-let rawMailTableColumns: Set<string> | undefined;
+let tableColumnsCache: Map<string, Set<string>> | undefined;
+
+export const getTableColumns = async (
+    env: Bindings, table: string, requiredColumns: string[]
+): Promise<Set<string>> => {
+    const cachedColumns = tableColumnsCache?.get(table);
+    if (cachedColumns && requiredColumns.every(column => cachedColumns.has(column))) {
+        return cachedColumns;
+    }
+    const tableInfo = await env.DB.prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();
+    const columns = new Set(tableInfo.results.map(column => column.name));
+    if (requiredColumns.every(column => columns.has(column))) {
+        tableColumnsCache = tableColumnsCache ?? new Map();
+        tableColumnsCache.set(table, columns);
+    }
+    return columns;
+}
 
 const getRawMailTableColumns = async (
     env: Bindings, requiredColumns: string[]
 ): Promise<Set<string>> => {
-    const cachedColumns = rawMailTableColumns;
-    if (cachedColumns && requiredColumns.every(column => cachedColumns.has(column))) {
-        return cachedColumns;
-    }
-    const tableInfo = await env.DB.prepare(`PRAGMA table_info(raw_mails)`).all<{ name: string }>();
-    const columns = new Set(tableInfo.results.map(column => column.name));
-    if (requiredColumns.every(column => columns.has(column))) {
-        rawMailTableColumns = columns;
-    }
-    return columns;
+    return getTableColumns(env, "raw_mails", requiredColumns);
+}
+
+const getSendboxTableColumns = async (
+    env: Bindings, requiredColumns: string[]
+): Promise<Set<string>> => {
+    return getTableColumns(env, "sendbox", requiredColumns);
 }
 
 /**
@@ -50,6 +63,7 @@ export const storeRawMail = async (
     const gzipEnabled = getBooleanValue(env.ENABLE_MAIL_GZIP);
     const readStatusEnabled = getBooleanValue(env.ENABLE_MAIL_READ_STATUS);
     const requiredColumns: string[] = [];
+    if (encryptionPublicKey) requiredColumns.push('is_encrypted');
     if (gzipEnabled && !encryptionPublicKey) requiredColumns.push('raw_blob');
     if (readStatusEnabled) requiredColumns.push('is_unread');
 
@@ -65,15 +79,26 @@ export const storeRawMail = async (
         // Any encryption failure propagates: the store must fail, never fall
         // back to plaintext.
         const envelope = await encryptMail(encryptionPublicKey, raw, { gzip: gzipEnabled });
+        // Encrypted rows keep no plaintext metadata: the real sender and
+        // Message-ID live inside the encrypted MIME headers and are shown by
+        // the browser after decryption.
+        const encryptedSource = '';
+        const encryptedMessageId = null;
+        const storeEncryptedFlag = tableColumns.has('is_encrypted');
         const storeUnreadStatus = readStatusEnabled && tableColumns.has('is_unread');
-        if (!storeUnreadStatus) {
-            return env.DB.prepare(
-                `INSERT INTO raw_mails (source, address, raw, message_id) VALUES (?, ?, ?, ?)`
-            ).bind(source, address, envelope, messageId).run();
+        const columns = ['source', 'address', 'raw', 'message_id'];
+        const values: (string | null)[] = [encryptedSource, address, envelope, encryptedMessageId];
+        if (storeEncryptedFlag) {
+            columns.push('is_encrypted');
+            values.push('1');
+        }
+        if (storeUnreadStatus) {
+            columns.push('is_unread');
+            values.push('1');
         }
         return env.DB.prepare(
-            `INSERT INTO raw_mails (source, address, raw, message_id, is_unread) VALUES (?, ?, ?, ?, 1)`
-        ).bind(source, address, envelope, messageId).run();
+            `INSERT INTO raw_mails (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`
+        ).bind(...values).run();
     }
 
     let rawBlob: ArrayBuffer | undefined;
@@ -117,6 +142,40 @@ export const deleteRawMail = async (
     } catch (error) {
         console.error("delete mail error", error);
     }
+};
+
+/**
+ * Store a sendbox raw payload, encrypting it at rest when the address has an
+ * encryption public key. The stored value is the same JSON string the
+ * plaintext path stores — either as-is or wrapped in a "cfte1." envelope —
+ * and is flagged with is_encrypted when the column exists. Callers must not
+ * fall back to plaintext storage when encryption fails.
+ */
+export const storeSendboxRaw = async (
+    env: Bindings,
+    address: string,
+    raw: string,
+    encryptionPublicKey?: string | null,
+): Promise<D1Result> => {
+    const requiredColumns: string[] = [];
+    if (encryptionPublicKey) requiredColumns.push('is_encrypted');
+    const tableColumns = requiredColumns.length > 0
+        ? await getSendboxTableColumns(env, requiredColumns)
+        : new Set<string>();
+    let storedRaw = raw;
+    let isEncrypted = false;
+    if (encryptionPublicKey) {
+        storedRaw = await encryptMail(encryptionPublicKey, raw, { gzip: false });
+        isEncrypted = true;
+    }
+    if (isEncrypted && tableColumns.has('is_encrypted')) {
+        return env.DB.prepare(
+            `INSERT INTO sendbox (address, raw, is_encrypted) VALUES (?, ?, 1)`
+        ).bind(address, storedRaw).run();
+    }
+    return env.DB.prepare(
+        `INSERT INTO sendbox (address, raw) VALUES (?, ?)`
+    ).bind(address, storedRaw).run();
 };
 
 export const sendAdminInternalMail = async (
