@@ -273,10 +273,26 @@ onMounted(async () => {
 .app-title {
     overflow: hidden;
     color: var(--app-text-1);
+    font-family: var(--font-mono);
     font-size: var(--font-lg);
     font-weight: 600;
+    letter-spacing: 0.02em;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Terminal prompt glyph before the site title (CSS only, no i18n text). */
+.app-title::before {
+    content: '>_';
+    margin-right: var(--space-2);
+    color: var(--app-accent);
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+/* Faint phosphor glow on the wordmark, dark mode only. */
+html.dark .app-title {
+    text-shadow: 0 0 14px rgba(255, 176, 0, 0.4), 0 0 2px rgba(255, 176, 0, 0.55);
 }
 
 .app-nav { display: flex; flex: 1 1 auto; align-items: center; gap: var(--space-1); }

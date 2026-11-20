@@ -51,7 +51,8 @@ export default defineConfig({
         name: 'Temp Email',
         short_name: 'Temp Email',
         description: 'Temp Email - Temporary Email',
-        theme_color: '#ffffff',
+        theme_color: '#0B0B0C',
+        background_color: '#0B0B0C',
         icons: [
           {
             src: '/logo.png',

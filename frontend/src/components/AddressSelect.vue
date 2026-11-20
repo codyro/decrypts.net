@@ -250,6 +250,30 @@ watch([userJwt, isTelegram, showUserMailboxes, jwt, localAddressCache, () => set
     font-size: 15px;
 }
 
+/* Blinking block cursor after the mailbox address, terminal style. */
+.address-select :deep(.n-base-selection-label)::after {
+    content: '';
+    display: inline-block;
+    width: 0.55em;
+    height: 1.1em;
+    margin-left: var(--space-1);
+    background: var(--app-accent);
+    vertical-align: text-bottom;
+    animation: app-blink 1.1s steps(1, end) infinite;
+}
+
+/* The address itself glows like phosphor on the dark tube. */
+html.dark .address-select :deep(.n-base-selection-label) {
+    color: var(--app-accent);
+    text-shadow: 0 0 10px rgba(255, 176, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .address-select :deep(.n-base-selection-label)::after {
+        animation: none;
+    }
+}
+
 .address-copy {
     flex: 0 0 auto;
     white-space: nowrap;

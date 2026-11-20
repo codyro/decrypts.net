@@ -2,19 +2,19 @@ import type { GlobalThemeOverrides } from 'naive-ui'
 import { lightTokens, darkTokens, type AppTokens } from './tokens'
 
 export const FONT_FAMILY =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, ' +
+  '"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, ' +
   '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif, ' +
   '"Apple Color Emoji", "Segoe UI Emoji"'
 export const FONT_FAMILY_MONO =
-  'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
+  '"IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
 
 export const buildThemeOverrides = (t: AppTokens, isDark: boolean): GlobalThemeOverrides => ({
   common: {
     fontFamily: FONT_FAMILY,
     fontFamilyMono: FONT_FAMILY_MONO,
     fontWeightStrong: '600',
-    borderRadius: '8px',
-    borderRadiusSmall: '6px',
+    borderRadius: '4px',
+    borderRadiusSmall: '2px',
     heightMedium: '36px',
     heightLarge: '42px',
     primaryColor: t.accent,
@@ -35,7 +35,7 @@ export const buildThemeOverrides = (t: AppTokens, isDark: boolean): GlobalThemeO
     ...(isDark ? {} : { textColor3: t.text3 }),
   },
   Card: {
-    borderRadius: '12px',
+    borderRadius: '6px',
     paddingSmall: '12px 16px',
     paddingMedium: '20px 24px',
     titleFontSizeMedium: '16px',
@@ -63,7 +63,7 @@ export const buildThemeOverrides = (t: AppTokens, isDark: boolean): GlobalThemeO
     tabTextColorSegment: t.text3,
     tabTextColorHoverSegment: t.text1,
     tabTextColorActiveSegment: t.text1,
-    tabBorderRadius: '8px',
+    tabBorderRadius: '4px',
     panePaddingSmall: '16px 0 0 0',
     panePaddingMedium: '20px 0 0 0',
   },
@@ -76,20 +76,29 @@ export const buildThemeOverrides = (t: AppTokens, isDark: boolean): GlobalThemeO
     titleFontWeight: '600',
   },
   Dialog: {
-    borderRadius: '12px',
+    borderRadius: '6px',
     padding: '20px 24px',
     titleFontSize: '16px',
     titleFontWeight: '600',
   },
-  Alert: { borderRadius: '8px', padding: '12px 16px' },
+  // Primary buttons are a solid accent fill; the label uses the `onAccent`
+  // token so it passes WCAG AA on the accent in both themes.
+  Button: {
+    textColorPrimary: t.onAccent,
+    textColorHoverPrimary: t.onAccent,
+    textColorPressedPrimary: t.onAccent,
+    textColorFocusPrimary: t.onAccent,
+    textColorDisabledPrimary: t.onAccent,
+  },
+  Alert: { borderRadius: '4px', padding: '12px 16px' },
   DataTable: {
-    borderRadius: '8px',
+    borderRadius: '4px',
     thColor: t.surfaceSubtle,
     thFontWeight: '600',
     thPaddingMedium: '10px 12px',
     tdPaddingMedium: '10px 12px',
   },
-  Tag: { borderRadius: '6px' },
+  Tag: { borderRadius: '2px' },
   Collapse: { titleFontSize: '15px', titleFontWeight: '600' },
 })
 

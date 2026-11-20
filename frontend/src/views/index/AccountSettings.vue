@@ -914,6 +914,7 @@ const changePassword = async () => {
 .account-settings { max-width: var(--content-form); text-align: left; }
 .account-settings > .settings-section + .settings-section { margin-top: 0; }
 .danger-title { color: var(--app-danger); }
+.danger-title::before { color: var(--app-danger); }
 .danger-tip { margin: 0 0 var(--space-2); }
 .enc-fingerprint { margin: var(--space-2) 0 0; }
 .enc-actions, .enc-import { margin-top: var(--space-3); }

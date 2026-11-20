@@ -105,18 +105,38 @@ onMounted(async () => {
 
 <style scoped>
 .loading-panel { height: 240px; }
-.address-bar { margin-bottom: var(--space-4); }
+.address-bar { position: relative; margin-bottom: var(--space-4); }
 .address-bar > .caption { display: block; margin-bottom: var(--space-1); }
 .address-manage { flex: 0 0 auto; white-space: nowrap; }
 .address-management-panel { max-width: 960px; margin: 0 auto; }
 .address-management-panel > .section-title { margin-bottom: var(--space-4); }
 .landing {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-4);
     padding-top: var(--space-8);
     text-align: center;
+}
+
+/* Extremely faint CRT scanlines over the hero areas, dark mode only,
+   pure CSS (no images). */
+.landing::before,
+.address-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom,
+        rgba(255, 176, 0, 0.03) 0 1px,
+        transparent 1px 3px);
+    opacity: 0;
+}
+
+html.dark .landing::before,
+html.dark .address-bar::before {
+    opacity: 1;
 }
 .landing__tip { margin: 0; }
 .landing__panel { width: min(var(--content-auth), 100%); text-align: left; }

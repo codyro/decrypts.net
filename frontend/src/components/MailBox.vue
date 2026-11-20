@@ -632,6 +632,18 @@ onBeforeUnmount(() => {
   padding: 12px 14px;
 }
 
+/* Phosphor type system: list metadata (sender, date, recipient) in mono. */
+.mail-list-compact :deep(.mail-summary-sender),
+.mail-list-compact :deep(.mail-summary-date),
+.mail-list-compact :deep(.mail-summary-recipient) {
+  font-family: var(--font-mono);
+}
+
+/* The encrypted/locked state reads as a native accent state. */
+.mail-list-compact :deep(.mail-summary-lock) {
+  color: var(--app-accent);
+}
+
 .mail-list-compact :deep(.n-list-item:not(.overlay):hover) {
   background-color: v-bind("isDark ? 'rgba(255, 255, 255, 0.04)' : themeVars.hoverColor");
 }

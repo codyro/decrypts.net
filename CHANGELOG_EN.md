@@ -10,6 +10,7 @@
 
 ### Features
 
+- feat: |UI| Phosphor terminal retro theme: near-black tube with amber phosphor accent in dark mode, warm printout paper with burnt-amber accent in light mode; IBM Plex Mono/Sans self-hosted via npm (latin subset, no remote fonts); blinking block cursor on the mailbox address, `>_` header glyph, phosphor glow and faint scanlines in dark mode; WCAG AA contrast pinned by a token contrast test
 - feat: |UI| Redesign the frontend: unified accent and spacing, mailbox page reduced to address bar + inbox, appearance moved to a Preferences drawer, About/GitHub/Status moved to the footer, Auto Reply and S3 attachments merged into Mailbox Settings
 - feat: |UI| Add an "Encrypted mailboxes" explainer to the About dialog: when `ENABLE_MAIL_ENCRYPTION` is on, it shows an honest summary of what mailbox encryption does and doesn't do (icon + panel layout, two columns on wide screens, single column on mobile), with key-responsibility warnings and a fine print; community links become quiet secondary buttons and the embedded card is removed
 - feat: |Mailbox Encryption| Add optional `ENABLE_MAIL_ENCRYPTION` per-mailbox end-to-end encryption of stored mail: the worker holds only the address public key and encrypts the whole raw MIME into a `cfte1.` envelope before storage; the private key lives only in the browser (URL fragment + localStorage) and the frontend decrypts client-side
