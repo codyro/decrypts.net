@@ -97,4 +97,4 @@ export const tokensFor = (isDark: boolean) => (isDark ? darkTokens : lightTokens
 
 export const toCssVars = (t: AppTokens) =>
   Object.fromEntries(Object.entries(t).map(([k, v]) =>
-    [`--app-${k.replace(/[A-Z]/g, m => '-' + m.toLowerCase())}`, v]))
+    [`--app-${k.replace(/[A-Z]|\d+/g, m => '-' + m.toLowerCase())}`, v]))
