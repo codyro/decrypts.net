@@ -8,7 +8,7 @@ import i18n from '@/i18n'
 import About from '../About.vue'
 
 const stubs = vi.hoisted(() => ({
-    openSettings: { enableMailEncryption: false },
+    openSettings: { enableMailEncryption: false, title: '' },
     announcement: '',
 }))
 
@@ -50,15 +50,29 @@ describe('About.vue', () => {
         expect(html).not.toContain('What it does')
     })
 
-    it('still renders the announcement and community links either way', async () => {
+    it('still renders the announcement either way', async () => {
         stubs.openSettings.enableMailEncryption = true
         const withEncryption = await renderAbout()
         for (const html of [withEncryption, await (stubs.openSettings.enableMailEncryption = false, renderAbout())]) {
             expect(html).toContain('Scheduled maintenance this weekend.')
-            expect(html).toContain('Github')
-            expect(html).toContain('Discord')
-            expect(html).toContain('Telegram')
-            expect(html).toContain('https://github.com/dreamhunter2333/cloudflare_temp_email')
         }
+    })
+
+    it('does not render the community links', async () => {
+        stubs.openSettings.enableMailEncryption = false
+        const html = await renderAbout()
+        expect(html).not.toContain('https://github.com/dreamhunter2333/cloudflare_temp_email')
+        expect(html).not.toContain('https://discord.gg/')
+        expect(html).not.toContain('https://t.me/')
+        expect(html).not.toContain('Github')
+        expect(html).not.toContain('Discord')
+        expect(html).not.toContain('Telegram')
+    })
+
+    it('falls back to the app title when nothing else is shown', async () => {
+        stubs.announcement = ''
+        stubs.openSettings.title = 'Temp Mail'
+        const html = await renderAbout()
+        expect(html).toContain('Temp Mail')
     })
 })

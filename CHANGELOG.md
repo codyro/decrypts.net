@@ -47,6 +47,8 @@
 
 ### Improvements
 
+- style: |UI| 移除关于对话框底部的社区链接（GitHub/Discord/Telegram），同时移除未使用的 `@vicons/fa` 图标引用；当既无公告又未启用邮箱加密时，回退显示应用标题，避免对话框内容为空
+
 ## v1.14.0
 
 ### Features

@@ -1,10 +1,9 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, unref } from 'vue'
 import {
     LockOutlined, ShieldOutlined, WarningAmberRound, KeyOutlined,
     CheckCircleOutlineRound, WarningOutlined, ErrorOutlineRound,
 } from '@vicons/material'
-import { GithubAlt, Discord, Telegram } from '@vicons/fa'
 import { useGlobalState } from '../../store'
 import { sanitizeHtml } from '../../utils/sanitize-html'
 import { useScopedI18n } from '@/i18n/app'
@@ -12,6 +11,9 @@ import { useScopedI18n } from '@/i18n/app'
 const { announcement, openSettings } = useGlobalState()
 const { t } = useScopedI18n('views.common.About')
 const safeAnnouncement = computed(() => sanitizeHtml(announcement.value))
+const showAppTitleFallback = computed(() =>
+    !safeAnnouncement.value && !unref(openSettings)?.enableMailEncryption
+)
 
 const doesItems = ['does1', 'does2', 'does3']
 const doesntItems = ['doesnt1', 'doesnt2', 'doesnt3', 'doesnt4']
@@ -85,29 +87,9 @@ const keyItems = ['key1', 'key2', 'key3', 'key4']
             <p class="enc__fine caption">{{ t('encryptionFinePrint') }}</p>
         </section>
 
-        <div class="about__links">
-            <n-button tag="a" target="_blank" rel="noopener noreferrer" secondary size="small"
-                href="https://github.com/dreamhunter2333/cloudflare_temp_email">
-                <template #icon>
-                    <n-icon :component="GithubAlt" />
-                </template>
-                Github
-            </n-button>
-            <n-button tag="a" target="_blank" rel="noopener noreferrer" secondary size="small"
-                href="https://discord.gg/dQEwTWhA6Q">
-                <template #icon>
-                    <n-icon :component="Discord" />
-                </template>
-                Discord
-            </n-button>
-            <n-button tag="a" target="_blank" rel="noopener noreferrer" secondary size="small"
-                href="https://t.me/cloudflare_temp_email">
-                <template #icon>
-                    <n-icon :component="Telegram" />
-                </template>
-                Telegram
-            </n-button>
-        </div>
+        <p v-else-if="showAppTitleFallback && openSettings.title" class="about__fallback">
+            {{ openSettings.title }}
+        </p>
     </div>
 </template>
 
@@ -293,14 +275,10 @@ const keyItems = ['key1', 'key2', 'key3', 'key4']
     padding-top: var(--space-4);
 }
 
-/* Community links */
-
-.about__links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    border-top: 1px solid var(--app-divider);
-    padding-top: var(--space-4);
+.about__fallback {
+    margin: 0;
+    text-align: center;
+    color: var(--app-text-3);
 }
 
 @media (max-width: 767.98px) {
