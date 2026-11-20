@@ -5,6 +5,7 @@ import { useScopedI18n } from '@/i18n/app'
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { generateKeyPair } from '../../utils/mail-crypto'
+import { randomEmailLocalPart } from '../../utils/random-name'
 import AddressCredentialModal from '../../components/AddressCredentialModal.vue'
 import BatchCreate from './BatchCreate.vue'
 
@@ -58,9 +59,7 @@ const generateNameLoading = ref(false);
 const generateName = async () => {
     try {
         generateNameLoading.value = true;
-        const { faker } = await import('https://esm.sh/@faker-js/faker');
-        emailName.value = faker.internet.email()
-            .split('@')[0]
+        emailName.value = (await randomEmailLocalPart())
             .toLowerCase()
             .replace(/\s+/g, '.')
             .replace(/\.{2,}/g, '.')

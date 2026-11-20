@@ -35,6 +35,7 @@ import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { getRouterPathWithLang, hashPassword } from '../../utils'
 import { generateKeyPair } from '../../utils/mail-crypto'
+import { randomEmailLocalPart } from '../../utils/random-name'
 import { addPrivateKey } from '../../utils/mail-key-store'
 import { offerKeyBackup } from '../../utils/key-backup-prompts'
 
@@ -165,9 +166,7 @@ const generateNameLoading = ref(false);
 const generateName = async () => {
     try {
         generateNameLoading.value = true;
-        const { faker } = await import('https://esm.sh/@faker-js/faker');
-        emailName.value = faker.internet.email()
-            .split('@')[0]
+        emailName.value = (await randomEmailLocalPart())
             .toLowerCase()
             .replace(/\s+/g, '.')
             .replace(/\.{2,}/g, '.')
