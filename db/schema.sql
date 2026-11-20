@@ -128,6 +128,21 @@ CREATE INDEX IF NOT EXISTS idx_user_passkeys_user_id ON user_passkeys(user_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_passkeys_user_id_passkey_id ON user_passkeys(user_id, passkey_id);
 
+CREATE TABLE IF NOT EXISTS user_key_backups (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    address TEXT NOT NULL,
+    key_id TEXT NOT NULL,
+    passkey_id TEXT NOT NULL,
+    blob TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_key_backups_unique ON user_key_backups(user_id, address, key_id, passkey_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_key_backups_user_address ON user_key_backups(user_id, address);
+
 CREATE TABLE IF NOT EXISTS redeem_codes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT UNIQUE NOT NULL,

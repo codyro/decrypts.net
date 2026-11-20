@@ -22,6 +22,7 @@ import {
     notifyMailKeysImported,
 } from '../utils/key-backup-prompts'
 import KeyBackupPanel from './KeyBackupPanel.vue'
+import PasskeyWrapControls from './PasskeyWrapControls.vue'
 
 // Global host for passphrase-protected key backup prompts. Mounted once in
 // App.vue inside the message provider. Exactly one prompt is active at a
@@ -276,6 +277,9 @@ const skipAndDeleteLegacy = () => {
         <n-alert v-if="rawError" type="error" :show-icon="false" :bordered="false" data-testid="raw-offer-error">
             {{ rawError }}
         </n-alert>
+        <!-- Independent passkey alternative: wrap + upload with a passkey. -->
+        <PasskeyWrapControls v-if="rawImportOffer" :address="rawImportOffer.address"
+            :key-id="rawImportOffer.publicKey" :raw-key="rawImportOffer.rawKey" @done="closeRawOffer" />
         <template #action>
             <n-button size="small" tertiary data-testid="raw-offer-skip" @click="closeRawOffer">
                 {{ t('skip') }}

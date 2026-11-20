@@ -26,6 +26,8 @@ const messages: LocaleMessages = {
     MailEncryptionDisabledMsg: "邮件加密功能已禁用, 请联系管理员",
     MailEncryptionNoPublicKeyMsg: "该地址尚未设置邮件加密, 请先上传加密公钥",
     InvalidMailEncryptionPublicKeyMsg: "无效的加密公钥, 应为 65 字节未压缩 P-256 点的 base64url 编码",
+    InvalidKeyBackupMsg: "无效的密钥备份, 应为不透明的 passkey 加密密钥块",
+    KeyBackupLimitReachedMsg: "密钥备份数量已达上限",
     EncryptedMailSubjectMsg: "[加密邮件]",
     NewAddressAnonymousDisabledMsg: "匿名用户新建邮箱地址已禁用, 请联系管理员",
     FailedCreateAddressMsg: "创建邮箱地址失败",

@@ -625,6 +625,10 @@ const batchDeleteAddressWithData = async (
         `DELETE FROM users_address WHERE address_id IN ( ` +
         `SELECT id FROM address WHERE ${addressQueryCondition})`
     ).run();
+    await c.env.DB.prepare(
+        `DELETE FROM user_key_backups WHERE address IN ( ` +
+        `SELECT name FROM address WHERE ${addressQueryCondition})`
+    ).run();
     // delete address
     await c.env.DB.prepare(`
         DELETE FROM address WHERE ${addressQueryCondition}`
@@ -674,13 +678,16 @@ export const deleteAddressWithData = async (
     const { success: addressSuccess } = await c.env.DB.prepare(
         `DELETE FROM users_address WHERE address_id = ? `
     ).bind(address_id).run();
+    const { success: keyBackupSuccess } = await c.env.DB.prepare(
+        `DELETE FROM user_key_backups WHERE address = ? `
+    ).bind(address).run();
     const { success: autoReplySuccess } = await c.env.DB.prepare(
         `DELETE FROM auto_reply_mails WHERE address = ? `
     ).bind(address).run();
     const { success } = await c.env.DB.prepare(
         `DELETE FROM address WHERE name = ? `
     ).bind(address).run();
-    if (!success || !mailSuccess || !sendboxSuccess || !addressSuccess || !sendAccess || !autoReplySuccess) {
+    if (!success || !mailSuccess || !sendboxSuccess || !addressSuccess || !sendAccess || !autoReplySuccess || !keyBackupSuccess) {
         throw new Error(msgs.OperationFailedMsg)
     }
     return true;

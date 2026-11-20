@@ -107,6 +107,10 @@ const deleteAddress = async (c: Context<HonoCustomType>) => {
             `DELETE FROM users_address WHERE address_id = ?`
         ).bind(id),
         c.env.DB.prepare(
+            `DELETE FROM user_key_backups WHERE address IN`
+            + ` (select name from address where id = ?) `
+        ).bind(id),
+        c.env.DB.prepare(
             `DELETE FROM address WHERE id = ? `
         ).bind(id),
     ]);

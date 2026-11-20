@@ -38,6 +38,11 @@ export default {
         const { success } = await c.env.DB.prepare(
             `DELETE FROM user_passkeys WHERE user_id = ? AND passkey_id = ?`
         ).bind(user.user_id, passkey_id).run();
+        // wrapped key backups attached to this passkey are unusable without
+        // the credential: remove them as well
+        await c.env.DB.prepare(
+            `DELETE FROM user_key_backups WHERE user_id = ? AND passkey_id = ?`
+        ).bind(user.user_id, passkey_id).run();
         return c.json({ success });
     },
     registerRequest: async (c: Context<HonoCustomType>) => {
@@ -70,7 +75,18 @@ export default {
             challenge: challenge,
         });
 
-        return c.json(options);
+        return c.json({
+            ...options,
+            // Ask the authenticator to enable the WebAuthn PRF extension so
+            // the passkey can wrap/unwrap per-mailbox key backups. Passkeys
+            // that do not support PRF are still registered; the browser
+            // detects PRF support at use time. Authentication options are
+            // unchanged, so passkey login is unaffected.
+            extensions: {
+                ...options.extensions,
+                prf: {},
+            },
+        });
     },
     registerResponse: async (c: Context<HonoCustomType>) => {
         const msgs = i18n.getMessagesbyContext(c);

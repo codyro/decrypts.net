@@ -9,6 +9,7 @@ import {
     backupFileName, BackupPassphraseError, BACKUP_MIN_PASSPHRASE_LENGTH,
 } from '../utils/key-backup'
 import { copyToClipboard } from '../utils/clipboard'
+import PasskeyWrapControls from './PasskeyWrapControls.vue'
 
 const props = defineProps({
     address: {
@@ -187,6 +188,10 @@ const downloadBackupFile = () => {
                     {{ t('createBackup') }}
                 </n-button>
             </div>
+            <!-- Independent alternative/complement: a passkey (WebAuthn PRF)
+                wrapped backup uploaded to the account (logged-in users with a
+                bound address only; others see an info hint). -->
+            <PasskeyWrapControls :address="props.address" :key-id="derivedPublicKey" :raw-key="props.rawKey" />
         </template>
 
         <template v-if="wrappedBlob">

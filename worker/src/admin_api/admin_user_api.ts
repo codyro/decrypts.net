@@ -106,7 +106,10 @@ export default {
         const { success: addressSuccess } = await c.env.DB.prepare(
             `DELETE FROM users_address WHERE user_id = ?`
         ).bind(user_id).run();
-        if (!success || !addressSuccess) {
+        const { success: keyBackupSuccess } = await c.env.DB.prepare(
+            `DELETE FROM user_key_backups WHERE user_id = ?`
+        ).bind(user_id).run();
+        if (!success || !addressSuccess || !keyBackupSuccess) {
             return c.text(msgs.FailedDeleteUserMsg, 500)
         }
         return c.json({ success: true })

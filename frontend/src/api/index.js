@@ -242,6 +242,43 @@ const bindUserAddress = async () => {
     }
 }
 
+// ---- passkey (WebAuthn PRF) wrapped key backups ---------------------------
+// The user token (x-user-token) header is attached automatically by apiFetch
+// from the stored userJwt, like all other /user_api calls.
+
+/** List the server's wrapped key backups for a bound address. */
+const listKeyBackups = async (address) => {
+    return await apiFetch(
+        `/user_api/key_backups?address=${encodeURIComponent(address)}`
+    );
+}
+
+/** Upload (upsert) an opaque passkey-wrapped key backup blob. */
+const putKeyBackup = async ({ address, keyId, passkeyId, blob } = {}) => {
+    return await apiFetch(`/user_api/key_backups`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            address,
+            key_id: keyId,
+            passkey_id: passkeyId,
+            blob,
+        }),
+    });
+}
+
+/** Delete one of the logged-in user's key backups by its server row id. */
+const deleteKeyBackup = async (id) => {
+    return await apiFetch(`/user_api/key_backups/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+    });
+}
+
+/** List the logged-in user's registered passkeys
+ *  ([{ passkey_id, passkey_name, created_at, updated_at }]). */
+const listPasskeys = async () => {
+    return await apiFetch(`/user_api/passkey`);
+}
+
 export const api = {
     fetch: apiFetch,
     getSettings,
@@ -251,4 +288,8 @@ export const api = {
     adminShowAddressCredential,
     adminDeleteAddress,
     bindUserAddress,
+    listKeyBackups,
+    putKeyBackup,
+    deleteKeyBackup,
+    listPasskeys,
 }

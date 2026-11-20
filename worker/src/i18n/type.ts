@@ -24,6 +24,8 @@ export type LocaleMessages = {
     MailEncryptionDisabledMsg: string
     MailEncryptionNoPublicKeyMsg: string
     InvalidMailEncryptionPublicKeyMsg: string
+    InvalidKeyBackupMsg: string
+    KeyBackupLimitReachedMsg: string
     EncryptedMailSubjectMsg: string
     NewAddressAnonymousDisabledMsg: string
     FailedCreateAddressMsg: string

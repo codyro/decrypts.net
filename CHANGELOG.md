@@ -25,11 +25,20 @@
 - feat: |邮箱加密| 私钥存储升级为不可导出的 WebCrypto `CryptoKey`（ECDH P-256）保存在浏览器 IndexedDB（`cf-temp-email-keys`），不再持久化原始密钥字符串；旧版 localStorage（`mailPrivateKeys`）明文密钥首次加载时自动迁移，迁移校验后弹出一次性备份提示（设置口令生成保护备份后删除明文 / 跳过并立即删除 / 稍后）；IndexedDB 不可用（隐私模式）时密钥仅在内存中保存于本次会话，界面警告并保留旧版明文副本
 - feat: |邮箱加密| 新增口令保护备份：PBKDF2-HMAC-SHA256（默认 60 万次迭代，导入接受 10 万–500 万）派生 AES-256-GCM，支持 `#kp=` 保护备份链接与 JSON 备份文件（口令最少 10 字符，AAD 绑定邮箱地址），打开链接或导入文件时提示输入口令；明文 `#k=` 链接导入后提示为该密钥设置口令保护
 - feat: |邮箱加密| 原始私钥/明文 `#k=` 链接仅在创建（含轮换、导入、管理端单个创建）时一次性展示，之后"复制解密链接"/"导出"只输出已存的口令保护备份；账号设置新增"由我的密钥创建保护备份"（粘贴原始密钥或 `#k=` 链接，与已存公钥校验匹配后补建）
+- feat: |邮箱加密| 新增通行密钥（WebAuthn PRF）保护备份：登录用户账号可将邮箱私钥用通行密钥包裹后备份到服务器，新设备/清理浏览器数据后凭通行密钥恢复
+  - 浏览器从 WebAuthn PRF 断言输出派生 AES-256-GCM 包裹密钥（HKDF-SHA256，salt 为 blob 内随机 salt，info/AAD 绑定邮箱地址与密钥 ID），只上传 base64url 不透明 blob（`0x02 ‖ salt(32) ‖ iv(12) ‖ 密文‖tag`）、通行密钥凭据 ID 与密钥 ID；服务器永远看不到 PRF 输出、包裹密钥与私钥，无法解包，仅校验 blob 外形（首字节 0x02、解码 62–4096 字节）
+  - 适用条件（有意取舍）：需用户账号、地址已绑定该账号、通过账号注册的通行密钥与支持 WebAuthn 的浏览器；新注册通行密钥请求 WebAuthn `prf` 扩展，不支持 PRF 的旧通行密钥/验证器在使用时提示"不支持 PRF"（注册与登录不受影响）；仅邮箱用户或不支持的环境回退口令 `#kp=` 备份。未来迭代可能提供"仅客户端的单地址通行密钥"方案（无服务器端 WebAuthn 注册，地址 JWT 授权的 blob 存储），当前未实现
+  - 新增 `GET/PUT/DELETE /user_api/key_backups` 存储接口（需 `ENABLE_MAIL_ENCRYPTION` 与用户 token；校验地址绑定与加密公钥、`key_id` 为合法 P-256 点（允许旧/已轮换密钥）、`passkey_id` 属于本人已注册通行密钥、blob 外形；上限每地址 20 条、每用户 200 条，同 `(address, key_id, passkey_id)` 元组 upsert 始终允许，超限 409）；删除通行密钥、删除地址、解绑/转让地址、删除用户时一并清理备份
+  - 数据库 v0.0.13 新增 `user_key_backups` 表（执行 `Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`）
+  - 包裹与口令备份同样受"不可导出密钥无法事后包裹"约束：仅在创建/轮换/导入或账号设置"由我的密钥创建保护备份"重新粘贴原始密钥时进行；前端账号设置新增通行密钥备份列表与"从通行密钥恢复密钥"（断言 → 解包 → 存为不可导出密钥），密钥创建/轮换/导入处提供"使用通行密钥保护"选项
+  - |E2E| 新增 key-backups API 测试（`e2e/api/tests/key-backups.spec.ts`）与 CDP 虚拟验证器 PRF 浏览器测试（`e2e/browser/tests/mail/passkey-key-backup.spec.ts`，覆盖新设备空状态恢复、PRF 不支持提示与仅邮箱访客回退提示）
 - feat: |UI| 前端生产构建启用严格 Content-Security-Policy：构建时注入 meta 标签并生成 `dist/_headers`（Cloudflare Pages 与 Worker `[assets]` 生效，含 `frame-ancestors 'none'`、`X-Content-Type-Options: nosniff`、`Referrer-Policy`），永不包含 `unsafe-eval` 与 script `unsafe-inline`；新增 `VITE_CSP_DISABLED`、`VITE_CSP_EXTRA_SCRIPT_SRC`/`VITE_CSP_EXTRA_CONNECT_SRC`/`VITE_CSP_EXTRA_IMG_SRC`/`VITE_CSP_EXTRA_FRAME_SRC`，并按构建变量（Telegram 构建、`VITE_CF_WEB_ANALY_TOKEN`、`VITE_GOOGLE_AD_CLIENT`、跨域 `VITE_API_BASE`）自动追加来源；开发服务器不受影响
 - feat: |E2E| 新增生产构建 CSP 校验（`security/csp.spec.ts`）与密钥备份（`mail/key-backup.spec.ts`）浏览器测试，新增 `Dockerfile.frontend-preview` 前端预览服务（以生产构建 + CSP 运行浏览器测试）
 
 ### Bug Fixes
 
+- fix: |邮箱加密| 浏览器"加密已有邮件"在服务器返回的公钥与本设备保存的该地址所有密钥都不匹配时拒绝执行且不上传任何内容（此前可先恢复/导入当前私钥再重试，避免加密后本设备无法解密）
+- fix: |邮箱加密| Worker"加密已有邮件"的列检测不再缓存空探测结果，修复热隔离内在执行数据库迁移后、加密行仍被标记 `is_encrypted=0` 的问题
 - fix: |E2E| `e2e/Dockerfile.e2e` 复制 `db/schema.sql`（统计单元测试加载该文件），修复 e2e runner 在单元测试阶段中止的问题
 
 ### Improvements

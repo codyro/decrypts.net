@@ -21,6 +21,21 @@ testApi.get('/query', async c => {
   const { results } = await c.env.DB.prepare(sql).all();
   return c.json({ results });
 });
+// Test-only helper: insert a user_passkeys row without the WebAuthn ceremony
+// so key-backup tests have a registered passkey credential id to reference.
+// The stored credential JSON must be realistic enough for registerRequest's
+// excludeCredentials mapping (which reads passkey.id).
+testApi.post('/insert_passkey', async c => {
+  const { user_id, passkey_id } = await c.req.json<{ user_id: number; passkey_id: string }>();
+  if (!user_id || !passkey_id) {
+    return c.json({ error: 'user_id and passkey_id are required' }, 400);
+  }
+  const passkey = JSON.stringify({ id: passkey_id, publicKey: '', counter: 0, transports: [] });
+  const { success } = await c.env.DB.prepare(
+    `INSERT INTO user_passkeys (user_id, passkey_name, passkey_id, passkey, counter) VALUES (?, ?, ?, ?, 0)`
+  ).bind(user_id, 'e2e-test-passkey', passkey_id, passkey).run();
+  return c.json({ success });
+});
 testApi.get('/telegram_binding', async c => {
   const userId = c.req.query('userId');
   if (userId) return c.json(await c.env.KV.get(`${CONSTANTS.TG_KV_PREFIX}:${userId}`, 'json'));

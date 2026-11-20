@@ -23,6 +23,19 @@ import { encryptMail } from './mail-crypto'
 const BATCH_LIMIT = 20
 const BOXES = ['inbox', 'sendbox']
 
+/**
+ * The server's current public key matches none of the keys this device holds
+ * for the address. Encrypting would be irreversible, so the run stops before
+ * uploading anything (a malicious or stale server key could otherwise lock
+ * the user out of their own history).
+ */
+export class EncryptExistingKeyMismatchError extends Error {
+    constructor() {
+        super('The server public key does not match any key stored on this device')
+        this.name = 'EncryptExistingKeyMismatchError'
+    }
+}
+
 export class EncryptExistingCancelledError extends Error {
     constructor() {
         super('Encrypt existing mail cancelled')
@@ -41,9 +54,11 @@ const throwIfAborted = (signal) => {
  * @param {string} [opts.box] - 'inbox' or 'sendbox'; when omitted both run.
  * @param {(p: {box: string, done: number, remaining: number, encrypted: number, skipped: number}) => void} [opts.onProgress]
  * @param {AbortSignal} [opts.signal]
+ * @param {string[]} [opts.expectedPublicKeys] - public keys this device holds for the address;
+ *   when non-empty the server key must be one of them or the run stops before any upload.
  * @returns {Promise<{encrypted: number, skipped: number}>} totals across all processed boxes
  */
-export const encryptExistingMail = async ({ box, onProgress, signal } = {}) => {
+export const encryptExistingMail = async ({ box, onProgress, signal, expectedPublicKeys } = {}) => {
     const boxes = box ? [box] : BOXES
     const totals = { encrypted: 0, skipped: 0 }
     for (const currentBox of boxes) {
@@ -56,6 +71,10 @@ export const encryptExistingMail = async ({ box, onProgress, signal } = {}) => {
                 { showLoading: false }
             )
             if (!Array.isArray(results) || results.length === 0) break
+            if (Array.isArray(expectedPublicKeys) && expectedPublicKeys.length > 0
+                && !expectedPublicKeys.includes(publicKey)) {
+                throw new EncryptExistingKeyMismatchError()
+            }
             const items = []
             for (const row of results) {
                 throwIfAborted(signal)

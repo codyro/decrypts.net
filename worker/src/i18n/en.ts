@@ -26,6 +26,8 @@ const messages: LocaleMessages = {
     MailEncryptionDisabledMsg: "Mail encryption is disabled, please contact the administrator",
     MailEncryptionNoPublicKeyMsg: "Mail encryption is not set up for this address, please set an encryption public key first",
     InvalidMailEncryptionPublicKeyMsg: "Invalid encryption public key, expected base64url of a 65-byte uncompressed P-256 point",
+    InvalidKeyBackupMsg: "Invalid key backup, expected an opaque passkey-wrapped blob",
+    KeyBackupLimitReachedMsg: "Key backup limit reached",
     EncryptedMailSubjectMsg: "[Encrypted mail]",
     NewAddressAnonymousDisabledMsg: "New address for anonymous user is disabled, please contact the administrator",
     FailedCreateAddressMsg: "Failed to create address",

@@ -7,6 +7,7 @@ import passkey from './passkey';
 import oauth2 from './oauth2';
 import user_mail_api from './user_mail_api';
 import user_send_mail_api from './user_send_mail_api';
+import key_backups from './key_backups';
 
 export const api = new Hono<HonoCustomType>();
 
@@ -49,3 +50,8 @@ api.post('/user_api/passkey/register_request', passkey.registerRequest);
 api.post('/user_api/passkey/register_response', passkey.registerResponse);
 api.post('/user_api/passkey/authenticate_request', passkey.authenticateRequest);
 api.post('/user_api/passkey/authenticate_response', passkey.authenticateResponse);
+
+// key backups api (passkey-wrapped mailbox key backups, ENABLE_MAIL_ENCRYPTION only)
+api.get('/user_api/key_backups', key_backups.getKeyBackups);
+api.put('/user_api/key_backups', key_backups.putKeyBackup);
+api.delete('/user_api/key_backups/:id', key_backups.deleteKeyBackup);

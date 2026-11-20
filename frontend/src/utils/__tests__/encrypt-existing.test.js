@@ -122,4 +122,19 @@ describe('encryptExistingMail', () => {
             .rejects.toMatchObject({ name: 'AbortError' });
         expect(apiFetch).not.toHaveBeenCalled();
     });
+
+    it('stops before uploading when the server key matches no local key', async () => {
+        const server = await generateKeyPair();
+        const other = await generateKeyPair();
+        apiFetch.mockImplementation(async (path) => {
+            if (path.startsWith('/api/encrypt_existing/pending')) {
+                return { publicKey: server.publicKey, remaining: 1, results: [{ id: 1, raw: 'Subject: a\r\n\r\nbody' }] };
+            }
+            throw new Error(`unexpected request: ${path}`);
+        });
+        const { EncryptExistingKeyMismatchError } = await import('../encrypt-existing');
+        await expect(encryptExistingMail({ box: 'inbox', expectedPublicKeys: [other.publicKey] }))
+            .rejects.toBeInstanceOf(EncryptExistingKeyMismatchError);
+        expect(apiFetch.mock.calls.every(([path]) => !path.startsWith('/api/encrypt_existing') || path.includes('pending'))).toBe(true);
+    });
 });

@@ -299,6 +299,38 @@ response = requests.post(
 print(response.json())  # {"success": True}
 ```
 
+### 通行密钥备份存储
+
+`/user_api/key_backups` 存储**通行密钥（WebAuthn PRF）保护备份**（邮箱加密私钥被 PRF 派生密钥包裹后的不透明 blob），用于登录用户账号在新设备上恢复解密密钥。仅当启用 `ENABLE_MAIL_ENCRYPTION` 时可用（未启用时返回 400）；需要用户 JWT（`x-user-token`），且地址必须已绑定到当前账号。
+
+```
+GET    /user_api/key_backups?address=<邮箱地址>
+       # -> [{ "id": <n>, "address": "<地址>", "key_id": "<b64url 公钥>",
+       #      "passkey_id": "<凭据ID>", "blob": "<b64url blob>",
+       #      "created_at": "<UTC时间>", "updated_at": "<UTC时间>" }]
+
+PUT    /user_api/key_backups
+       # body: { "address": "<地址>", "key_id": "<b64url 公钥>",
+       #         "passkey_id": "<本人通行密钥凭据ID>", "blob": "<b64url blob>" }
+       # -> { "success": true }
+
+DELETE /user_api/key_backups/:id
+       # -> { "success": true }
+```
+
+- 所有接口仅操作当前用户自己的数据；`GET` 要求 `address` 已绑定到当前用户（未绑定返回 400）。
+- `PUT` 校验：地址已绑定到当前用户且设置了加密公钥；`key_id` 是合法的 P-256 公钥点（也允许是旧的/已轮换的密钥）；`passkey_id` 必须是当前用户注册过的通行密钥；`blob` 为 unpadded base64url，解码后首字节为 `0x02`、长度 62–4096 字节。服务器**只校验 blob 外形、永不解密**（见 [邮箱加密 - 通行密钥保护备份](./mail-encryption.md#通行密钥保护备份-webauthn-prf)）。
+- 容量上限：每地址 20 条、每用户 200 条；对已存在的 `(address, key_id, passkey_id)` 元组重复 `PUT`（更新 blob）始终允许，只有新元组计入上限，超限返回 409。
+- 删除通行密钥、删除地址、解绑/转让地址、删除用户时，对应备份会被一并清理（数据库 v0.0.13 新增 `user_key_backups` 表，需先执行数据库迁移）。
+
+```bash
+# 上传一个通行密钥保护备份（blob 由浏览器 WebAuthn PRF 包裹生成）
+curl -X PUT "https://<你的worker地址>/user_api/key_backups" \
+  -H "x-user-token: <你的用户JWT Token>" \
+  -H "Content-Type: application/json" \
+  -d '{"address": "xxxx@awsl.uk", "key_id": "<b64url 公钥>", "passkey_id": "<凭据ID>", "blob": "<b64url blob>"}'
+```
+
 ### 用户邮件列表
 
 支持 `address` 过滤

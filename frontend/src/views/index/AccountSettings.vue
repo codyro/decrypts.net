@@ -7,7 +7,11 @@ import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { hashPassword } from '../../utils'
 import { getRouterPathWithLang } from '../../utils'
-import { generateKeyPair } from '../../utils/mail-crypto'
+import { generateKeyPair, publicKeyFromPrivate } from '../../utils/mail-crypto'
+import {
+    unwrapKeyWithPasskey,
+    PasskeyPrfUnsupportedError, PasskeyUnwrapError, PasskeyCancelledError,
+} from '../../utils/passkey-wrap'
 import {
     addPrivateKey, getKeyRecords, getWrappedBackup, hasWrappedBackup, keyStoreMode,
     legacyMigrationPending, legacyPlaintextKeysRetained,
@@ -19,14 +23,17 @@ import {
 } from '../../utils/key-backup'
 import {
     createBackupFromPastedKey, BackupKeyInvalidError, BackupKeyMismatchError,
+    extractRawKeyFromText,
 } from '../../utils/key-backup-actions'
-import { requestLegacyBackupPrompt } from '../../utils/key-backup-prompts'
+import { requestLegacyBackupPrompt, notifyMailKeysImported } from '../../utils/key-backup-prompts'
 import { copyToClipboard } from '../../utils/clipboard'
-import { encryptExistingMail } from '../../utils/encrypt-existing'
+import { encryptExistingMail, EncryptExistingKeyMismatchError } from '../../utils/encrypt-existing'
 import KeyBackupPanel from '../../components/KeyBackupPanel.vue'
+import PasskeyWrapControls from '../../components/PasskeyWrapControls.vue'
 
 const {
-    jwt, settings, showAddressCredential, loading, openSettings
+    jwt, settings, showAddressCredential, loading, openSettings,
+    userJwt, showUserSystem,
 } = useGlobalState()
 const router = useRouter()
 const message = useMessage()
@@ -85,6 +92,9 @@ const refreshEncryptionStatus = async () => {
     } catch (error) {
         console.error(error)
     }
+    // Key-match labels of the passkey backup list depend on the local key
+    // records, so refresh the list alongside the encryption status.
+    if (accountLoggedIn.value) await refreshPasskeyBackups()
 }
 
 const uploadNewKeyPair = async () => {
@@ -161,6 +171,7 @@ const startEncryptExisting = async () => {
     try {
         const totals = await encryptExistingMail({
             signal: controller.signal,
+            expectedPublicKeys: getKeyRecords(settings.value.address).map((record) => record.publicKey),
             onProgress: (progress) => {
                 encExistingProgress.value = { done: progress.done, remaining: progress.remaining }
             },
@@ -170,6 +181,9 @@ const startEncryptExisting = async () => {
     } catch (error) {
         if (error?.name === 'AbortError') {
             message.info(t('encryptExistingCancelled'))
+        } else if (error instanceof EncryptExistingKeyMismatchError) {
+            encExistingError.value = t('encryptExistingKeyMismatch')
+            message.error(t('encryptExistingKeyMismatch'))
         } else {
             encExistingError.value = error.message || 'error'
             message.error(t('encryptExistingFailed', { msg: error.message || 'error' }))
@@ -286,6 +300,119 @@ const submitCreateBackup = async () => {
     }
 }
 
+// ---- passkey (WebAuthn PRF) wrapped key backups ----------------------------
+// Server-side opaque blobs (version 0x02) usable only with a registered
+// passkey; available to logged-in user accounts with this address bound.
+// The server never sees the PRF output, the wrapping key or the private key.
+
+const accountLoggedIn = computed(() => showUserSystem.value && !!userJwt.value)
+const addressBound = ref(null) // null: unknown, true/false
+const passkeyBackups = ref([])
+const passkeyList = ref([])
+const passkeyBusyId = ref(null)
+const passkeyRestoreError = ref('')
+
+const passkeyNameFor = (backup) => {
+    const passkey = passkeyList.value.find((item) => item.passkey_id === backup.passkey_id)
+    return passkey?.passkey_name || backup.passkey_id
+}
+
+const passkeyBackupMatchesLocalKey = (backup) => (
+    getKeyRecords(settings.value.address).some((record) => record.publicKey === backup.key_id)
+)
+
+const formatBackupDate = (value) => {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleString()
+}
+
+const refreshPasskeyBackups = async () => {
+    passkeyRestoreError.value = ''
+    if (!accountLoggedIn.value || !settings.value.address) return
+    try {
+        const params = new URLSearchParams({ query: settings.value.address, limit: '100', offset: '0' })
+        const { results } = await api.fetch(`/user_api/bind_address?${params.toString()}`)
+        addressBound.value = (results || []).some((row) => row.name === settings.value.address)
+        if (!addressBound.value) {
+            passkeyBackups.value = []
+            passkeyList.value = []
+            return
+        }
+        const [backups, passkeys] = await Promise.all([
+            api.listKeyBackups(settings.value.address),
+            api.listPasskeys(),
+        ])
+        passkeyBackups.value = backups || []
+        passkeyList.value = passkeys || []
+    } catch (error) {
+        console.error(error)
+        addressBound.value = false
+    }
+}
+
+const restoreFromPasskeyBackup = async (backup) => {
+    if (passkeyBusyId.value) return
+    passkeyRestoreError.value = ''
+    passkeyBusyId.value = backup.id
+    try {
+        // Transient raw key: dropped immediately after addPrivateKey imports
+        // it as a non-extractable CryptoKey.
+        let raw = await unwrapKeyWithPasskey({
+            blob: backup.blob,
+            address: settings.value.address,
+            keyId: backup.key_id,
+            credentialId: backup.passkey_id,
+        })
+        try {
+            const record = await addPrivateKey(settings.value.address, raw, {
+                publicKey: backup.key_id,
+                wrappedBackup: getWrappedBackup(settings.value.address) || undefined,
+            })
+            if (!record) throw new Error(t('passkeyBackupRestoreFailed'))
+        } finally {
+            raw = null
+        }
+        notifyMailKeysImported()
+        message.success(t('passkeyBackupRestored'))
+        await refreshEncryptionStatus()
+        await refreshPasskeyBackups()
+    } catch (error) {
+        console.error(error)
+        if (error instanceof PasskeyPrfUnsupportedError) {
+            passkeyRestoreError.value = t('passkeyPrfUnsupported')
+        } else if (error instanceof PasskeyCancelledError) {
+            message.info(t('passkeyBackupCancelled'))
+        } else if (error instanceof PasskeyUnwrapError) {
+            passkeyRestoreError.value = t('passkeyUnwrapFailed')
+        } else {
+            passkeyRestoreError.value = error?.message || 'error'
+        }
+    } finally {
+        passkeyBusyId.value = null
+    }
+}
+
+const deletePasskeyBackup = async (backup) => {
+    try {
+        await api.deleteKeyBackup(backup.id)
+        message.success(t('passkeyBackupDeleted'))
+        await refreshPasskeyBackups()
+    } catch (error) {
+        console.error(error)
+        message.error(error?.message || 'error')
+    }
+}
+
+// Key material for the passkey flow inside the "Create protected backup from
+// my key" dialog: the raw key only exists inside the textarea until the
+// passkey button is clicked.
+const resolveCreateBackupKeyMaterial = async () => {
+    const rawKey = extractRawKeyFromText(createBackupInput.value)
+    if (!rawKey) throw new BackupKeyInvalidError()
+    const keyId = await publicKeyFromPrivate(rawKey)
+    return { rawKey, keyId }
+}
+
 // "Import key backup": paste a `#kp=` link or load a backup file; the parsed
 // blob is queued for the global passphrase prompt (KeyBackupHost).
 const showImportBackup = ref(false)
@@ -369,6 +496,10 @@ const encExistingPercentage = computed(() => {
 watch(() => openSettings.value.enableMailEncryption, (enabled) => {
     if (enabled) refreshEncryptionStatus()
 }, { immediate: true })
+
+watch(accountLoggedIn, () => {
+    if (accountLoggedIn.value) refreshPasskeyBackups()
+})
 
 const logout = async () => {
     jwt.value = '';
@@ -587,6 +718,48 @@ const changePassword = async () => {
                     {{ t('noBackupHint') }}
                 </n-alert>
             </template>
+            <!-- Passkey (WebAuthn PRF) backups stored on the account: restore
+                on a new device, delete, or protect the current key. -->
+            <template v-if="accountLoggedIn && encEnabled">
+                <div v-if="addressBound" class="enc-passkey-backups" data-testid="passkey-backup-list">
+                    <p class="muted enc-passkey-backups__tip">{{ t('passkeyBackupTip') }}</p>
+                    <div v-for="backup in passkeyBackups" :key="backup.id" class="enc-passkey-backups__row"
+                        :data-testid="`passkey-backup-row-${backup.id}`">
+                        <span class="enc-passkey-backups__name">{{ passkeyNameFor(backup) }}</span>
+                        <span class="muted">{{ t('passkeyBackupCreatedAt') }}: {{ formatBackupDate(backup.created_at) }}</span>
+                        <n-tag v-if="passkeyBackupMatchesLocalKey(backup)" size="tiny" type="success"
+                            data-testid="passkey-backup-current">
+                            {{ t('passkeyBackupCurrentKey') }}
+                        </n-tag>
+                        <n-tag v-else size="tiny" data-testid="passkey-backup-old">
+                            {{ t('passkeyBackupOldKey') }}
+                        </n-tag>
+                        <n-button size="tiny" secondary type="primary" :loading="passkeyBusyId === backup.id"
+                            data-testid="restore-passkey-backup" @click="restoreFromPasskeyBackup(backup)">
+                            {{ t('restoreFromPasskey') }}
+                        </n-button>
+                        <n-popconfirm @positive-click="deletePasskeyBackup(backup)">
+                            <template #trigger>
+                                <n-button size="tiny" tertiary type="error" data-testid="delete-passkey-backup">
+                                    {{ t('deletePasskeyBackup') }}
+                                </n-button>
+                            </template>
+                            {{ t('deletePasskeyBackupConfirm') }}
+                        </n-popconfirm>
+                    </div>
+                    <p v-if="passkeyBackups.length === 0" class="muted" data-testid="passkey-backup-empty">
+                        {{ t('passkeyBackupEmpty') }}
+                    </p>
+                    <n-alert v-if="passkeyRestoreError" type="error" :show-icon="false" :bordered="false"
+                        data-testid="passkey-restore-error">
+                        {{ passkeyRestoreError }}
+                    </n-alert>
+                </div>
+                <n-alert v-else-if="addressBound === false" type="info" :show-icon="false" :bordered="false"
+                    data-testid="passkey-backup-bind-hint">
+                    {{ t('passkeyBackupBindHint') }}
+                </n-alert>
+            </template>
             <n-alert v-if="!encEnabled" type="info" :show-icon="false" :bordered="false">
                 {{ t('encryptionUnavailable') }}
             </n-alert>
@@ -693,6 +866,10 @@ const changePassword = async () => {
                         data-testid="create-backup-confirm" @keyup.enter="submitCreateBackup" />
                 </n-form-item>
             </n-form>
+            <!-- Independent alternative/complement: wrap the pasted key with
+                a passkey (WebAuthn PRF) and upload the opaque blob. -->
+            <PasskeyWrapControls :address="settings.address"
+                :resolve-key-material="resolveCreateBackupKeyMaterial" />
             <n-alert v-if="createBackupError" type="error" :show-icon="false" :bordered="false"
                 data-testid="create-backup-error">
                 {{ createBackupError }}
@@ -741,6 +918,15 @@ const changePassword = async () => {
 .enc-fingerprint { margin: var(--space-2) 0 0; }
 .enc-actions, .enc-import { margin-top: var(--space-3); }
 .enc-backup { margin-top: var(--space-3); }
+.enc-passkey-backups { margin-top: var(--space-3); display: grid; gap: var(--space-2); }
+.enc-passkey-backups__tip { margin: 0; }
+.enc-passkey-backups__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.enc-passkey-backups__name { font-weight: 600; }
 .enc-existing { margin-top: var(--space-3); }
 .enc-existing__line { margin: var(--space-2) 0 0; }
 </style>

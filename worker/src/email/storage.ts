@@ -11,12 +11,15 @@ export const getTableColumns = async (
     env: Bindings, table: string, requiredColumns: string[]
 ): Promise<Set<string>> => {
     const cachedColumns = tableColumnsCache?.get(table);
-    if (cachedColumns && requiredColumns.every(column => cachedColumns.has(column))) {
+    // An empty requiredColumns list must never hit or fill the cache: it would
+    // pin a column set that may predate a migration applied later.
+    if (cachedColumns && requiredColumns.length > 0
+        && requiredColumns.every(column => cachedColumns.has(column))) {
         return cachedColumns;
     }
     const tableInfo = await env.DB.prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();
     const columns = new Set(tableInfo.results.map(column => column.name));
-    if (requiredColumns.every(column => columns.has(column))) {
+    if (requiredColumns.length > 0 && requiredColumns.every(column => columns.has(column))) {
         tableColumnsCache = tableColumnsCache ?? new Map();
         tableColumnsCache.set(table, columns);
     }

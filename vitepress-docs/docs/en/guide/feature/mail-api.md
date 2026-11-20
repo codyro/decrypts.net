@@ -299,6 +299,38 @@ response = requests.post(
 print(response.json())  # {"success": True}
 ```
 
+### Passkey backup storage
+
+`/user_api/key_backups` stores **passkey (WebAuthn PRF) protected backups** — opaque blobs of the mailbox encryption private key wrapped by a PRF-derived key — so a logged-in user account can restore the decryption key on a new device. Available only when `ENABLE_MAIL_ENCRYPTION` is enabled (returns 400 otherwise); requires the User JWT (`x-user-token`) and the address must be bound to the current account.
+
+```
+GET    /user_api/key_backups?address=<address>
+       # -> [{ "id": <n>, "address": "<address>", "key_id": "<b64url public key>",
+       #      "passkey_id": "<credential id>", "blob": "<b64url blob>",
+       #      "created_at": "<UTC timestamp>", "updated_at": "<UTC timestamp>" }]
+
+PUT    /user_api/key_backups
+       # body: { "address": "<address>", "key_id": "<b64url public key>",
+       #         "passkey_id": "<own passkey credential id>", "blob": "<b64url blob>" }
+       # -> { "success": true }
+
+DELETE /user_api/key_backups/:id
+       # -> { "success": true }
+```
+
+- All endpoints only ever touch the current user's own data; `GET` requires the `address` to be bound to the current user (400 otherwise).
+- `PUT` validation: the address is bound to the current user and has an encryption public key; `key_id` is a valid P-256 public key point (an older/rotated key is allowed); `passkey_id` must be one of the current user's registered passkeys; `blob` is unpadded base64url whose decoded first byte is `0x02` and whose decoded length is 62–4096 bytes. The server **only validates the blob shape and never decrypts it** (see [Mailbox Encryption - Passkey-protected backup](./mail-encryption.md#passkey-protected-backup-webauthn-prf)).
+- Caps: 20 per address, 200 per user; re-`PUT`-ing an existing `(address, key_id, passkey_id)` tuple (updating the blob) is always allowed — only new tuples count against the caps; exceeding a cap returns 409.
+- Deleting the passkey, deleting the address, unbinding/transferring the address, or deleting the user removes the corresponding backups (DB v0.0.13 adds the `user_key_backups` table; run the database migration first).
+
+```bash
+# Upload a passkey-protected backup (the blob is wrapped by the browser via WebAuthn PRF)
+curl -X PUT "https://<your-worker-address>/user_api/key_backups" \
+  -H "x-user-token: <your-user-JWT-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"address": "xxxx@awsl.uk", "key_id": "<b64url public key>", "passkey_id": "<credential id>", "blob": "<b64url blob>"}'
+```
+
 ### User Mail List
 
 Supports `address` filter

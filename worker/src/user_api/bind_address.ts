@@ -106,6 +106,16 @@ const UserBindAddressModule = {
             if (!success) {
                 return c.text(msgs.OperationFailedMsg, 500)
             }
+            // an unbound address means the user lost access to it: remove
+            // their wrapped key backups for this address
+            const boundAddress = await c.env.DB.prepare(
+                `SELECT name FROM address where id = ?`
+            ).bind(address_id).first<string>("name");
+            if (boundAddress) {
+                await c.env.DB.prepare(
+                    `DELETE FROM user_key_backups WHERE user_id = ? AND address = ?`
+                ).bind(user_id, boundAddress).run();
+            }
         } catch (e) {
             return c.text(msgs.OperationFailedMsg, 500)
         }
@@ -239,6 +249,11 @@ const UserBindAddressModule = {
         } catch (e) {
             return c.text(msgs.OperationFailedMsg, 500)
         }
+        // the transferring user lost access to the address (it is deleted and
+        // re-created for the target user): remove their wrapped key backups
+        await c.env.DB.prepare(
+            `DELETE FROM user_key_backups WHERE user_id = ? AND address = ?`
+        ).bind(user_id, address).run();
         // delete address
         await c.env.DB.prepare(
             `DELETE FROM address WHERE id = ? `

@@ -210,6 +210,48 @@ export const MESSAGE_REGISTRY = {
       "zh": "订阅链接"
     }
   },
+  "components.PasskeyWrapControls": {
+    "protectWithPasskey": {
+      "en": "Protect with Passkey",
+      "zh": "使用通行密钥保护"
+    },
+    "loginHint": {
+      "en": "Log in to an account to use passkey backups (mailbox-only users: use the passphrase backup).",
+      "zh": "登录账号后可使用通行密钥备份（仅邮箱用户：请使用密码备份）。"
+    },
+    "bindHint": {
+      "en": "Bind this address to your account first to enable passkey backups.",
+      "zh": "请先将此地址绑定到你的账号，以使用通行密钥备份。"
+    },
+    "noPasskeys": {
+      "en": "No passkeys are registered on your account yet. Register one in User Settings, or use the passphrase backup.",
+      "zh": "你的账号尚未注册通行密钥。请先在用户设置中注册，或使用密码备份。"
+    },
+    "noKeyMaterial": {
+      "en": "No usable key material: paste a valid raw decryption link or private key first.",
+      "zh": "没有可用的密钥材料：请先粘贴有效的原始解密链接或私钥。"
+    },
+    "invalidKey": {
+      "en": "The pasted key is not a valid private key or decryption link",
+      "zh": "粘贴的内容不是有效的私钥或解密链接"
+    },
+    "prfUnsupported": {
+      "en": "This passkey/browser doesn't support PRF — register a new passkey or use a passphrase backup.",
+      "zh": "此通行密钥/浏览器不支持 PRF——请注册新的通行密钥或使用密码备份。"
+    },
+    "cancelled": {
+      "en": "Passkey prompt cancelled.",
+      "zh": "已取消通行密钥验证。"
+    },
+    "wrapFailed": {
+      "en": "Could not create the passkey backup: {msg}",
+      "zh": "无法创建通行密钥备份：{msg}"
+    },
+    "success": {
+      "en": "Passkey-protected backup uploaded",
+      "zh": "已上传通行密钥保护的备份"
+    }
+  },
   "components.KeyBackupPanel": {
     "rawLinkShownOnceWarning": {
       "en": "The raw decryption link below is shown only once. Anyone with it can read the encrypted mail of this address, and it cannot be recovered if lost. Prefer creating a passphrase-protected backup below.",
@@ -1656,6 +1698,10 @@ export const MESSAGE_REGISTRY = {
       "en": "Failed to encrypt existing mail: {msg}",
       "zh": "加密已有邮件失败：{msg}"
     },
+    "encryptExistingKeyMismatch": {
+      "en": "The server's public key for this address does not match any key stored on this device, so nothing was encrypted. Restore or import the current private key first (passkey backup, protected backup or decryption link), then try again.",
+      "zh": "服务器上此地址的公钥与本设备保存的任何密钥都不匹配，因此未执行任何加密。请先恢复或导入当前私钥（通行密钥备份、受保护备份或解密链接），然后重试。"
+    },
     "copyProtectedBackupLink": {
       "en": "Copy Protected Backup Link",
       "zh": "复制受保护的备份链接"
@@ -1763,6 +1809,66 @@ export const MESSAGE_REGISTRY = {
     "cancel": {
       "en": "Cancel",
       "zh": "取消"
+    },
+    "passkeyBackupTip": {
+      "en": "Passkey backups stored on your account: restore the decryption key on a new device with the passkey, or remove them. The server only holds an opaque blob it cannot decrypt.",
+      "zh": "存储在账号上的通行密钥备份：可在新设备上用通行密钥恢复解密密钥，或将其删除。服务器只保存无法解密的加密数据。"
+    },
+    "passkeyBackupEmpty": {
+      "en": "No passkey backups for this address yet.",
+      "zh": "此地址还没有通行密钥备份。"
+    },
+    "passkeyBackupBindHint": {
+      "en": "Bind this address to your account to manage passkey backups here.",
+      "zh": "将此地址绑定到你的账号后，可在此管理通行密钥备份。"
+    },
+    "passkeyBackupCreatedAt": {
+      "en": "Created",
+      "zh": "创建时间"
+    },
+    "passkeyBackupCurrentKey": {
+      "en": "current key on this device",
+      "zh": "此设备当前密钥"
+    },
+    "passkeyBackupOldKey": {
+      "en": "older/rotated key (not stored on this device)",
+      "zh": "旧密钥/已轮换（此设备未存储）"
+    },
+    "restoreFromPasskey": {
+      "en": "Restore Key From Passkey",
+      "zh": "从通行密钥恢复密钥"
+    },
+    "deletePasskeyBackup": {
+      "en": "Delete",
+      "zh": "删除"
+    },
+    "deletePasskeyBackupConfirm": {
+      "en": "Delete this passkey backup? The wrapped key cannot be recovered from the server afterwards.",
+      "zh": "确定删除此通行密钥备份吗？删除后服务器无法恢复被保护的密钥。"
+    },
+    "passkeyBackupRestored": {
+      "en": "Decryption key restored from the passkey backup",
+      "zh": "已从通行密钥备份恢复解密密钥"
+    },
+    "passkeyBackupDeleted": {
+      "en": "Passkey backup deleted",
+      "zh": "通行密钥备份已删除"
+    },
+    "passkeyBackupCancelled": {
+      "en": "Passkey prompt cancelled",
+      "zh": "已取消通行密钥验证"
+    },
+    "passkeyBackupRestoreFailed": {
+      "en": "The key could not be stored on this device",
+      "zh": "无法在此设备上存储密钥"
+    },
+    "passkeyUnwrapFailed": {
+      "en": "Could not unwrap this backup — it belongs to a different key/passkey or is tampered.",
+      "zh": "无法解包此备份——它属于其他密钥/通行密钥，或已被篡改。"
+    },
+    "passkeyPrfUnsupported": {
+      "en": "This passkey/browser doesn't support PRF — register a new passkey or use a passphrase backup.",
+      "zh": "此通行密钥/浏览器不支持 PRF——请注册新的通行密钥或使用密码备份。"
     }
   },
   "views.user.UserOauth2Callback": {
