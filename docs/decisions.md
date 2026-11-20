@@ -1,0 +1,5 @@
+# Decisions
+
+- **2026-11-19: `fork/main` is the fork's build/deploy branch.** Our changes (UI redesign, mailbox encryption, and later work) live there. Upstream `main` is merged into it, not rebased, so history stays stable for deploys. New work branches from it and lands back on it. Nothing is pushed unless the user asks.
+- **2026-11-18: mailbox encryption design.** Whole raw MIME is encrypted at rest. Per-address keys are generated in the browser, and the worker only ever sees public keys. The private key goes in the URL fragment and is kept in localStorage. Ingest side paths that would leak content (forward, webhook, Telegram push, AI extraction, worker RPC) are skipped for encrypted addresses. The feature is gated by `ENABLE_MAIL_ENCRYPTION` and off by default.
+- **2026-11-19: key export is wrapped-only.** Browser-held mailbox private keys are non-extractable. The raw key is shown and linkable once, at creation or import. After that, copy-link and export produce only passkey- or passphrase-wrapped backups. Plain `#k=` links can still be imported.
