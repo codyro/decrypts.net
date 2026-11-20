@@ -280,16 +280,9 @@ export default {
         if (version && compareVersions(version, "v0.0.12") <= 0) {
             // migration to v0.0.13: add user_key_backups table for passkey
             // (WebAuthn PRF) wrapped key backups of encrypted mailboxes
-            await c.env.DB.exec(`CREATE TABLE IF NOT EXISTS user_key_backups (
-                id INTEGER PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                address TEXT NOT NULL,
-                key_id TEXT NOT NULL,
-                passkey_id TEXT NOT NULL,
-                blob TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );`);
+            // NOTE: D1's DB.exec() treats every newline as a statement
+            // separator, so each exec() call must be a single-line statement.
+            await c.env.DB.exec(`CREATE TABLE IF NOT EXISTS user_key_backups (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, address TEXT NOT NULL, key_id TEXT NOT NULL, passkey_id TEXT NOT NULL, blob TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
             await c.env.DB.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_user_key_backups_unique ON user_key_backups(user_id, address, key_id, passkey_id);`);
             await c.env.DB.exec(`CREATE INDEX IF NOT EXISTS idx_user_key_backups_user_address ON user_key_backups(user_id, address);`);
         }

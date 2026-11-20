@@ -37,6 +37,7 @@
 
 ### Bug Fixes
 
+- fix: |DB Migration| Fix the v0.0.12 -> v0.0.13 migration creating `user_key_backups`: D1's `DB.exec()` splits statements on newlines, so the multi-line CREATE TABLE failed; it now runs as a single-line statement
 - fix: |Mailbox Encryption| The browser "encrypt existing mail" flow now refuses to run and uploads nothing when the server-returned public key matches none of the keys this device stores for the address (restore or import the current private key first, so the re-encrypted mail stays decryptable on this device)
 - fix: |Mailbox Encryption| The worker "encrypt existing mail" column detection no longer caches an empty probe result, fixing encrypted rows staying flagged `is_encrypted=0` when the database migration is applied while a worker isolate is warm
 - fix: |E2E| `e2e/Dockerfile.e2e` now copies `db/schema.sql` (loaded by the statistics unit tests), fixing the e2e runner aborting at the unit-test stage
