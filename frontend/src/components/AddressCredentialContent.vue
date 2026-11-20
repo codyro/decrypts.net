@@ -6,7 +6,7 @@ import { APP_CONFIG } from '@/config'
 
 import { useGlobalState } from '../store'
 import { decodeAddressToken } from '../utils/local-address-cache'
-import { getPrivateKey } from '../utils/mail-key-store'
+import KeyBackupPanel from './KeyBackupPanel.vue'
 
 const props = defineProps({
   address: {
@@ -62,13 +62,10 @@ const decryptionOnlyUrl = computed(() => {
   if (!props.mailPrivateKey || !props.address) return ''
   return `${frontendBaseUrl.value}/#k=${encodeURIComponent(props.mailPrivateKey)}&a=${encodeURIComponent(props.address)}`
 })
-// Combined auto-login + decryption link, only when this device holds the
-// private key for this address.
-const decryptionAutoLoginUrl = computed(() => {
-  const key = props.address ? getPrivateKey(props.address) : null
-  if (!key) return ''
-  return `${autoLoginUrl.value}#k=${encodeURIComponent(key)}&a=${encodeURIComponent(props.address)}`
-})
+// Note: no decryption link can be built from keys already stored on this
+// device — they are held only as non-extractable CryptoKeys. Only a raw
+// in-memory key supplied by the caller (e.g. right after mailbox creation)
+// can be turned into a link.
 const showAgent = computed(() => !!openSettings.value.enableAgentEmailInfo)
 const smtpImapConfig = computed(() => openSettings.value.smtpImapProxyConfig || {})
 const smtpConfig = computed(() => smtpImapConfig.value.smtp || {})
@@ -288,6 +285,7 @@ const copyText = async (text) => {
             </div>
             <p class="credential-tip">{{ t('decryptionLinkTip') }}</p>
           </div>
+          <KeyBackupPanel :address="address" :raw-key="mailPrivateKey" />
         </div>
       </n-collapse-item>
 
@@ -300,16 +298,6 @@ const copyText = async (text) => {
         <div class="credential-section">
           <div class="credential-field">
             <code class="credential-code">{{ autoLoginUrl }}</code>
-          </div>
-          <div v-if="decryptionAutoLoginUrl" class="credential-field">
-            <span class="credential-label">{{ t('decryptionLink') }}</span>
-            <div class="credential-copy-row">
-              <code class="credential-code">{{ decryptionAutoLoginUrl }}</code>
-              <n-button size="tiny" tertiary type="primary" @click="copyText(decryptionAutoLoginUrl)">
-                {{ t('copySection') }}
-              </n-button>
-            </div>
-            <p class="credential-tip">{{ t('decryptionLinkTip') }}</p>
           </div>
           <div class="credential-field">
             <span class="credential-label">{{ t('autoLoginQrCode') }}</span>

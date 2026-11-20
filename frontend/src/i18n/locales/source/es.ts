@@ -16,6 +16,7 @@ export const esMessages = {
   "views.admin.BatchCreate.batchSecurity": "Cualquier persona con estos enlaces puede acceder a los buzones. Las instalaciones privadas siguen requiriendo las credenciales de acceso al sitio. Los resultados solo permanecen en memoria hasta que salgas de esta vista o los borres.",
   "views.admin.BatchCreate.encryptBatchCheckbox": "Cifrar el correo recibido de extremo a extremo (se genera un par de claves por dirección en este navegador)",
   "views.admin.BatchCreate.encryptBatchWarning": "Solo las claves públicas se envían al servidor. Las claves privadas solo existen en la exportación que descargues después; si se pierde, el correo no podrá recuperarse.",
+  "views.admin.BatchCreate.batchCsvRawKeysHint": "Nota: el CSV exportado contiene las claves privadas sin cifrar de las direcciones cifradas. Guárdalo de forma segura.",
   "views.admin.BatchExportModal.title": "Exportar enlaces de acceso",
   "views.admin.BatchExportModal.spreadsheet": "CSV seguro para hojas de cálculo (Excel, Google Sheets)",
   "views.admin.BatchExportModal.spreadsheetTip": "Las celdas que comienzan con =, +, -, {'@'}, tabulación o retorno de carro reciben un ' inicial para que las hojas de cálculo las traten como texto. Los programas que lean el archivo verán ese ' como parte del valor.",

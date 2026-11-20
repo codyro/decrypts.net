@@ -1,0 +1,50 @@
+# Serves the PRODUCTION frontend build (dist/, with the CSP meta tag and
+# _headers emitted by vite-plugin-csp) via `vite preview`, proxying API paths
+# to the worker like Dockerfile.frontend does for the dev server. Used by the
+# browser e2e project to verify the CSP against a real browser.
+FROM node:24-slim
+
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@10.10.0 --activate
+
+WORKDIR /app/frontend
+
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile || (echo "WARN: frozen-lockfile failed, falling back to pnpm install" && pnpm install)
+
+COPY frontend/ .
+
+# Self-signed cert for HTTPS (crypto.subtle / WebAuthn need a secure context)
+RUN openssl req -x509 -newkey rsa:2048 -keyout /tmp/key.pem -out /tmp/cert.pem \
+    -days 365 -nodes -subj '/CN=frontend-preview'
+
+# Production build with CSP active (vite-plugin-csp applies to builds only)
+ENV VITE_API_BASE=
+RUN pnpm build
+
+# Proxy API paths to the worker (vite preview uses `preview.proxy`)
+RUN echo 'import config from "./vite.config.js";\
+import fs from "fs";\
+const workerTarget = process.env.VITE_WORKER_URL || "http://worker:8787";\
+config.preview = {\
+  ...config.preview,\
+  allowedHosts: true,\
+  https: {\
+    key: fs.readFileSync("/tmp/key.pem"),\
+    cert: fs.readFileSync("/tmp/cert.pem"),\
+  },\
+  proxy: {\
+    "/api": { target: workerTarget, changeOrigin: true },\
+    "/admin": { target: workerTarget, changeOrigin: true },\
+    "/user_api": { target: workerTarget, changeOrigin: true },\
+    "/open_api": { target: workerTarget, changeOrigin: true },\
+    "/redeem_api": { target: workerTarget, changeOrigin: true },\
+    "/external": { target: workerTarget, changeOrigin: true },\
+    "/health_check": { target: workerTarget, changeOrigin: true },\
+  },\
+};\
+export default config;' > vite.config.preview.js
+
+EXPOSE 5175
+
+CMD ["pnpm", "exec", "vite", "preview", "--config", "vite.config.preview.js", "--port", "5175", "--host", "0.0.0.0"]

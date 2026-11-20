@@ -7,6 +7,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import wasm from "vite-plugin-wasm";
+import csp from "./vite-plugin-csp.js";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -16,6 +17,7 @@ export default defineConfig({
   plugins: [
     vue(),
     wasm(),
+    csp(),
     AutoImport({
       imports: [
         'vue',

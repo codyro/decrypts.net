@@ -7,13 +7,23 @@ import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { hashPassword } from '../../utils'
 import { getRouterPathWithLang } from '../../utils'
-import { copyToClipboard } from '../../utils/clipboard'
-import { generateKeyPair, publicKeyFromPrivate } from '../../utils/mail-crypto'
+import { generateKeyPair } from '../../utils/mail-crypto'
 import {
-    getPrivateKeys, setPrivateKey, buildDecryptionLink
+    addPrivateKey, getKeyRecords, getWrappedBackup, hasWrappedBackup, keyStoreMode,
+    legacyMigrationPending, legacyPlaintextKeysRetained,
 } from '../../utils/mail-key-store'
-import { importKeyOrLink } from '../../utils/mail-fragment'
+import { importKeyOrLink, pendingWrappedImports } from '../../utils/mail-fragment'
+import {
+    buildBackupLink, buildBackupFileContent, backupFileName, parseBackupFile,
+    parseWrappedFragment, BackupPassphraseError, BACKUP_MIN_PASSPHRASE_LENGTH,
+} from '../../utils/key-backup'
+import {
+    createBackupFromPastedKey, BackupKeyInvalidError, BackupKeyMismatchError,
+} from '../../utils/key-backup-actions'
+import { requestLegacyBackupPrompt } from '../../utils/key-backup-prompts'
+import { copyToClipboard } from '../../utils/clipboard'
 import { encryptExistingMail } from '../../utils/encrypt-existing'
+import KeyBackupPanel from '../../components/KeyBackupPanel.vue'
 
 const {
     jwt, settings, showAddressCredential, loading, openSettings
@@ -38,7 +48,6 @@ const encKeyMatch = ref(null) // null: no local key, true/false: local key match
 const encBusy = ref(false)
 const showRotateConfirm = ref(false)
 const showDisableConfirm = ref(false)
-const showExportKeyConfirm = ref(false)
 const showEncryptExistingConfirm = ref(false)
 const encExistingRunning = ref(false)
 const encExistingProgress = ref(null) // { done, remaining }
@@ -52,21 +61,17 @@ const shortHash = async (value) => {
     return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 16)
 }
 
-const compareLocalEncryptionKey = async () => {
+const compareLocalEncryptionKey = () => {
     encKeyMatch.value = null
     if (!encServerPublicKey.value || !settings.value.address) return
-    const localKeys = getPrivateKeys(settings.value.address)
-    for (const key of localKeys) {
-        try {
-            if (await publicKeyFromPrivate(key) === encServerPublicKey.value) {
-                encKeyMatch.value = true
-                return
-            }
-        } catch {
-            // skip unusable local key material
-        }
+    // Stored records keep the public key alongside the non-extractable
+    // private key, so no private key material is ever touched here.
+    const localRecords = getKeyRecords(settings.value.address)
+    if (localRecords.some((record) => record.publicKey === encServerPublicKey.value)) {
+        encKeyMatch.value = true
+        return
     }
-    if (localKeys.length > 0) encKeyMatch.value = false
+    if (localRecords.length > 0) encKeyMatch.value = false
 }
 
 const refreshEncryptionStatus = async () => {
@@ -89,8 +94,10 @@ const uploadNewKeyPair = async () => {
         body: JSON.stringify({ publicKey: keyPair.publicKey })
     })
     // Old private keys are kept (newest first) so mail encrypted under a
-    // previous key stays readable on this device.
-    setPrivateKey(settings.value.address, keyPair.privateKey)
+    // previous key stays readable on this device. The raw key string is
+    // imported as a non-extractable CryptoKey and dropped afterwards.
+    await addPrivateKey(settings.value.address, keyPair.privateKey)
+    encNewKeyPair.value = keyPair
     await refreshEncryptionStatus()
 }
 
@@ -196,31 +203,153 @@ const disableEncryption = async () => {
     }
 }
 
-const copyDecryptionLink = async () => {
+// Raw private keys are never available after setup (only non-extractable
+// CryptoKeys are stored), so "copy protected backup" / "download backup"
+// only emit the stored wrapped blob; a new backup can only be created from
+// raw key material pasted by the user (verified against the stored records).
+
+// ---- passphrase-protected key backups ----
+
+const encHasBackup = computed(() => hasWrappedBackup(settings.value.address))
+const encHasLocalKey = computed(() => getKeyRecords(settings.value.address).length > 0)
+
+const copyProtectedBackupLink = async () => {
+    const blob = getWrappedBackup(settings.value.address)
+    if (!blob) return
     try {
-        await copyToClipboard(buildDecryptionLink(settings.value.address))
-        message.success(t('copySuccess'))
+        await copyToClipboard(buildBackupLink(settings.value.address, blob))
+        message.success(t('backupLinkCopied'))
     } catch (error) {
         console.error(error)
         message.error(t('copyFailed'))
     }
 }
 
-const copyPrivateKey = async () => {
+const downloadProtectedBackupFile = () => {
+    const blob = getWrappedBackup(settings.value.address)
+    if (!blob) return
+    const content = buildBackupFileContent(settings.value.address, blob)
+    const file = new Blob([content], { type: 'application/json' })
+    const url = URL.createObjectURL(file)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = backupFileName(settings.value.address)
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+}
+
+// "Create protected backup from my key": paste a raw `#k=` link / bare key,
+// verify it against the stored records, wrap it. The pasted string is
+// dropped when the dialog closes.
+const showCreateBackup = ref(false)
+const createBackupInput = ref('')
+const createBackupPassphrase = ref('')
+const createBackupConfirm = ref('')
+const createBackupError = ref('')
+const createBackupBusy = ref(false)
+
+const closeCreateBackup = () => {
+    showCreateBackup.value = false
+    createBackupInput.value = ''
+    createBackupPassphrase.value = ''
+    createBackupConfirm.value = ''
+    createBackupError.value = ''
+}
+
+const submitCreateBackup = async () => {
+    if (createBackupBusy.value) return
+    createBackupError.value = ''
+    if (createBackupPassphrase.value !== createBackupConfirm.value) {
+        createBackupError.value = t('passwordMismatch')
+        return
+    }
+    createBackupBusy.value = true
     try {
-        const key = getPrivateKeys(settings.value.address)[0]
-        await copyToClipboard(key)
-        showExportKeyConfirm.value = false
-        message.success(t('copySuccess'))
+        await createBackupFromPastedKey({
+            text: createBackupInput.value,
+            address: settings.value.address,
+            passphrase: createBackupPassphrase.value,
+        })
+        message.success(t('backupCreated'))
+        closeCreateBackup()
     } catch (error) {
         console.error(error)
-        message.error(t('copyFailed'))
+        if (error instanceof BackupKeyInvalidError) createBackupError.value = t('backupKeyInvalid')
+        else if (error instanceof BackupKeyMismatchError) createBackupError.value = t('backupKeyMismatch')
+        else if (error instanceof BackupPassphraseError) {
+            createBackupError.value = t('backupPassphraseTooShort', { min: BACKUP_MIN_PASSPHRASE_LENGTH })
+        } else createBackupError.value = error.message || 'error'
+    } finally {
+        createBackupBusy.value = false
     }
 }
+
+// "Import key backup": paste a `#kp=` link or load a backup file; the parsed
+// blob is queued for the global passphrase prompt (KeyBackupHost).
+const showImportBackup = ref(false)
+const importBackupInput = ref('')
+const importBackupError = ref('')
+
+const closeImportBackup = () => {
+    showImportBackup.value = false
+    importBackupInput.value = ''
+    importBackupError.value = ''
+}
+
+const submitImportBackup = () => {
+    importBackupError.value = ''
+    const trimmed = importBackupInput.value.trim()
+    let parsed = null
+    try {
+        const wrapped = parseWrappedFragment(trimmed)
+        parsed = wrapped || parseBackupFile(trimmed)
+    } catch (error) {
+        console.error(error)
+        importBackupError.value = t('importBackupInvalid')
+        return
+    }
+    if (!parsed || !parsed.address || !parsed.blob) {
+        importBackupError.value = t('importBackupInvalid')
+        return
+    }
+    pendingWrappedImports.value = [...pendingWrappedImports.value, { address: parsed.address, blob: parsed.blob }]
+    message.info(t('importBackupQueued'))
+    closeImportBackup()
+}
+
+const onBackupFileChosen = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    try {
+        importBackupInput.value = await file.text()
+    } catch (error) {
+        console.error(error)
+        importBackupError.value = t('importBackupInvalid')
+    } finally {
+        event.target.value = ''
+    }
+}
+
+// Offer a backup right after enable/rotate while the raw key is still in
+// memory; cleared when the dialog closes.
+const encNewKeyPair = ref(null)
+
+const showNewKeyBackup = computed({
+    get: () => !!encNewKeyPair.value,
+    set: (value) => { if (!value) encNewKeyPair.value = null },
+})
 
 const importEncryptionKey = async () => {
-    const { ok } = await importKeyOrLink(encImportInput.value, settings.value.address)
-    if (!ok) {
+    const result = await importKeyOrLink(encImportInput.value, settings.value.address)
+    if (result.needsPassphrase) {
+        pendingWrappedImports.value = [...pendingWrappedImports.value, result.wrapped]
+        encImportInput.value = ''
+        message.info(t('encryptionImportNeedsPassphrase'))
+        return
+    }
+    if (!result.ok) {
         message.error(t('encryptionImportInvalid'))
         return
     }
@@ -228,9 +357,6 @@ const importEncryptionKey = async () => {
     await compareLocalEncryptionKey()
     message.success(t('success'))
 }
-
-const encryptionLocalKeyCount = computed(() => settings.value.address
-    ? getPrivateKeys(settings.value.address).length : 0)
 
 const encExistingPercentage = computed(() => {
     const { done = 0, remaining = 0 } = encExistingProgress.value || {}
@@ -361,6 +487,21 @@ const changePassword = async () => {
         </section>
         <section v-if="openSettings.enableMailEncryption && settings.address" class="panel settings-section">
             <h3 class="panel-title settings-section__header">{{ t('mailEncryption') }}</h3>
+            <n-alert v-if="keyStoreMode === 'memory'" type="warning" :show-icon="false" :bordered="false">
+                {{ t('keyStoreMemoryWarning') }}
+            </n-alert>
+            <n-alert v-if="legacyPlaintextKeysRetained" type="warning" :show-icon="false" :bordered="false">
+                {{ t('keyStoreLegacyRetainedWarning') }}
+            </n-alert>
+            <n-alert v-if="legacyMigrationPending" type="warning" :show-icon="false" :bordered="false">
+                <n-space align="center" justify="space-between">
+                    <span>{{ t('keyStoreMigrationPendingWarning') }}</span>
+                    <n-button size="tiny" tertiary type="warning" data-testid="finish-protecting-keys"
+                        @click="requestLegacyBackupPrompt">
+                        {{ t('finishProtectingKeys') }}
+                    </n-button>
+                </n-space>
+            </n-alert>
             <template v-if="encEnabled">
                 <n-alert v-if="!encServerPublicKey" type="info" :show-icon="false" :bordered="false">
                     {{ t('encryptionDisabledStatus') }}
@@ -394,13 +535,6 @@ const changePassword = async () => {
                             {{ t('encryptExisting') }}
                         </n-button>
                     </template>
-                    <n-button v-if="encryptionLocalKeyCount > 0" size="small" secondary @click="copyDecryptionLink">
-                        {{ t('copyDecryptionLink') }}
-                    </n-button>
-                    <n-button v-if="encryptionLocalKeyCount > 0" size="small" secondary
-                        @click="showExportKeyConfirm = true">
-                        {{ t('encryptionExportKey') }}
-                    </n-button>
                 </div>
                 <div v-if="encKeyMatch !== true" class="toolbar enc-import">
                     <n-input v-model:value="encImportInput" size="small"
@@ -431,7 +565,29 @@ const changePassword = async () => {
                     </n-alert>
                 </div>
             </template>
-            <n-alert v-else type="info" :show-icon="false" :bordered="false">
+            <template v-if="encHasLocalKey || encHasBackup">
+                <div class="toolbar enc-backup">
+                    <n-button size="small" secondary :disabled="!encHasBackup"
+                        data-testid="copy-protected-backup-link" @click="copyProtectedBackupLink">
+                        {{ t('copyProtectedBackupLink') }}
+                    </n-button>
+                    <n-button size="small" secondary :disabled="!encHasBackup"
+                        data-testid="download-protected-backup-file" @click="downloadProtectedBackupFile">
+                        {{ t('downloadProtectedBackupFile') }}
+                    </n-button>
+                    <n-button size="small" tertiary :disabled="!encHasLocalKey" data-testid="create-backup-from-key"
+                        @click="showCreateBackup = true">
+                        {{ t('createBackupFromKey') }}
+                    </n-button>
+                    <n-button size="small" tertiary data-testid="import-key-backup" @click="showImportBackup = true">
+                        {{ t('importKeyBackup') }}
+                    </n-button>
+                </div>
+                <n-alert v-if="!encHasBackup" type="info" :show-icon="false" :bordered="false">
+                    {{ t('noBackupHint') }}
+                </n-alert>
+            </template>
+            <n-alert v-if="!encEnabled" type="info" :show-icon="false" :bordered="false">
                 {{ t('encryptionUnavailable') }}
             </n-alert>
         </section>
@@ -513,11 +669,64 @@ const changePassword = async () => {
             </template>
         </n-modal>
 
-        <n-modal v-model:show="showExportKeyConfirm" preset="dialog" :title="t('encryptionExportKey')">
-            <p>{{ t('encryptionExportKeyTip') }}</p>
+        <n-modal :show="showNewKeyBackup" @update:show="showNewKeyBackup = $event" preset="dialog"
+            :title="t('newKeyBackupTitle')">
+            <p>{{ t('newKeyBackupTip') }}</p>
+            <KeyBackupPanel :address="settings.address" :raw-key="encNewKeyPair?.privateKey || ''"
+                :public-key="encNewKeyPair?.publicKey || ''" />
+        </n-modal>
+
+        <n-modal :show="showCreateBackup" @update:show="showCreateBackup = $event" preset="dialog"
+            :title="t('createBackupTitle')" data-testid="create-backup-dialog">
+            <p>{{ t('createBackupTip') }}</p>
+            <n-form label-placement="top">
+                <n-form-item :label="t('createBackupInputLabel')">
+                    <n-input v-model:value="createBackupInput" type="textarea" :autosize="{ minRows: 2 }"
+                        :placeholder="t('createBackupInputPlaceholder')" data-testid="create-backup-input" />
+                </n-form-item>
+                <n-form-item :label="t('backupPassphrase')">
+                    <n-input v-model:value="createBackupPassphrase" type="password" show-password-on="click"
+                        data-testid="create-backup-passphrase" />
+                </n-form-item>
+                <n-form-item :label="t('backupConfirmPassphrase')">
+                    <n-input v-model:value="createBackupConfirm" type="password" show-password-on="click"
+                        data-testid="create-backup-confirm" @keyup.enter="submitCreateBackup" />
+                </n-form-item>
+            </n-form>
+            <n-alert v-if="createBackupError" type="error" :show-icon="false" :bordered="false"
+                data-testid="create-backup-error">
+                {{ createBackupError }}
+            </n-alert>
             <template #action>
-                <n-button size="small" tertiary type="primary" @click="copyPrivateKey">
-                    {{ t('encryptionExportKey') }}
+                <n-button size="small" tertiary @click="closeCreateBackup">
+                    {{ t('cancel') }}
+                </n-button>
+                <n-button size="small" type="primary" :loading="createBackupBusy" data-testid="create-backup-submit"
+                    @click="submitCreateBackup">
+                    {{ t('createBackupFromKey') }}
+                </n-button>
+            </template>
+        </n-modal>
+
+        <n-modal :show="showImportBackup" @update:show="showImportBackup = $event" preset="dialog"
+            :title="t('importBackupTitle')" data-testid="import-backup-dialog">
+            <p>{{ t('importBackupTip') }}</p>
+            <n-input v-model:value="importBackupInput" type="textarea" :autosize="{ minRows: 3 }"
+                :placeholder="t('importBackupPlaceholder')" data-testid="import-backup-input" />
+            <div class="toolbar" style="margin-top: 8px;">
+                <input type="file" accept=".json,application/json" data-testid="import-backup-file"
+                    @change="onBackupFileChosen" />
+            </div>
+            <n-alert v-if="importBackupError" type="error" :show-icon="false" :bordered="false"
+                data-testid="import-backup-error">
+                {{ importBackupError }}
+            </n-alert>
+            <template #action>
+                <n-button size="small" tertiary @click="closeImportBackup">
+                    {{ t('cancel') }}
+                </n-button>
+                <n-button size="small" type="primary" data-testid="import-backup-submit" @click="submitImportBackup">
+                    {{ t('importKeyBackup') }}
                 </n-button>
             </template>
         </n-modal>
@@ -531,6 +740,7 @@ const changePassword = async () => {
 .danger-tip { margin: 0 0 var(--space-2); }
 .enc-fingerprint { margin: var(--space-2) 0 0; }
 .enc-actions, .enc-import { margin-top: var(--space-3); }
+.enc-backup { margin-top: var(--space-3); }
 .enc-existing { margin-top: var(--space-3); }
 .enc-existing__line { margin: var(--space-2) 0 0; }
 </style>

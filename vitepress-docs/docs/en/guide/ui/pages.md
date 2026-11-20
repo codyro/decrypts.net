@@ -174,6 +174,42 @@ const generate = async () => {
 
     ![pages domain](/ui_install/pages-domain.png)
 
+## Content-Security-Policy
+
+Production builds of the frontend automatically enable a strict Content-Security-Policy (`vite-plugin-csp`): at build time a `<meta http-equiv="Content-Security-Policy">` tag is injected into `index.html`, and a `dist/_headers` file is emitted — Cloudflare Pages and Worker static assets deployments (`[assets]`, see [Deploy the Worker](/en/guide/cli/worker)) both honour it. The `_headers` file carries the same policy plus `frame-ancestors 'none'`, as well as `X-Content-Type-Options: nosniff` and `Referrer-Policy: strict-origin-when-cross-origin`.
+
+The default policy string:
+
+```
+default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' https: data: blob:; connect-src 'self'; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'
+```
+
+Notes:
+
+- The policy **never** allows `unsafe-eval` or script `unsafe-inline`.
+- Documented relaxations:
+    - `wasm-unsafe-eval`: `vite-plugin-wasm` instantiates the mail-parser WASM module at runtime.
+    - `style-src 'unsafe-inline'`: Naive UI / Vue inject `<style>` tags at runtime, and sanitised mail HTML keeps inline styles; styles cannot exfiltrate the mailbox keys the way scripts can.
+    - `img-src https:`: remote https images in mail HTML (`cid:` inline images are rewritten to `blob:` URLs by the mail parser).
+    - `https://challenges.cloudflare.com`: the Turnstile widget's script and iframe.
+- The dev server (`pnpm dev`) is unaffected; the policy is only injected into production builds (HMR relies on inline scripts and `ws://`).
+- Conditional origins added automatically from build env vars:
+    - Telegram mini-app build (`VITE_IS_TELEGRAM=true`): adds `https://telegram.org` to script-src, and the `_headers` file omits `frame-ancestors 'none'` (the app runs inside Telegram clients' iframes).
+    - `VITE_CF_WEB_ANALY_TOKEN`: the Cloudflare Web Analytics beacon script (`static.cloudflareinsights.com`) and RUM endpoint (`cloudflareinsights.com`).
+    - `VITE_GOOGLE_AD_CLIENT`: the Google AdSense script plus the frame/connect origins used by ad iframes.
+    - A cross-origin `VITE_API_BASE`: that API origin is added to connect-src (same-origin deployments need nothing).
+- To add further third-party scripts/embeds, use these build env vars (space-separated sources; values are validated and cannot inject extra directives):
+
+    | Variable | Effect |
+    | -------- | ------ |
+    | `VITE_CSP_EXTRA_SCRIPT_SRC` | appended to `script-src` |
+    | `VITE_CSP_EXTRA_CONNECT_SRC` | appended to `connect-src` |
+    | `VITE_CSP_EXTRA_IMG_SRC` | appended to `img-src` |
+    | `VITE_CSP_EXTRA_FRAME_SRC` | appended to `frame-src` |
+
+> [!warning] Note
+> The policy blocks undeclared third-party and inline scripts. If you inject extra scripts via a custom `index.html`, reverse-proxy injection, or similar, the page may break; set `VITE_CSP_DISABLED=true` and rebuild to disable the CSP entirely (no meta tag, no `_headers`).
+
 <style module>
 .container {
     display: flex;

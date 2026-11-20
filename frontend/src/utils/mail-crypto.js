@@ -71,6 +71,23 @@ const importPrivateKey = async (privateKeyB64u) => {
 }
 
 /**
+ * Import a base64url PKCS8 private key as a NON-extractable CryptoKey
+ * (ECDH P-256, usages ['deriveBits']). This is how keys live in the browser
+ * key store: raw key material exists only transiently while importing and
+ * is dropped immediately afterwards.
+ */
+export const importPrivateKeyNonExtractable = async (privateKeyB64u) => {
+    const pkcs8 = base64UrlToBytes(privateKeyB64u)
+    return crypto.subtle.importKey(
+        'pkcs8',
+        pkcs8,
+        { name: 'ECDH', namedCurve: 'P-256' },
+        false,
+        ['deriveBits']
+    )
+}
+
+/**
  * Generate a new P-256 key pair for mail encryption.
  * Returns { publicKey, privateKey } as base64url strings:
  * publicKey = raw 65-byte uncompressed point, privateKey = PKCS8.
@@ -120,14 +137,18 @@ const gzip = async (text) => {
 }
 
 /**
- * Decrypt a "cfte1." envelope with the base64url PKCS8 private key.
- * Throws on bad key, corrupt envelope or tampered ciphertext.
+ * Decrypt a "cfte1." envelope. `privateKey` may be a non-extractable
+ * CryptoKey (the preferred form, as held by the key store) or a base64url
+ * PKCS8 string (back-compat for tests/scripts; imported non-extractable
+ * inside). Throws on bad key, corrupt envelope or tampered ciphertext.
  */
-export const decryptMail = async (privateKeyB64u, envelope) => {
+export const decryptMail = async (privateKeyOrB64u, envelope) => {
     if (!isEncryptedRaw(envelope)) {
         throw new Error('Not an encrypted mail envelope')
     }
-    const privateKey = await importPrivateKey(privateKeyB64u)
+    const privateKey = (typeof CryptoKey !== 'undefined' && privateKeyOrB64u instanceof CryptoKey)
+        ? privateKeyOrB64u
+        : await importPrivateKeyNonExtractable(privateKeyOrB64u)
 
     let envelopeBytes
     try {

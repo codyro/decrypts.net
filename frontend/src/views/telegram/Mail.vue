@@ -6,7 +6,7 @@ import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { onMounted, watch } from 'vue';
 import { processItem } from '../../utils/email-parser'
-import { importKeyOrLink } from '../../utils/mail-fragment'
+import { importKeyOrLink, pendingWrappedImports } from '../../utils/mail-fragment'
 import { utcToLocalDate } from '../../utils';
 
 const { telegramApp, loading, useUTCDate } = useGlobalState()
@@ -32,8 +32,16 @@ const handleUnlock = async () => {
     if (unlockLoading.value) return;
     unlockLoading.value = true;
     try {
-        const { ok } = await importKeyOrLink(unlockInput.value, curMail.value.address);
-        if (!ok) {
+        const result = await importKeyOrLink(unlockInput.value, curMail.value.address);
+        if (result.needsPassphrase) {
+            // A wrapped backup needs its passphrase; the global backup host
+            // prompts for it and imports the key there.
+            pendingWrappedImports.value = [...pendingWrappedImports.value, result.wrapped];
+            unlockInput.value = '';
+            message.info(t('unlockNeedsPassphrase'));
+            return;
+        }
+        if (!result.ok) {
             message.error(t('unlockInvalid'));
             return;
         }

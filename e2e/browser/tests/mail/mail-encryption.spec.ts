@@ -44,9 +44,12 @@ test.describe('Mailbox encryption browser flow', () => {
         + `#k=${encodeURIComponent(mailbox.privateKey)}&a=${encodeURIComponent(mailbox.address)}`,
       );
 
-      // The private key fragment is ingested into localStorage and stripped
-      // from the address bar (it must never be sent to any server).
+      // The private key fragment is ingested into the browser key store and
+      // stripped from the address bar (it must never be sent to any server).
       await expect.poll(() => new URL(page.url()).hash).toBe('');
+      // A raw `#k=` import opens the "protect this key" offer; skip it
+      // (creation-time backups are covered in key-backup.spec.ts).
+      await page.keyboard.press('Escape');
 
       // The encrypted mail renders with its decrypted subject
       const summary = page.locator('.mail-summary-subject').first();
@@ -55,6 +58,69 @@ test.describe('Mailbox encryption browser flow', () => {
       // Opening the mail shows the decrypted body
       await summary.click();
       await expect(page.locator('.mail-content-renderer')).toContainText('browser decryption body');
+    } finally {
+      await deleteAddress(api, jwt);
+      await api.dispose();
+    }
+  });
+
+  test('legacy localStorage plaintext keys migrate to a non-extractable IndexedDB key', async ({ page }) => {
+    const api = await apiRequest.newContext();
+    let jwt = '';
+    try {
+      const mailbox = await createEncryptedAddress(api, 'enc-migrate');
+      jwt = mailbox.jwt;
+      const subject = `Migrate Decrypt ${Date.now()}`;
+      await seedTestMail(api, mailbox.address, { subject, text: 'migrated body' });
+
+      // Seed the legacy plaintext key store before the app boots. Opening
+      // the page must move the key into IndexedDB (non-extractable). The
+      // plaintext copy is now KEPT until the user answers the one-time
+      // backup prompt (legacyMigrationPending) — the UI for that is a
+      // follow-up; here we assert the deferral-driven state directly.
+      await page.addInitScript(({ address, privateKey }) => {
+        localStorage.setItem('mailPrivateKeys', JSON.stringify({ [address]: [privateKey] }));
+      }, { address: mailbox.address, privateKey: mailbox.privateKey });
+
+      await page.goto(`${FRONTEND_URL}/en/?jwt=${mailbox.jwt}`);
+
+      // IndexedDB holds the key as a non-extractable CryptoKey (allow extra
+      // time for a cold dev-server first load).
+      await expect.poll(async () => {
+        return page.evaluate(async () => {
+          const db = await new Promise<IDBDatabase>((resolve, reject) => {
+            const rq = indexedDB.open('cf-temp-email-keys', 1);
+            rq.onsuccess = () => resolve(rq.result);
+            rq.onerror = () => reject(rq.error);
+          });
+          const records = await new Promise<any[]>((resolve, reject) => {
+            const rq = db.transaction('keys', 'readonly').objectStore('keys').getAll();
+            rq.onsuccess = () => resolve(rq.result);
+            rq.onerror = () => reject(rq.error);
+          });
+          const record = records[0] || null;
+          return {
+            count: records.length,
+            address: record?.address ?? null,
+            hasPublicKey: typeof record?.publicKey === 'string',
+            privateKeyIsCryptoKey: record?.privateKey instanceof CryptoKey,
+            extractable: record?.privateKey ? (record.privateKey as CryptoKey).extractable : null,
+          };
+        });
+      }, { timeout: 30_000 }).toEqual({
+        count: 1,
+        address: mailbox.address,
+        hasPublicKey: true,
+        privateKeyIsCryptoKey: true,
+        extractable: false,
+      });
+
+      // The plaintext localStorage copy is deliberately kept while the
+      // one-time backup prompt (legacyMigrationPending) is unanswered.
+      expect(await page.evaluate(() => localStorage.getItem('mailPrivateKeys'))).toContain(mailbox.address);
+
+      // The mail still decrypts with the migrated key.
+      await expect(page.locator('.mail-summary-subject').first()).toContainText(subject);
     } finally {
       await deleteAddress(api, jwt);
       await api.dispose();
@@ -105,6 +171,9 @@ test.describe('Mailbox encryption browser flow', () => {
         + `#k=${encodeURIComponent(mailbox.privateKey)}&a=${encodeURIComponent(mailbox.address)}`,
       );
       await expect.poll(() => new URL(page.url()).hash).toBe('');
+      // A raw `#k=` import opens the "protect this key" offer; skip it
+      // (creation-time backups are covered in key-backup.spec.ts).
+      await page.keyboard.press('Escape');
 
       await page.getByText('Sent', { exact: true }).click();
       const row = page.locator('.sent-list-scroll .n-list-item').first();
@@ -172,6 +241,9 @@ test.describe('Mailbox encryption browser flow', () => {
         + `#k=${encodeURIComponent(privateKey)}&a=${encodeURIComponent(mailbox.address)}`,
       );
       await expect.poll(() => new URL(page.url()).hash).toBe('');
+      // A raw `#k=` import opens the "protect this key" offer; skip it
+      // (creation-time backups are covered in key-backup.spec.ts).
+      await page.keyboard.press('Escape');
 
       await page.getByText('Mailbox Settings', { exact: true }).click();
       await page.getByRole('button', { name: 'Encrypt Existing Mail', exact: true }).click();

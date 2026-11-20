@@ -119,5 +119,6 @@ const clearBatch = () => {
         </n-space>
         <p>{{ t('batchTotal', { count: batchRows.length }) }}</p>
         <p>{{ t('batchSecurity') }}</p>
+        <p v-if="batchRows.some((row) => row.privateKey)" class="muted">{{ t('batchCsvRawKeysHint') }}</p>
     </div>
 </template>

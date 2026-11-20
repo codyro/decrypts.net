@@ -174,6 +174,42 @@ const generate = async () => {
 
     ![pages domain](/ui_install/pages-domain.png)
 
+## Content-Security-Policy
+
+前端生产构建会自动启用严格的内容安全策略（`vite-plugin-csp`）：构建时把 `<meta http-equiv="Content-Security-Policy">` 注入 `index.html`，并生成 `dist/_headers`——Cloudflare Pages 与部署 Worker 静态资源（`[assets]`，见 [CLI 部署 Worker](/zh/guide/cli/worker#部署带有前端页面的-worker-可选)）都会应用其中的响应头。`_headers` 包含与 meta 相同的策略并追加 `frame-ancestors 'none'`，以及 `X-Content-Type-Options: nosniff` 和 `Referrer-Policy: strict-origin-when-cross-origin`。
+
+默认策略字符串：
+
+```
+default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' https: data: blob:; connect-src 'self'; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'
+```
+
+说明：
+
+- 策略**永不**包含 `unsafe-eval` 或 script 的 `unsafe-inline`。
+- 有意的放宽项：
+    - `wasm-unsafe-eval`：`vite-plugin-wasm` 在运行时实例化邮件解析 WASM 模块。
+    - `style-src 'unsafe-inline'`：Naive UI / Vue 在运行时注入 `<style>` 标签，消毒后的邮件 HTML 也保留内联样式；样式无法像脚本一样窃取邮箱密钥。
+    - `img-src https:`：邮件 HTML 中的远程 https 图片（`cid:` 内联图片会被邮件解析器重写为 `blob:` URL）。
+    - `https://challenges.cloudflare.com`：Turnstile 人机验证组件的脚本与 iframe。
+- 开发服务器（`pnpm dev`）不受影响，策略只在生产构建注入（HMR 依赖内联脚本与 `ws://`）。
+- 根据构建环境变量自动追加的来源：
+    - Telegram 小程序构建（`VITE_IS_TELEGRAM=true`）：script-src 增加 `https://telegram.org`，且 `_headers` 不包含 `frame-ancestors 'none'`（小程序运行在 Telegram 客户端的 iframe 中）。
+    - `VITE_CF_WEB_ANALY_TOKEN`：Cloudflare Web Analytics 信标脚本（`static.cloudflareinsights.com`）与 RUM 端点（`cloudflareinsights.com`）。
+    - `VITE_GOOGLE_AD_CLIENT`：Google AdSense 脚本及广告 iframe 使用的 frame/connect 来源。
+    - `VITE_API_BASE` 指向其他域名时：connect-src 自动加入该 API 来源（同域部署无需配置）。
+- 需要加入更多第三方脚本/嵌入时，使用以下构建环境变量（空格分隔多个来源，取值会被校验，不能注入额外指令）：
+
+    | 变量名 | 作用 |
+    | ------ | ---- |
+    | `VITE_CSP_EXTRA_SCRIPT_SRC` | 追加到 `script-src` |
+    | `VITE_CSP_EXTRA_CONNECT_SRC` | 追加到 `connect-src` |
+    | `VITE_CSP_EXTRA_IMG_SRC` | 追加到 `img-src` |
+    | `VITE_CSP_EXTRA_FRAME_SRC` | 追加到 `frame-src` |
+
+> [!warning] 注意
+> 该策略会阻止未经声明的第三方脚本与内联脚本。如果你通过自定义 `index.html`、反向代理注入等方式加入了额外脚本，页面可能因此异常；确需关闭时可设置 `VITE_CSP_DISABLED=true` 重新构建（不注入 meta 标签、不生成 `_headers`）。
+
 <style module>
 .container {
     display: flex;

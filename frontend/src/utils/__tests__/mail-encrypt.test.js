@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
     generateKeyPair, encryptMail, decryptMail, isEncryptedRow, isEncryptedRaw,
-    MAIL_ENCRYPTION_PREFIX,
+    importPrivateKeyNonExtractable, MAIL_ENCRYPTION_PREFIX,
 } from '../mail-crypto';
 
 beforeEach(() => {
@@ -35,6 +35,15 @@ describe('encryptMail', () => {
         const keyPair = await generateKeyPair();
         const envelope = await encryptMail(keyPair.publicKey, MIME, { gzip: true });
         expect(await decryptMail(keyPair.privateKey, envelope)).toBe(MIME);
+    });
+
+    it('round-trips with a non-extractable CryptoKey (key-store form)', async () => {
+        const keyPair = await generateKeyPair();
+        const envelope = await encryptMail(keyPair.publicKey, MIME, { gzip: false });
+        const cryptoKey = await importPrivateKeyNonExtractable(keyPair.privateKey);
+        expect(cryptoKey.extractable).toBe(false);
+        await expect(crypto.subtle.exportKey('pkcs8', cryptoKey)).rejects.toThrow();
+        expect(await decryptMail(cryptoKey, envelope)).toBe(MIME);
     });
 
     it('produces a different envelope each time (random ephemeral key + iv)', async () => {

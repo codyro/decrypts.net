@@ -1,6 +1,6 @@
 # 邮箱加密（Mailbox Encryption）
 
-可选的按邮箱端到端加密存储：启用后，Worker 只保存邮箱的**公钥**，每封收到的邮件在入库前将整封原始 MIME 加密；**私钥只存在于浏览器**（URL fragment + localStorage），永不发送到服务器，前端在客户端解密后再解析邮件。
+可选的按邮箱端到端加密存储：启用后，Worker 只保存邮箱的**公钥**，每封收到的邮件在入库前将整封原始 MIME 加密；**私钥只存在于浏览器**（创建时一次性展示的解密链接 + IndexedDB 中不可导出的 WebCrypto 密钥），永不发送到服务器，前端在客户端解密后再解析邮件。
 
 由 Worker 变量 `ENABLE_MAIL_ENCRYPTION` 控制，默认关闭。
 
@@ -9,6 +9,8 @@
 - 服务器端只保存原始 MIME 的密文（`cfte1.` 信封）。加密行不再明文保存元数据：`source` 置空、`message_id` 置为 `NULL`（真实发件人和 Message-ID 在加密后的 MIME 头内，由浏览器解密后展示）。明文保留的元数据只有：邮箱地址、时间戳、已读状态、大小和 `is_encrypted` 标记。
 - 邮件在到达瞬间会以明文经过 Worker：垃圾邮件检查、超大附件移除、自动回复仍会运行（自动回复只使用邮件头和配置内容）。
 - **这保护的是静态数据（data at rest）**。恶意或被攻陷的 Worker 仍可在加密前的接收瞬间捕获邮件内容；该功能不防御 Worker 本身被攻陷。
+- 私钥以**不可导出（non-extractable）的 WebCrypto `CryptoKey`** 存储：本机 XSS 无法再读取或导出原始私钥，但在页面打开期间 XSS 仍可调用该密钥解密邮件——请在可信设备上使用并注意浏览器扩展安全；前端生产构建启用的严格 CSP（见 [Cloudflare Pages 前端](/zh/guide/ui/pages#content-security-policy)）显著降低了 XSS 风险。
+- 清理浏览器数据（IndexedDB）会删除私钥，除非已保存明文解密链接或口令保护备份；找回保护备份需要口令。
 
 ## 加密邮箱跳过的功能
 
@@ -48,21 +50,55 @@ cfte1. + base64url( ephPubRaw(65B, P-256 uncompressed) || iv(12B) || AES-GCM(cip
 ## 密钥处理
 
 - 密钥对**在浏览器中生成**（`P-256`），只有公钥被上传并随地址保存。
-- 私钥通过解密链接分享：`https://你的域名/#k=<私钥>&a=<邮箱地址>`。URL fragment 不会被浏览器发送到服务器；前端在应用启动时读取 fragment、校验后存入 localStorage，并立即从地址栏抹除 fragment。
-- localStorage 按邮箱地址保存私钥数组（最新在前），轮换密钥后旧邮件仍可用旧密钥解密。
-- 前端提供"复制解密链接"按钮，可在其他设备上导入密钥。
+- 私钥只以**不可导出的 WebCrypto `CryptoKey`**（ECDH P-256）持久化在浏览器 IndexedDB（数据库 `cf-temp-email-keys`），任何时刻都不保存原始密钥字符串。每个地址可存多把密钥（最新在前，按公钥去重），轮换后旧邮件仍可用旧密钥解密。
+- 旧版本保存在 localStorage（`mailPrivateKeys`）的明文密钥会在首次加载时自动迁移到 IndexedDB。迁移校验通过后弹出一次性备份提示，用户可以选择：设置口令生成保护备份后删除明文副本、"跳过并立即删除"，或"稍后"（明文副本保留到做出选择为止）。IndexedDB 不可用（如部分隐私模式）时，密钥只保存在内存中于本次会话使用，界面会显示警告，且旧版 localStorage 明文副本会被保留（不会把唯一的持久副本删进易失存储）。
+- **原始私钥 / 明文 `#k=` 链接只在创建时展示一次**（创建、轮换、导入、管理端单个创建同理），之后前端不再生成明文链接。之后的"复制解密链接"与"导出"只输出已存的口令保护备份（`#kp=`，见下节）；也可以在账号设置中通过"由我的密钥创建保护备份"重新粘贴原始密钥或 `#k=` 链接（与已存公钥校验匹配后）补建保护备份。
 - **丢失私钥 = 邮件不可恢复**：服务器无法解密，也没有后门。
 - **加密已有邮件不可逆**：明文行一旦被替换为信封，只有私钥持有者才能读取；丢失私钥后这些邮件将永久不可恢复（详见下文 API）。
 - 关闭加密（清除公钥）后新邮件恢复明文存储，但已加密的旧邮件仍保持加密状态。
-- localStorage 中的私钥意味着本机 XSS 可以读取邮件明文；请在可信设备上使用，并注意浏览器扩展安全。
+- 管理端批量创建导出的 CSV 仍包含明文私钥（创建阶段的产物），请将该文件视为机密妥善保管。
+
+## 口令保护备份（`#kp=`）
+
+由于 WebCrypto 的限制（不可导出的密钥无法再被导出或包裹），口令保护备份只能在原始密钥仍在内存时创建：创建、轮换、导入或旧版迁移时，以及之后通过"由我的密钥创建保护备份"重新粘贴原始密钥/链接时。创建后备份 blob 随密钥记录一起存储在 IndexedDB。
+
+- KDF：PBKDF2-HMAC-SHA256（默认 600,000 次迭代；导入端接受 100,000–5,000,000）派生 AES-256-GCM 密钥。
+- blob 二进制布局：`version(1B = 0x01) ‖ iterations(4B 大端 u32) ‖ salt(16B) ‖ iv(12B) ‖ AES-256-GCM(密文 ‖ 16B tag)`，整体 base64url；明文为 PKCS8 私钥，AAD = `"cfte-kp1:" + 邮箱地址`（备份不能改绑到其他地址）。
+- 链接：`https://你的域名/#kp=<blob>&a=<邮箱地址>`；打开后前端提示输入口令导入，fragment 会被立即从地址栏抹除，且浏览器不会把 fragment 发送到服务器。
+- 文件：JSON `{ "format": "cf-temp-email-key-backup", "version": 1, "address": "<邮箱地址>", "createdAt": "<ISO 时间>", "kdf": "PBKDF2-SHA256", "blob": "<base64url blob>" }`。
+- 口令最少 10 个字符。未使用 Argon2（避免引入额外运行时依赖）。
+- 明文 `#k=` 链接仍可导入；导入后前端会提示为该密钥设置口令保护（可跳过）。
+
+用 Node.js 解包备份的示例（与 `frontend/src/utils/key-backup.js` 逻辑一致）：
+
+```js
+// unwrap-backup.mjs — unwrap a "#kp=" backup blob with WebCrypto (Node 20+)
+const b64uToBytes = (v) => new Uint8Array(Buffer.from(v.replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
+const bytesToB64u = (b) => Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+export async function unwrapBackup({ blob, address, passphrase }) {
+    const bytes = b64uToBytes(blob);
+    if (bytes[0] !== 0x01) throw new Error('Unsupported backup version');
+    const iterations = new DataView(bytes.buffer, bytes.byteOffset).getUint32(1, false);
+    const salt = bytes.slice(5, 21);
+    const iv = bytes.slice(21, 33);
+    const ciphertext = bytes.slice(33);
+    const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), { name: 'PBKDF2' }, false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, material, 256);
+    const aesKey = await crypto.subtle.importKey('raw', bits, { name: 'AES-GCM' }, false, ['decrypt']);
+    const pkcs8 = new Uint8Array(await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv, additionalData: new TextEncoder().encode('cfte-kp1:' + address) }, aesKey, ciphertext));
+    return bytesToB64u(pkcs8); // base64url PKCS8 私钥：立即导入使用后丢弃该字符串
+}
+```
 
 ## 使用流程
 
 1. 部署者：设置 `ENABLE_MAIL_ENCRYPTION = true`（Worker 变量），并先执行数据库迁移（`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`），确保 `address.encryption_public_key` 列存在。
 2. 用户：创建邮箱时勾选"启用邮箱加密"，或在登录后于"账号设置"中开启/轮换/关闭加密。开启或轮换后，如果该邮箱仍有明文邮件，前端会提示"加密已有邮件"；账号设置中也始终提供该按钮，执行时显示进度并支持取消。
-3. 创建时前端自动生成密钥对，上传公钥，并展示解密链接供保存。
-4. 管理员：在 `Admin -> 账号` 中，单个创建提供同样的加密选项；批量创建会在浏览器中为每个地址生成一对密钥，导出 CSV 在存在加密地址时包含 `private_key` 和 `decryption_link` 列。
-5. Telegram 小程序：小程序内的绑定/创建页提供同样的加密勾选，私钥保存在小程序 webview 的 localStorage 中。Bot `/new` 文本命令没有浏览器环境生成/保存密钥，**不支持**加密（创建的地址均为明文）。加密地址会收到一条固定的"收到新的加密邮件"无内容推送（配置了小程序地址时附带小程序按钮），Bot 邮件查询（`/mails`）仍只回复"该邮件已加密"而不含内容——请在网页端或小程序内查看加密邮件（客户端本地解密）。
+3. 创建时前端自动生成密钥对并上传公钥，随后**一次性**展示明文解密链接，并提示设置口令创建保护备份（创建后可复制保护备份链接或下载备份文件）；关闭对话框后前端不再能生成明文链接。
+4. 管理员：在 `Admin -> 账号` 中，单个创建提供同样的加密选项（同样一次性展示明文链接并提示备份）；批量创建会在浏览器中为每个地址生成一对密钥，导出 CSV 在存在加密地址时包含 `private_key` 和 `decryption_link` 列（CSV 含明文私钥，请视为机密）。
+5. Telegram 小程序：小程序内的绑定/创建页提供同样的加密勾选，私钥以不可导出的 WebCrypto 密钥保存在小程序 webview 的 IndexedDB 中（旧版 localStorage 明文会自动迁移并提示备份）。Bot `/new` 文本命令没有浏览器环境生成/保存密钥，**不支持**加密（创建的地址均为明文）。加密地址会收到一条固定的"收到新的加密邮件"无内容推送（配置了小程序地址时附带小程序按钮），Bot 邮件查询（`/mails`）仍只回复"该邮件已加密"而不含内容——请在网页端或小程序内查看加密邮件（客户端本地解密）。
 
 ## API（供脚本 / Agent 使用）
 
@@ -162,5 +198,5 @@ export async function decryptMail(privateKeyB64u, envelope) {
 
 - 服务端解析接口（`/api/parsed_mails` 等）对加密邮件只返回占位，无法提供主题/正文/附件；Webhook 测试发送与 Telegram 解析同样不可用，Webhook 发件人过滤条件也无法匹配加密邮件（无内容推送整体绕过过滤规则）。加密行的 `source` 为空，依赖发件人的服务端能力（如按发件人搜索、按发件人统计）不包含加密邮件。
 - 未迁移数据库上，发件人可控、原始内容恰好以 `cfte1.` 开头的明文会显示为锁定状态（此前缀会被误认为是信封）。执行数据库迁移（v0.0.12）后以显式 `is_encrypted` 标记判定加密，这类邮件会按明文正常展示。
-- 私钥保存在 localStorage，清理浏览器数据会丢失密钥（除非已保存解密链接）。
+- 私钥保存在浏览器 IndexedDB，清理浏览器数据会丢失密钥（除非已保存明文解密链接或口令保护备份；找回保护备份需要口令）。保护备份只能在原始密钥仍在内存时创建（创建/轮换/导入/迁移，或之后重新粘贴原始密钥补建）。
 - Bot `/new` 命令无法创建加密地址。

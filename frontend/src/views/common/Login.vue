@@ -35,8 +35,8 @@ import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { getRouterPathWithLang, hashPassword } from '../../utils'
 import { generateKeyPair } from '../../utils/mail-crypto'
-import { setPrivateKey, buildDecryptionLink } from '../../utils/mail-key-store'
-import { copyToClipboard } from '../../utils/clipboard'
+import { addPrivateKey } from '../../utils/mail-key-store'
+import { offerKeyBackup } from '../../utils/key-backup-prompts'
 
 const props = defineProps({
     bindUserAddress: {
@@ -61,19 +61,6 @@ const {
 } = useGlobalState()
 
 const enableMailEncryption = ref(false)
-const showEncryptionCreatedModal = ref(false)
-const createdDecryptionLink = ref('')
-
-const copyDecryptionLink = async () => {
-    if (!createdDecryptionLink.value) return
-    try {
-        await copyToClipboard(createdDecryptionLink.value)
-        message.success(t('copyDecryptionLinkSuccess'))
-    } catch (error) {
-        console.error(error)
-        message.error(t('copyDecryptionLinkFailed'))
-    }
-}
 
 const tabValue = ref('signin')
 const credential = ref('')
@@ -218,12 +205,18 @@ const newEmail = async () => {
         addressPassword.value = res["password"] || '';
         await api.getSettings();
         if (keyPair) {
-            // The private key never leaves this device; store it before
-            // showing the credential modal so the decryption link is copyable.
             if (settings.value.address) {
-                setPrivateKey(settings.value.address, keyPair.privateKey);
-                createdDecryptionLink.value = buildDecryptionLink(settings.value.address);
-                showEncryptionCreatedModal.value = true;
+                // The private key never leaves this device; it is stored as
+                // a non-extractable CryptoKey (raw string dropped when the
+                // global backup dialog closes) and the raw `#k=` link is
+                // shown exactly once by the KeyBackupHost, built from the
+                // still-in-memory generated key.
+                await addPrivateKey(settings.value.address, keyPair.privateKey);
+                offerKeyBackup({
+                    address: settings.value.address,
+                    rawKey: keyPair.privateKey,
+                    publicKey: keyPair.publicKey,
+                });
             }
         }
         await router.push(getRouterPathWithLang("/", locale.value));
@@ -440,16 +433,6 @@ onMounted(async () => {
                 <AdminContact />
             </n-tab-pane>
         </n-tabs>
-        <n-modal v-model:show="showEncryptionCreatedModal" preset="dialog" :title="t('encryptionCreatedTitle')">
-            <p style="text-align: left;">{{ t('encryptionCreatedTip') }}</p>
-            <n-input :value="createdDecryptionLink" type="textarea" readonly :autosize="{ minRows: 2 }" />
-            <p style="text-align: left;">{{ t('encryptMailKeyLostWarning') }}</p>
-            <template #action>
-                <n-button size="small" tertiary type="primary" @click="copyDecryptionLink">
-                    {{ t('copyDecryptionLink') }}
-                </n-button>
-            </template>
-        </n-modal>
     </div>
 </template>
 

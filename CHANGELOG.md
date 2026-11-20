@@ -22,6 +22,11 @@
   - 网页端发件箱对加密行客户端解密后照常展示（缺少私钥显示锁定），管理端与用户中心发件箱无私钥、加密行始终锁定
   - 服务端解析统一按行级 `is_encrypted` 标记（未迁移库回退前缀检测）识别加密邮件；Webhook 过滤检查与测试发送对加密行保持锁定/占位行为，不再按前缀拒绝解析
   - 管理后台单个/批量创建邮箱支持加密选项（每地址一对浏览器生成密钥），批量导出 CSV 含 `private_key`/`decryption_link` 列；Telegram 小程序创建页支持加密选项，Bot `/new` 命令不支持加密
+- feat: |邮箱加密| 私钥存储升级为不可导出的 WebCrypto `CryptoKey`（ECDH P-256）保存在浏览器 IndexedDB（`cf-temp-email-keys`），不再持久化原始密钥字符串；旧版 localStorage（`mailPrivateKeys`）明文密钥首次加载时自动迁移，迁移校验后弹出一次性备份提示（设置口令生成保护备份后删除明文 / 跳过并立即删除 / 稍后）；IndexedDB 不可用（隐私模式）时密钥仅在内存中保存于本次会话，界面警告并保留旧版明文副本
+- feat: |邮箱加密| 新增口令保护备份：PBKDF2-HMAC-SHA256（默认 60 万次迭代，导入接受 10 万–500 万）派生 AES-256-GCM，支持 `#kp=` 保护备份链接与 JSON 备份文件（口令最少 10 字符，AAD 绑定邮箱地址），打开链接或导入文件时提示输入口令；明文 `#k=` 链接导入后提示为该密钥设置口令保护
+- feat: |邮箱加密| 原始私钥/明文 `#k=` 链接仅在创建（含轮换、导入、管理端单个创建）时一次性展示，之后"复制解密链接"/"导出"只输出已存的口令保护备份；账号设置新增"由我的密钥创建保护备份"（粘贴原始密钥或 `#k=` 链接，与已存公钥校验匹配后补建）
+- feat: |UI| 前端生产构建启用严格 Content-Security-Policy：构建时注入 meta 标签并生成 `dist/_headers`（Cloudflare Pages 与 Worker `[assets]` 生效，含 `frame-ancestors 'none'`、`X-Content-Type-Options: nosniff`、`Referrer-Policy`），永不包含 `unsafe-eval` 与 script `unsafe-inline`；新增 `VITE_CSP_DISABLED`、`VITE_CSP_EXTRA_SCRIPT_SRC`/`VITE_CSP_EXTRA_CONNECT_SRC`/`VITE_CSP_EXTRA_IMG_SRC`/`VITE_CSP_EXTRA_FRAME_SRC`，并按构建变量（Telegram 构建、`VITE_CF_WEB_ANALY_TOKEN`、`VITE_GOOGLE_AD_CLIENT`、跨域 `VITE_API_BASE`）自动追加来源；开发服务器不受影响
+- feat: |E2E| 新增生产构建 CSP 校验（`security/csp.spec.ts`）与密钥备份（`mail/key-backup.spec.ts`）浏览器测试，新增 `Dockerfile.frontend-preview` 前端预览服务（以生产构建 + CSP 运行浏览器测试）
 
 ### Bug Fixes
 

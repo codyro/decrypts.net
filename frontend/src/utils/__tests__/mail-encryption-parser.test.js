@@ -1,9 +1,9 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { processItem } from '../email-parser';
+import { setLoggedInAddressResolver, processItem } from '../email-parser';
 import {
     generateKeyPair, bytesToBase64Url, base64UrlToBytes, MAIL_ENCRYPTION_PREFIX,
 } from '../mail-crypto';
-import { setPrivateKey, removePrivateKey, getPrivateKeys } from '../mail-key-store';
+import { addPrivateKey, removePrivateKeys, getKeyRecords } from '../mail-key-store';
 
 vi.mock('mail-parser-wasm', () => ({
     parse_message: () => { throw new Error('Exercise the PostalMime fallback'); },
@@ -16,10 +16,10 @@ beforeEach(() => {
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:attachment');
 });
 
-afterEach(() => {
+afterEach(async () => {
     vi.restoreAllMocks();
-    removePrivateKey(ADDRESS);
-    removePrivateKey(OTHER_ADDRESS);
+    await removePrivateKeys(ADDRESS);
+    await removePrivateKeys(OTHER_ADDRESS);
 });
 
 const ADDRESS = 'enc@example.com';
@@ -71,7 +71,7 @@ const encryptMail = async (publicKeyB64u, raw) => {
 describe('processItem with encrypted mail', () => {
     it('round-trips: decrypts with the stored key and parses normally', async () => {
         const keyPair = await generateKeyPair();
-        setPrivateKey(ADDRESS, keyPair.privateKey);
+        await addPrivateKey(ADDRESS, keyPair.privateKey);
         const envelope = await encryptMail(keyPair.publicKey, MIME);
         const item = await processItem({ raw: envelope, address: ADDRESS, source: 'bounce@transport.example' });
         expect(item.encrypted).toBe(true);
@@ -101,7 +101,7 @@ describe('processItem with encrypted mail', () => {
     it('locks with decrypt_failed when the stored key does not match', async () => {
         const keyPair = await generateKeyPair();
         const wrongKey = await generateKeyPair();
-        setPrivateKey(ADDRESS, wrongKey.privateKey);
+        await addPrivateKey(ADDRESS, wrongKey.privateKey);
         const envelope = await encryptMail(keyPair.publicKey, MIME);
         const item = await processItem({ raw: envelope, address: ADDRESS, source: 'bounce@transport.example' });
         expect(item.locked).toBe(true);
@@ -112,7 +112,7 @@ describe('processItem with encrypted mail', () => {
     it('falls back to a key stored under the logged-in address', async () => {
         const { setLoggedInAddressResolver } = await import('../email-parser');
         const keyPair = await generateKeyPair();
-        setPrivateKey(OTHER_ADDRESS, keyPair.privateKey);
+        await addPrivateKey(OTHER_ADDRESS, keyPair.privateKey);
         setLoggedInAddressResolver(async () => OTHER_ADDRESS);
         try {
             const envelope = await encryptMail(keyPair.publicKey, MIME);
@@ -129,9 +129,10 @@ describe('processItem with encrypted mail', () => {
         const newKey = await generateKeyPair();
         const envelope = await encryptMail(oldKey.publicKey, MIME);
         // rotate: new key first, old key kept
-        setPrivateKey(ADDRESS, oldKey.privateKey);
-        setPrivateKey(ADDRESS, newKey.privateKey);
-        expect(getPrivateKeys(ADDRESS)).toEqual([newKey.privateKey, oldKey.privateKey]);
+        await addPrivateKey(ADDRESS, oldKey.privateKey);
+        await addPrivateKey(ADDRESS, newKey.privateKey);
+        expect(getKeyRecords(ADDRESS).map((r) => r.publicKey))
+            .toEqual([newKey.publicKey, oldKey.publicKey]);
         const item = await processItem({ raw: envelope, address: ADDRESS, source: 'bounce@transport.example' });
         expect(item.locked).toBeUndefined();
         expect(item.subject).toBe('测试');

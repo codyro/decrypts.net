@@ -16,6 +16,7 @@ export const ptBRMessages = {
   "views.admin.BatchCreate.batchSecurity": "Qualquer pessoa com esses links pode acessar as caixas de e-mail. Instalações privadas ainda exigem as credenciais de acesso ao site. Os resultados ficam apenas na memória até você sair desta tela ou limpá-los.",
   "views.admin.BatchCreate.encryptBatchCheckbox": "Criptografar e-mails recebidos de ponta a ponta (um par de chaves é gerado por endereço neste navegador)",
   "views.admin.BatchCreate.encryptBatchWarning": "Apenas as chaves públicas são enviadas ao servidor. As chaves privadas existem apenas na exportação que você baixar em seguida — se ela for perdida, os e-mails não poderão ser recuperados.",
+  "views.admin.BatchCreate.batchCsvRawKeysHint": "Nota: o CSV exportado contém as chaves privadas brutas dos endereços criptografados — guarde-o com segurança.",
   "views.admin.BatchExportModal.title": "Exportar links de acesso",
   "views.admin.BatchExportModal.spreadsheet": "CSV seguro para planilhas (Excel, Google Planilhas)",
   "views.admin.BatchExportModal.spreadsheetTip": "Células que começam com =, +, -, {'@'}, tabulação ou retorno de carro recebem um ' inicial para que as planilhas as tratem como texto. Programas que lerem o arquivo verão esse ' como parte do valor.",

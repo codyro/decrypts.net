@@ -14,6 +14,7 @@ import { getNaiveLocaleConfig } from './i18n/naive-locale'
 import { DEFAULT_LOCALE, isSupportedLocale } from './i18n/utils'
 import { APP_CONFIG } from './config'
 import { buildThemeOverrides, toCssVars, tokensFor } from './theme'
+import KeyBackupHost from './components/KeyBackupHost.vue'
 
 const {
   isDark, loading, useSideMargin, telegramApp, isTelegram
@@ -113,6 +114,7 @@ onMounted(async () => {
             <Footer />
           </div>
           <n-back-top />
+          <KeyBackupHost />
         </n-message-provider>
       </n-notification-provider>
     </n-spin>

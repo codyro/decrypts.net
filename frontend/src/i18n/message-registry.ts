@@ -210,6 +210,174 @@ export const MESSAGE_REGISTRY = {
       "zh": "订阅链接"
     }
   },
+  "components.KeyBackupPanel": {
+    "rawLinkShownOnceWarning": {
+      "en": "The raw decryption link below is shown only once. Anyone with it can read the encrypted mail of this address, and it cannot be recovered if lost. Prefer creating a passphrase-protected backup below.",
+      "zh": "下面的明文解密链接只显示一次。任何获得此链接的人都可以阅读此地址的加密邮件，丢失后无法恢复。建议优先在下方创建受密码保护的备份。"
+    },
+    "copyRawLink": {
+      "en": "Copy Decryption Link",
+      "zh": "复制解密链接"
+    },
+    "rawLinkCopied": {
+      "en": "Decryption link copied",
+      "zh": "解密链接已复制"
+    },
+    "createBackupTip": {
+      "en": "Optionally protect this key with a passphrase to create a backup link and backup file you can store safely.",
+      "zh": "可选：使用密码保护此密钥，生成可安全保存的备份链接和备份文件。"
+    },
+    "passphrase": {
+      "en": "Backup passphrase",
+      "zh": "备份密码"
+    },
+    "confirmPassphrase": {
+      "en": "Confirm passphrase",
+      "zh": "确认密码"
+    },
+    "passphraseMismatch": {
+      "en": "Passphrases do not match",
+      "zh": "两次输入的密码不一致"
+    },
+    "passphraseTooShort": {
+      "en": "The backup passphrase must be at least {min} characters",
+      "zh": "备份密码至少需要 {min} 个字符"
+    },
+    "createBackup": {
+      "en": "Create Protected Backup",
+      "zh": "创建受保护的备份"
+    },
+    "backupCreated": {
+      "en": "Protected backup created. Store the link or file below somewhere safe — the passphrase cannot be recovered.",
+      "zh": "受保护的备份已创建。请将下面的链接或文件妥善保存——密码无法找回。"
+    },
+    "copyProtectedLink": {
+      "en": "Copy Protected Link",
+      "zh": "复制受保护的链接"
+    },
+    "protectedLinkCopied": {
+      "en": "Protected backup link copied",
+      "zh": "受保护的备份链接已复制"
+    },
+    "downloadBackupFile": {
+      "en": "Download Backup File",
+      "zh": "下载备份文件"
+    },
+    "copyFailed": {
+      "en": "Copy failed",
+      "zh": "复制失败"
+    }
+  },
+  "components.KeyBackupHost": {
+    "createdTitle": {
+      "en": "End-to-End Encryption Enabled",
+      "zh": "已启用端到端加密"
+    },
+    "createdTip": {
+      "en": "Save the decryption link below somewhere safe. Opening it on another device imports the decryption key there. Anyone with this link can read your encrypted mail.",
+      "zh": "请妥善保存下面的解密链接，在其他设备上打开该链接即可导入解密密钥。任何获得此链接的人都可以阅读你的加密邮件。"
+    },
+    "keyStoreMemoryWarning": {
+      "en": "Browser protected storage (IndexedDB) is unavailable: decryption keys are kept only for this session and will be lost when this tab closes. Save your backup or decryption link now.",
+      "zh": "浏览器受保护存储（IndexedDB）不可用：解密密钥仅保留到本次会话结束，关闭标签页后将丢失。请立即保存备份或解密链接。"
+    },
+    "encryptMailKeyLostWarning": {
+      "en": "Warning: if you lose the private key, encrypted mail becomes unrecoverable. The server cannot decrypt it for you.",
+      "zh": "警告：如果丢失私钥，加密邮件将无法恢复，服务器也无法替你解密。"
+    },
+    "wrappedImportTitle": {
+      "en": "Import Protected Key Backup",
+      "zh": "导入受保护的密钥备份"
+    },
+    "wrappedImportTip": {
+      "en": "Enter the backup passphrase for {address} to import its decryption key.",
+      "zh": "请输入 {address} 的备份密码以导入解密密钥。"
+    },
+    "wrongPassphrase": {
+      "en": "Incorrect passphrase or tampered backup. Please try again.",
+      "zh": "密码错误或备份已被篡改，请重试。"
+    },
+    "invalidBackup": {
+      "en": "This key backup is invalid or corrupted.",
+      "zh": "此密钥备份无效或已损坏。"
+    },
+    "importSuccess": {
+      "en": "Decryption key imported",
+      "zh": "解密密钥已导入"
+    },
+    "cancel": {
+      "en": "Cancel",
+      "zh": "取消"
+    },
+    "import": {
+      "en": "Import",
+      "zh": "导入"
+    },
+    "rawOfferTitle": {
+      "en": "Protect This Key?",
+      "zh": "保护此密钥？"
+    },
+    "rawOfferTip": {
+      "en": "A decryption key for {address} was just imported. Protect it with a backup passphrase so you can recover it later?",
+      "zh": "刚刚导入了 {address} 的解密密钥。是否使用备份密码对其进行保护，以便日后恢复？"
+    },
+    "skip": {
+      "en": "Skip",
+      "zh": "跳过"
+    },
+    "passphraseMismatch": {
+      "en": "Passphrases do not match",
+      "zh": "两次输入的密码不一致"
+    },
+    "passphraseTooShort": {
+      "en": "The backup passphrase must be at least {min} characters",
+      "zh": "备份密码至少需要 {min} 个字符"
+    },
+    "createBackup": {
+      "en": "Create Protected Backup",
+      "zh": "创建受保护的备份"
+    },
+    "backupCreated": {
+      "en": "Protected backup created",
+      "zh": "受保护的备份已创建"
+    },
+    "legacyTitle": {
+      "en": "Protect Your Decryption Keys",
+      "zh": "保护你的解密密钥"
+    },
+    "legacyTip": {
+      "en": "Your decryption keys were moved to protected browser storage. A legacy plaintext copy still exists in this browser and stays there until you decide what to do with it.",
+      "zh": "你的解密密钥已迁移到浏览器受保护存储中，但旧版明文副本仍保留在此浏览器中，在你做出决定之前它会一直保留。"
+    },
+    "legacyChoosePassphrase": {
+      "en": "Set a backup passphrase",
+      "zh": "设置备份密码"
+    },
+    "legacyChooseDelete": {
+      "en": "Skip and delete the plaintext copies now",
+      "zh": "跳过并立即删除明文副本"
+    },
+    "legacyDeleteConfirm": {
+      "en": "Delete the plaintext copies without creating backups? Make sure you already saved a decryption key or backup elsewhere.",
+      "zh": "确定不创建备份并删除明文副本吗？请确保你已在其他地方保存了解密密钥或备份。"
+    },
+    "legacyChooseLater": {
+      "en": "Later",
+      "zh": "稍后"
+    },
+    "legacyProtected": {
+      "en": "All keys are now protected with a passphrase and the plaintext copies were deleted.",
+      "zh": "所有密钥已受密码保护，明文副本已删除。"
+    },
+    "legacyDeleted": {
+      "en": "The plaintext copies were deleted.",
+      "zh": "明文副本已删除。"
+    },
+    "back": {
+      "en": "Back",
+      "zh": "返回"
+    }
+  },
   "components.MailContentRenderer": {
     "from": {
       "en": "From",
@@ -311,6 +479,10 @@ export const MESSAGE_REGISTRY = {
     "unlockInvalid": {
       "en": "Invalid decryption key or link",
       "zh": "解密密钥或链接无效"
+    },
+    "unlockNeedsPassphrase": {
+      "en": "This is a passphrase-protected key backup. Enter its passphrase in the prompt to import the key.",
+      "zh": "这是一个受密码保护的密钥备份，请在弹出的提示中输入密码以导入密钥。"
     }
   },
   "components.Turnstile": {
@@ -1448,6 +1620,14 @@ export const MESSAGE_REGISTRY = {
       "en": "Invalid decryption key or link",
       "zh": "解密密钥或链接无效"
     },
+    "keyStoreMemoryWarning": {
+      "en": "Browser protected storage (IndexedDB) is unavailable: decryption keys are kept only for this session and will be lost when this tab closes. Save your backup or decryption link now.",
+      "zh": "浏览器受保护存储（IndexedDB）不可用：解密密钥仅保留到本次会话结束，关闭标签页后将丢失。请立即保存备份或解密链接。"
+    },
+    "keyStoreLegacyRetainedWarning": {
+      "en": "Your existing decryption keys could not be moved to protected storage, so the legacy plaintext copy remains in this browser. Re-open this page in a normal browsing window to move it.",
+      "zh": "已有的解密密钥无法迁移到受保护存储，因此旧版明文副本仍保留在此浏览器中。请在正常浏览窗口中重新打开此页面以完成迁移。"
+    },
     "encryptExisting": {
       "en": "Encrypt Existing Mail",
       "zh": "加密已有邮件"
@@ -1475,6 +1655,114 @@ export const MESSAGE_REGISTRY = {
     "encryptExistingFailed": {
       "en": "Failed to encrypt existing mail: {msg}",
       "zh": "加密已有邮件失败：{msg}"
+    },
+    "copyProtectedBackupLink": {
+      "en": "Copy Protected Backup Link",
+      "zh": "复制受保护的备份链接"
+    },
+    "downloadProtectedBackupFile": {
+      "en": "Download Protected Backup File",
+      "zh": "下载受保护的备份文件"
+    },
+    "createBackupFromKey": {
+      "en": "Create Protected Backup From My Key",
+      "zh": "使用我的密钥创建受保护的备份"
+    },
+    "importKeyBackup": {
+      "en": "Import Key Backup",
+      "zh": "导入密钥备份"
+    },
+    "noBackupHint": {
+      "en": "No protected backup exists for this address yet. Backups can only be created from the raw key at creation, import or rotation time — you can also paste your raw key below to create one now.",
+      "zh": "此地址还没有受保护的备份。备份只能在创建、导入或更换密钥时通过原始密钥生成——你也可以在下方粘贴原始密钥立即创建一个。"
+    },
+    "backupLinkCopied": {
+      "en": "Protected backup link copied",
+      "zh": "受保护的备份链接已复制"
+    },
+    "backupCreated": {
+      "en": "Protected backup created",
+      "zh": "受保护的备份已创建"
+    },
+    "encryptionImportNeedsPassphrase": {
+      "en": "This is a passphrase-protected key backup — enter its passphrase in the prompt to import it.",
+      "zh": "这是一个受密码保护的密钥备份——请在弹出的提示中输入密码以导入。"
+    },
+    "keyStoreMigrationPendingWarning": {
+      "en": "A legacy plaintext copy of your decryption keys is still present — finish protecting your keys.",
+      "zh": "解密密钥的旧版明文副本仍存在——请完成密钥保护。"
+    },
+    "finishProtectingKeys": {
+      "en": "Finish Protecting Keys",
+      "zh": "完成密钥保护"
+    },
+    "newKeyBackupTitle": {
+      "en": "New Decryption Key Generated",
+      "zh": "已生成新的解密密钥"
+    },
+    "newKeyBackupTip": {
+      "en": "A new key pair was generated for this address. Save the raw decryption link now — it is shown only once — or protect the key with a passphrase to create a backup.",
+      "zh": "已为此地址生成新的密钥对。请立即保存原始解密链接——它只显示一次——或使用密码保护密钥以创建备份。"
+    },
+    "createBackupTitle": {
+      "en": "Create Protected Backup From My Key",
+      "zh": "使用我的密钥创建受保护的备份"
+    },
+    "createBackupTip": {
+      "en": "Paste the raw decryption link or private key for this address (it must match a key already stored on this device), then choose a backup passphrase. The pasted key is dropped after the backup is created.",
+      "zh": "粘贴此地址的原始解密链接或私钥（必须与此设备上已存储的密钥匹配），然后设置备份密码。备份创建后粘贴的密钥将被丢弃。"
+    },
+    "createBackupInputLabel": {
+      "en": "Raw decryption link or private key",
+      "zh": "原始解密链接或私钥"
+    },
+    "createBackupInputPlaceholder": {
+      "en": "Paste #k= link or private key",
+      "zh": "粘贴 #k= 链接或私钥"
+    },
+    "backupPassphrase": {
+      "en": "Backup passphrase",
+      "zh": "备份密码"
+    },
+    "backupConfirmPassphrase": {
+      "en": "Confirm passphrase",
+      "zh": "确认密码"
+    },
+    "backupKeyInvalid": {
+      "en": "The pasted key is not a valid private key or decryption link",
+      "zh": "粘贴的内容不是有效的私钥或解密链接"
+    },
+    "backupKeyMismatch": {
+      "en": "The pasted key does not match any decryption key stored on this device for this address",
+      "zh": "粘贴的密钥与此设备上为此地址存储的解密密钥均不匹配"
+    },
+    "backupPassphraseTooShort": {
+      "en": "The backup passphrase must be at least {min} characters",
+      "zh": "备份密码至少需要 {min} 个字符"
+    },
+    "importBackupTitle": {
+      "en": "Import Key Backup",
+      "zh": "导入密钥备份"
+    },
+    "importBackupTip": {
+      "en": "Paste a protected backup link (#kp=…) or load a backup file. You will be asked for the backup passphrase next.",
+      "zh": "粘贴受保护的备份链接（#kp=…）或选择备份文件。接下来会要求你输入备份密码。"
+    },
+    "importBackupPlaceholder": {
+      "en": "Paste #kp= backup link or backup file content",
+      "zh": "粘贴 #kp= 备份链接或备份文件内容"
+    },
+    "importBackupInvalid": {
+      "en": "This is not a valid key backup link or file",
+      "zh": "这不是有效的密钥备份链接或文件"
+    },
+    "importBackupQueued": {
+      "en": "Backup accepted — enter its passphrase in the prompt",
+      "zh": "备份已接受——请在弹出的提示中输入密码"
+    },
+    "cancel": {
+      "en": "Cancel",
+      "zh": "取消"
     }
   },
   "views.user.UserOauth2Callback": {
@@ -2739,6 +3027,10 @@ export const MESSAGE_REGISTRY = {
       "en": "Only the public keys are sent to the server. The private keys exist only in the export you download afterwards — if it is lost, the mail cannot be recovered.",
       "zh": "仅公钥会发送到服务器。私钥只存在于你随后下载的导出文件中——如果丢失，邮件将无法恢复。"
     },
+    "batchCsvRawKeysHint": {
+      "en": "Note: the exported CSV contains the raw private keys of the encrypted addresses — store it safely.",
+      "zh": "注意：导出的 CSV 包含加密地址的原始私钥——请妥善保管。"
+    },
   },
   "views.admin.CreateAccount": {
     "creationMode": { "en": "Creation mode", "zh": "创建方式" },
@@ -3418,6 +3710,10 @@ export const MESSAGE_REGISTRY = {
     "copyDecryptionLinkFailed": {
       "en": "Copy failed",
       "zh": "复制失败"
+    },
+    "keyStoreMemoryWarning": {
+      "en": "Browser protected storage (IndexedDB) is unavailable: decryption keys are kept only for this session and will be lost when this tab closes. Save your backup or decryption link now.",
+      "zh": "浏览器受保护存储（IndexedDB）不可用：解密密钥仅保留到本次会话结束，关闭标签页后将丢失。请立即保存备份或解密链接。"
     }
   },
   "views.Redeem": {

@@ -134,6 +134,18 @@ services:
       worker-env-off:
         condition: service_healthy
 
+  frontend-preview:
+    image: ${COMPOSE_PROJECT_NAME:-e2e}-frontend-preview
+    profiles: [browser]
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile.frontend-preview
+    ports:
+      - "5175:5175"
+    depends_on:
+      worker:
+        condition: service_healthy
+
   smtp-proxy:
     image: ${COMPOSE_PROJECT_NAME:-e2e}-smtp-proxy
     profiles: [smtp-proxy]
@@ -190,6 +202,7 @@ services:
       WORKER_URL_SITE_PASSWORD: http://worker-site-password:8792
       FRONTEND_URL: https://frontend:5173
       FRONTEND_URL_ENV_OFF: https://frontend-env-off:5174
+      FRONTEND_URL_PREVIEW: https://frontend-preview:5175
       MAILPIT_API: http://mailpit:8025/api
       SMTP_PROXY_HOST: smtp-proxy
       SMTP_PROXY_SMTP_PORT: "8025"
@@ -220,6 +233,9 @@ services:
         condition: service_started
         required: false
       frontend-env-off:
+        condition: service_started
+        required: false
+      frontend-preview:
         condition: service_started
         required: false
       smtp-proxy:

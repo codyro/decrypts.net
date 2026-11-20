@@ -6,6 +6,7 @@ import { useGlobalState } from '../store'
 import { CloudDownloadRound, ArrowBackIosNewFilled, ArrowForwardIosFilled, InboxRound, CheckBoxOutlined, RefreshRound, SearchRound } from '@vicons/material'
 import { useIsMobile } from '../utils/composables'
 import { processItem } from '../utils/email-parser'
+import { MAIL_KEYS_IMPORTED_EVENT } from '../utils/key-backup-prompts'
 import { buildReplyModel, buildForwardModel } from '../utils/mail-actions'
 import MailContentRenderer from "./MailContentRenderer.vue";
 import MailSummary from "./MailSummary.vue";
@@ -388,10 +389,12 @@ const multiActionDownload = async () => {
 
 onMounted(async () => {
   await refresh();
+  window.addEventListener(MAIL_KEYS_IMPORTED_EVENT, reprocessLockedMails);
 });
 
 onBeforeUnmount(() => {
   clearInterval(timer.value)
+  window.removeEventListener(MAIL_KEYS_IMPORTED_EVENT, reprocessLockedMails);
 })
 </script>
 

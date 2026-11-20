@@ -133,4 +133,4 @@ pnpm run deploy:telegram --project-name=<你的项目名称>
 
 ### 小程序中的邮箱加密
 
-启用 `ENABLE_MAIL_ENCRYPTION` 后，小程序内绑定/创建页会显示"启用邮箱加密"选项。密钥对在 webview 中生成，只有公钥会发送到 `POST /telegram/new_address`，私钥保留在小程序 webview 的 localStorage 中——查看加密邮件时在客户端本地解密，锁定邮件可通过粘贴解密链接解锁。Bot `/new` 文本命令不支持加密（无浏览器环境）。加密地址会收到一条固定的"收到新的加密邮件"无内容推送，不含发件人、主题、正文和附件。
+启用 `ENABLE_MAIL_ENCRYPTION` 后，小程序内绑定/创建页会显示"启用邮箱加密"选项。密钥对在 webview 中生成，只有公钥会发送到 `POST /telegram/new_address`，私钥以不可导出的 WebCrypto 密钥保留在小程序 webview 的 IndexedDB 中（旧版 localStorage 明文会自动迁移并提示备份）——查看加密邮件时在客户端本地解密，锁定邮件可通过粘贴解密链接解锁。Bot `/new` 文本命令不支持加密（无浏览器环境）。加密地址会收到一条固定的"收到新的加密邮件"无内容推送，不含发件人、主题、正文和附件。

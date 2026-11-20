@@ -16,6 +16,7 @@ export const jaMessages = {
   "views.admin.BatchCreate.batchSecurity": "リンクを持つ人は誰でもメールボックスにアクセスできます。非公開サイトでは引き続きサイトのアクセス認証が必要です。結果はメモリ内にのみ保持され、この画面を離れるかクリアすると消えます。",
   "views.admin.BatchCreate.encryptBatchCheckbox": "受信メールをエンドツーエンドで暗号化する（このブラウザでアドレスごとに鍵ペアを生成）",
   "views.admin.BatchCreate.encryptBatchWarning": "サーバーに送信されるのは公開鍵のみです。秘密鍵は後でダウンロードするエクスポートにのみ存在します。エクスポートを紛失するとメールは復元できません。",
+  "views.admin.BatchCreate.batchCsvRawKeysHint": "注: エクスポートされた CSV には暗号化アドレスの生の秘密鍵が含まれています。安全に保管してください。",
   "views.admin.BatchExportModal.title": "ログインリンクをエクスポート",
   "views.admin.BatchExportModal.spreadsheet": "表計算ソフト向け安全CSV（Excel、Google スプレッドシート）",
   "views.admin.BatchExportModal.spreadsheetTip": "=、+、-、{'@'}、タブ、改行コードCRで始まるセルには先頭に ' を付け、表計算ソフトで文字列として扱います。プログラムで読み込むと、この ' も値に含まれます。",
