@@ -11,6 +11,7 @@
 ### Features
 
 - feat: |UI| Redesign the frontend: unified accent and spacing, mailbox page reduced to address bar + inbox, appearance moved to a Preferences drawer, About/GitHub/Status moved to the footer, Auto Reply and S3 attachments merged into Mailbox Settings
+- feat: |UI| Add an "Encrypted mailboxes" explainer to the About dialog: when `ENABLE_MAIL_ENCRYPTION` is on, it shows an honest summary of what mailbox encryption does and doesn't do (icon + panel layout, two columns on wide screens, single column on mobile), with key-responsibility warnings and a fine print; community links become quiet secondary buttons and the embedded card is removed
 - feat: |Mailbox Encryption| Add optional `ENABLE_MAIL_ENCRYPTION` per-mailbox end-to-end encryption of stored mail: the worker holds only the address public key and encrypts the whole raw MIME into a `cfte1.` envelope before storage; the private key lives only in the browser (URL fragment + localStorage) and the frontend decrypts client-side
   - Run database migration before enabling it: `Admin -> Quick Setup -> Database -> Migrate Database`, or call `POST /admin/db_migration`
   - Adds the `address.encryption_public_key` column and `GET/POST /api/address_encryption`; the create-address API accepts an optional `encryption_public_key` field; encrypted addresses skip forwarding, AI extraction, and another-worker RPC, and server-parsed endpoints return an `encrypted: true` placeholder

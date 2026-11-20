@@ -11,6 +11,7 @@
 ### Features
 
 - feat: |UI| 重新设计前端界面：统一主题色与间距，邮箱页精简为地址栏 + 收件箱，外观设置移至偏好设置抽屉，关于/GitHub/状态移至页脚，自动回复与 S3 附件并入邮箱设置
+- feat: |UI| 关于对话框新增"加密邮箱"说明：启用 `ENABLE_MAIL_ENCRYPTION` 时展示加密范围与限制的诚实说明（图标 + 面板布局，宽屏双列、移动端单列），密钥责任警示与免责小字完整呈现；社区链接改为安静的次要按钮，移除嵌套卡片
 - feat: |邮箱加密| 新增 `ENABLE_MAIL_ENCRYPTION` 可选的按邮箱端到端加密存储，Worker 只保存邮箱公钥，整封原始 MIME 入库前加密为 `cfte1.` 信封，私钥仅存于浏览器（URL fragment + localStorage），前端客户端解密后解析
   - 启用前需先执行数据库迁移：`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema`，或调用接口 `POST /admin/db_migration`
   - 新增 `address.encryption_public_key` 列与 `GET/POST /api/address_encryption` 接口；创建邮箱 API 支持可选 `encryption_public_key` 字段；加密邮箱跳过转发、AI 识别和其他 Worker RPC，服务端解析接口返回 `encrypted: true` 占位

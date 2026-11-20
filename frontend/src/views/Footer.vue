@@ -19,6 +19,12 @@ const showGithubForCurrentUser = computed(() => {
     return showAdminPage.value
 })
 const showAboutLink = computed(() => openSettings.value.enableIndexAbout || route.path.includes('admin'))
+const aboutModalStyle = computed(() => ({
+    width: openSettings.value.enableMailEncryption
+        ? 'min(760px, calc(100vw - 32px))'
+        : 'min(640px, calc(100vw - 32px))',
+    maxHeight: 'calc(100vh - 32px)',
+}))
 </script>
 
 <template>
@@ -47,7 +53,7 @@ const showAboutLink = computed(() => openSettings.value.enableIndexAbout || rout
         </template>
     </footer>
     <n-modal v-model:show="showAbout" preset="card" :title="indexT('about')"
-        style="width: min(640px, calc(100vw - 32px))">
+        :style="aboutModalStyle">
         <About />
     </n-modal>
 </template>

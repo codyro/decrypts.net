@@ -4011,6 +4011,132 @@ export const MESSAGE_REGISTRY = {
       "en": "If you need help, please contact the administrator ({msg})",
       "zh": "如果你需要帮助，请联系管理员 ({msg})"
     }
+  },
+  "views.common.About": {
+    "encryptionTitle": {
+      "en": "Encrypted mailboxes",
+      "zh": "加密邮箱"
+    },
+    "encryptionSubtitle": {
+      "en": "Optional encryption, set separately for each mailbox, for mail while it's stored.",
+      "zh": "可选的加密功能，可为每个邮箱单独设置，用于保护邮件在服务器上存储期间的安全。"
+    },
+    "pillOptional": {
+      "en": "Optional",
+      "zh": "可选"
+    },
+    "pillPerMailbox": {
+      "en": "Per mailbox",
+      "zh": "每个邮箱单独设置"
+    },
+    "pillNotAudited": {
+      "en": "Not audited",
+      "zh": "未经独立安全审计"
+    },
+    "doesTitle": {
+      "en": "What it does",
+      "zh": "它能做什么"
+    },
+    "does1Lead": {
+      "en": "Your browser makes the key.",
+      "zh": "密钥由你的浏览器生成。"
+    },
+    "does1": {
+      "en": "Turning on encryption creates a key pair in your browser. Only the public key is sent to our server.",
+      "zh": "开启加密时，会在你的浏览器中生成一对密钥，只有公钥会发送到我们的服务器。"
+    },
+    "does2Lead": {
+      "en": "Mail is encrypted before it's saved.",
+      "zh": "邮件在保存前完成加密。"
+    },
+    "does2": {
+      "en": "Every email that arrives is encrypted with that public key before storage, including the sender, subject, body and attachments. Mail you send from the mailbox is saved encrypted too.",
+      "zh": "每封收到的邮件在存储前都会使用该公钥加密，包括发件人、主题、正文和附件。从该邮箱发送的邮件也会被加密保存。"
+    },
+    "does3Lead": {
+      "en": "Only you can read it.",
+      "zh": "只有你能阅读。"
+    },
+    "does3": {
+      "en": "Your browser holds the private key and decrypts mail on your device. Our server can't read what it has stored.",
+      "zh": "私钥由你的浏览器持有，并在你的设备上解密邮件。我们的服务器无法读取它存储的内容。"
+    },
+    "doesntTitle": {
+      "en": "What it doesn't do",
+      "zh": "它不能做什么"
+    },
+    "doesnt1Lead": {
+      "en": "It's not end-to-end from the sender.",
+      "zh": "对发件人而言并非端到端加密。"
+    },
+    "doesnt1": {
+      "en": "Email travels over the normal email system, so the sender's provider and Cloudflare's email routing handle it unencrypted, and our worker sees each message briefly before encrypting it. This protects mail at rest, not in transit.",
+      "zh": "邮件通过普通的电子邮件系统传输，因此发件人的服务商和 Cloudflare 的邮件路由会以未加密方式处理邮件，我们的 Worker 会在加密前短暂接触到每封邮件。这保护的是邮件存储状态的安全，而非传输过程。"
+    },
+    "doesnt2Lead": {
+      "en": "You're trusting the code this site sends you.",
+      "zh": "你需要信任本网站发给你的代码。"
+    },
+    "doesnt2": {
+      "en": "A compromised or dishonest server could read new mail as it arrives, or send your browser code that grabs your key. This protects against a leaked or seized database, not against us.",
+      "zh": "被入侵或不诚实的服务器可以在新邮件到达时读取它，或向你的浏览器发送窃取密钥的代码。这防的是数据库泄露或被查封，而不是防我们。"
+    },
+    "doesnt3Lead": {
+      "en": "Some information is still visible to the server.",
+      "zh": "部分信息对服务器仍然可见。"
+    },
+    "doesnt3": {
+      "en": "Your address, when each email arrived, its size and whether you've read it. Mail you send is delivered to the recipient as normal, unencrypted email.",
+      "zh": "你的地址、每封邮件的到达时间、大小以及你是否已读。你发送的邮件会以普通的未加密邮件形式送达收件人。"
+    },
+    "doesnt4Lead": {
+      "en": "Some features are switched off.",
+      "zh": "部分功能会被关闭。"
+    },
+    "doesnt4": {
+      "en": "Forwarding, AI code and link extraction, and Telegram or webhook previews. You get a \"new encrypted mail\" notice with no content instead.",
+      "zh": "转发、AI 验证码和链接提取，以及 Telegram 或 Webhook 预览。你只会收到一条不含内容的“收到新的加密邮件”通知。"
+    },
+    "keyTitle": {
+      "en": "Your key is your responsibility",
+      "zh": "密钥由你自己负责"
+    },
+    "key1Lead": {
+      "en": "If you lose the key, the mail is gone.",
+      "zh": "丢失密钥，邮件即无法找回。"
+    },
+    "key1": {
+      "en": "We can't recover it, and there's no backdoor. Clearing browser data deletes the key unless you saved a backup.",
+      "zh": "我们无法恢复，也没有后门。清除浏览器数据会删除密钥，除非你保存了备份。"
+    },
+    "key2Lead": {
+      "en": "The plain decryption link is shown once.",
+      "zh": "明文解密链接只显示一次。"
+    },
+    "key2": {
+      "en": "Save it when you create the mailbox, or create a backup protected by a passphrase or (with an account) a passkey.",
+      "zh": "请在创建邮箱时保存它，或创建受密码保护的备份，（登录账号后）也可以使用通行密钥。"
+    },
+    "key3Lead": {
+      "en": "Treat links and backups like passwords.",
+      "zh": "请像对待密码一样对待链接和备份。"
+    },
+    "key3": {
+      "en": "Anyone with your decryption link, or a backup plus its passphrase, can read your mail.",
+      "zh": "任何获得你的解密链接、或备份及其密码的人，都能阅读你的邮件。"
+    },
+    "key4Lead": {
+      "en": "Encryption is one-way for stored mail.",
+      "zh": "对已存储的邮件，加密是单向的。"
+    },
+    "key4": {
+      "en": "Turning on encryption, or using \"encrypt existing mail\", can't be undone for that mail.",
+      "zh": "开启加密或使用“加密现有邮件”后，对应邮件的加密无法撤销。"
+    },
+    "encryptionFinePrint": {
+      "en": "Uses standard browser cryptography (P-256 ECDH, AES-256-GCM). It has not been independently audited. Mailboxes without encryption work exactly as before.",
+      "zh": "使用标准浏览器密码学（P-256 ECDH、AES-256-GCM），未经独立安全审计。未加密的邮箱与之前完全一样。"
+    }
   }
 } as const
 
