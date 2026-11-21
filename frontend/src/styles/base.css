@@ -85,6 +85,13 @@ body {
   color: var(--app-text-1);
 }
 
+/* Light mode only: soften the terminal-caps tracking so long titles don't
+   shimmer on the bright page; the glyph + uppercase identity stays. */
+html:not(.dark) .section-title,
+html:not(.dark) .panel-title {
+  letter-spacing: 0.035em;
+}
+
 .section-title::before,
 .panel-title::before {
   content: '▍';

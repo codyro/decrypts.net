@@ -57,4 +57,24 @@ describe('theme tokens meet WCAG AA contrast', () => {
       })
     })
   }
+
+  // Softened-light targets: calm, comfortable long reading without glare.
+  describe('light mode softness targets', () => {
+    it('text1 on bg stays in the comfortable 9–14:1 band (not glaring near-black)', () => {
+      const ratio = contrast(lightTokens.text1, lightTokens.bg)
+      expect(ratio, `light text1/bg = ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(9)
+      expect(ratio, `light text1/bg = ${ratio.toFixed(2)}`).toBeLessThanOrEqual(14)
+    })
+
+    it('text2 on bg stays in the 7–9:1 band', () => {
+      const ratio = contrast(lightTokens.text2, lightTokens.bg)
+      expect(ratio, `light text2/bg = ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(7)
+      expect(ratio, `light text2/bg = ${ratio.toFixed(2)}`).toBeLessThanOrEqual(9)
+    })
+
+    it('surface is never brighter than the page background (no glowing panels)', () => {
+      expect(luminance(lightTokens.surface))
+        .toBeLessThanOrEqual(luminance(lightTokens.bg) + 0.005)
+    })
+  })
 })

@@ -58,6 +58,7 @@
 
 - style: |UI| Remove the community links (GitHub/Discord/Telegram) from the bottom of the About dialog, along with the now-unused `@vicons/fa` icon imports; when there is no announcement and mailbox encryption is off, the app title is shown as a fallback so the dialog is never empty
 - style: |UI| Remove the public logo 5-click easter egg that entered the admin console (counter, toasts and navigation); clicking the logo now returns to the home page, and the admin entry remains only in the nav item visible to signed-in admins
+- style: |UI| Retune the Phosphor light theme: near-neutral warm off-white page (`#F2F1ED`, no yellow cast), panels no brighter than the page, ink softened to warm charcoal (`text1` ≈ 11.3:1), deeper muted amber accent, calmer warning/danger colors, and lighter title tracking and shadows in light mode; dark theme unchanged
 
 ## v1.14.0
 

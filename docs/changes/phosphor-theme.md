@@ -44,26 +44,38 @@ computed with the WCAG relative-luminance formula and pinned by
 | `warning` | `#FF7847` (hot orange, distinct from amber) | 7.52 | 7.03 |
 | `danger` | `#E47373` (soft red) | 6.56 | 6.13 |
 
-### Light (printout paper)
+### Light (soft graphite on warm-grey paper)
 
-| Token | Value | Contrast on `bg` `#F4F0E6` | Contrast on `surface` `#FCFAF4` |
+The light palette was softened after feedback that the original "printout
+paper" theme was tiring to read: the yellow/sepia cast, near-black glare,
+panels brighter than the page, and saturated burnt-amber accent all added
+visual noise. It was retuned to a near-neutral warm off-white page with
+graphite ink (10–13:1), panels at or below page brightness, hairline warm-grey
+borders, and a deeper, less saturated amber — the retro-terminal identity
+(glyphs, mono chrome) is unchanged.
+
+| Token | Value | Contrast on `bg` `#F2F1ED` | Contrast on `surface` `#EFEEEA` |
 |---|---|---|---|
-| `bg` | `#F4F0E6` (warm paper) | — | — |
-| `surface` | `#FCFAF4` | | |
-| `surfaceSubtle` | `#EDE7D8` | | |
-| `surfaceRaised` / `popover` | `#FFFFFF` | | |
-| `border` | `#D9D2C0` | | |
-| `divider` | `#E4DECD` | | |
-| `text1` | `#1C1913` (warm near-black ink) | 15.41 | 16.80 |
-| `text2` | `#3B362A` | 10.56 | 11.52 |
-| `text3` | `#6B6353` | 5.22 | 5.69 |
-| `accent` | `#96500A` (burnt amber) | 5.35 | 5.83 |
-| `accentHover` | `#7E4306` | 6.85 | — |
-| `accentPressed` | `#6E3A05` | | |
-| `accentSoft` / `accentSoftHover` | `rgba(150,80,10,.10)` / `.16` | | |
-| `onAccent` (primary button text) | `#FCFAF4` | on accent: **5.43** | |
-| `warning` | `#B83A08` (hot orange, distinct hue from burnt amber) | 5.06 | 5.52 |
-| `danger` | `#A83240` | 5.78 | 6.30 |
+| `bg` | `#F2F1ED` (near-neutral warm off-white) | — | — |
+| `surface` | `#EFEEEA` (a hair below page brightness) | | |
+| `surfaceSubtle` | `#E9E8E3` | | |
+| `surfaceRaised` / `popover` | `#F7F6F3` (only elevation is lighter) | | |
+| `border` | `#D8D6CF` (neutral warm grey hairline) | | |
+| `divider` | `#E2E1DB` | | |
+| `text1` | `#36322B` (warm charcoal) | 11.27 | 10.98 |
+| `text2` | `#504D45` | 7.47 | 7.27 |
+| `text3` | `#6E6A60` | 4.77 | 4.65 |
+| `accent` | `#835310` (deep, muted amber) | 5.79 | 5.64 |
+| `accentHover` | `#75490C` | 6.84 | 6.66 |
+| `accentPressed` | `#68410A` | | |
+| `accentSoft` / `accentSoftHover` | `rgba(131,83,16,.07)` / `.12` | | |
+| `onAccent` (primary button text) | `#F7F6F2` | on accent: **6.05** | |
+| `warning` | `#9C4A1A` (hot orange, distinct hue from amber) | 5.45 | 5.31 |
+| `danger` | `#9E3B46` | 5.87 | 5.71 |
+
+Light mode also softens the terminal-caps letter-spacing on section/panel
+titles (`html:not(.dark)` only) and uses a lighter `shadowRaised`; dark mode
+is untouched.
 
 Note on the primary button: the brief asks for "solid accent with dark text".
 That is literally possible only where the accent is light enough; on paper, a
@@ -135,7 +147,7 @@ are uppercase mono with 0.06–0.08em letter-spacing.
 
 ## Meta / PWA
 
-- `frontend/index.html`: `theme-color` set per mode (light `#F4F0E6`, dark
+- `frontend/index.html`: `theme-color` set per mode (light `#F2F1ED`, dark
   `#0B0B0C`; the previous values were inverted).
 - `frontend/vite.config.js` PWA manifest: `theme_color` and `background_color`
   `#0B0B0C` (manifest supports a single value; the dark tube is the hero look).
