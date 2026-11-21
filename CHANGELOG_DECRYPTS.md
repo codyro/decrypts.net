@@ -22,8 +22,8 @@ release notes the upstream release tag it is based on.
 - **Client-side code detection, new-mail alerts and keyboard shortcuts.** Verification codes and sign-in links are found in the browser after decryption, with one-click copy from the inbox list; the tab title shows an unread count and optional notifications never include sender or subject; `c`, `r`, `j`/`k`, `/` and `?` shortcuts cover the common inbox actions.
 - **Honest retention display.** The site shows mail and address retention generated from the real auto-cleanup settings, so the copy can't drift from the config.
 - **About-page encryption explainer.** A plain-language description of what the encryption does and doesn't protect: not end-to-end from the sender, some metadata still visible, no recovery without the key, not independently audited.
-- **Phosphor theme.** A retro terminal look: amber phosphor on near-black in dark mode, warm printout paper with burnt-amber accents in light mode, self-hosted IBM Plex Mono/Sans, and WCAG AA contrast locked in by tests.
-- **Cleaner, simpler UI.** A quieter interface built around the address bar and the inbox, with settings consolidated into drawers, the public logo-click entry to the admin page removed, and community links demoted in the About modal.
+- **Phosphor theme.** A retro terminal look: amber phosphor on near-black in dark mode, soft graphite on warm-grey paper in light mode (softened to reduce glare), self-hosted IBM Plex Mono/Sans, and WCAG AA contrast locked in by tests.
+- **Cleaner, simpler UI.** A quieter interface built around the address bar and the inbox, with settings consolidated into drawers, the public logo-click entry to the admin page removed, and the upstream community links removed from the About modal.
 
 ### Fixes
 
@@ -35,11 +35,13 @@ release notes the upstream release tag it is based on.
 ### Changes
 
 - **Strict Content-Security-Policy**, added at build time: same-origin scripts and styles only (plus Turnstile), no CDNs and no remote fonts, with unit, browser and production-build e2e coverage.
-- The frontend runtime config points at the decrypts.net API, with `VITE_API_BASE` set at build time instead of in `index.html`.
+- **CORS allow-list and stricter headers.** New `CORS_ALLOWED_ORIGINS` (unset keeps `*`); pages now send HSTS, `Permissions-Policy`, `Cross-Origin-Opener-Policy: same-origin` and `X-Frame-Options: DENY`; API responses get `nosniff`/`Referrer-Policy`; hashed `/assets/*` are cached immutably.
+- The production frontend is same-origin: `VITE_API_BASE` is set at build time (empty), and `index.html` stays identical to upstream.
 - Untrack the generated frontend `auto-imports.d.ts`, initialize the local D1 schema on `pnpm dev`, and brand the static app name as decrypts with a single copyright year.
 
 ### Docs & tooling
 
 - **mise tasks** for install, dev, lint, test, build, deploy, database migration, live logs and upstream release-tag merges.
 - Fork README with upstream credit, fork guidance in `AGENTS.md`, and dated decision/backlog notes under `docs/`.
-- The footer GitHub icon now links to this fork's repository, with an upstream credit.
+- GitHub icon links (header and footer) to this fork's repository, and an upstream credit line in About.
+- Release tooling: `mise run release` / `release:notes`, a `VERSION` file shown in the footer next to the upstream version, and this changelog.
