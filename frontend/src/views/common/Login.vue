@@ -197,6 +197,9 @@ const passkeyLoginVisible = computed(() => canOfferPasskeyMailboxLogin({
     showUserSystem: showUserSystem.value,
     webAuthnSupported: isWebAuthnSupported(),
 }))
+// The shared explainer strip on the signin tab: collapsed by default so the
+// primary login form stays uncluttered, like the account-settings placement.
+const showPasskeyHowItWorks = ref(false)
 const switchToCreateTab = () => {
     tabValueTouched.value = false
     applyingDefaultTab = true
@@ -550,7 +553,17 @@ watch(tabValue, () => stabilizePaneHeight())
                             {{ loginMethod === 'password' ? t('credentialLogin') : t('passwordLogin') }}
                         </n-button>
                     </div>
-                    <PasskeyMailboxLogin v-if="passkeyLoginVisible" />
+                    <template v-if="passkeyLoginVisible">
+                        <PasskeyMailboxLogin />
+                        <n-button quaternary size="tiny" block class="login-passkey-how-toggle"
+                            data-testid="toggle-signin-passkey-how" @click="showPasskeyHowItWorks = !showPasskeyHowItWorks">
+                            {{ t('passkeyHowItWorksToggle') }}
+                        </n-button>
+                        <n-collapse v-if="showPasskeyHowItWorks" class="login-passkey-how"
+                            data-testid="signin-passkey-how-it-works">
+                            <PasskeyHowItWorks compact />
+                        </n-collapse>
+                    </template>
                     <n-divider v-if="showNewAddressTab" title-placement="center">
                         <span class="muted">{{ t('or') }}</span>
                     </n-divider>
@@ -619,6 +632,8 @@ watch(tabValue, () => stabilizePaneHeight())
 .redeem-entry-section .muted { min-width: 0; }
 .redeem-entry-section .n-button { flex: 0 0 auto; }
 .switch-login-button { display: flex; justify-content: center; }
+.login-passkey-how-toggle { margin-top: calc(-1 * var(--space-1)); }
+.login-passkey-how { margin-top: var(--space-1); }
 
 /* Smooth the desktop min-height adjustments (Login.vue grows it when a taller
    pane appears) so the sections below shift instead of jumping. */

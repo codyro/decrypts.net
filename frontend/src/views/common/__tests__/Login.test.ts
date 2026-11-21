@@ -269,6 +269,25 @@ describe('Login.vue passkey login button', () => {
         expect(el.querySelector('[data-testid="passkey-login-button"]')).toBeNull()
     })
 
+    it('shows the passkey explainer toggle on the signin tab, collapsed by default', async () => {
+        stubWebAuthn()
+        stubs.openSettings = makeOpenSettings({ disableUserSystem: false })
+        const el = await mountLogin()
+        await openSigninPane(el)
+        const toggle = el.querySelector('[data-testid="toggle-signin-passkey-how"]')
+        expect(toggle).toBeTruthy()
+        expect(toggle?.textContent).toContain('How passkeys work here')
+        // Collapsed by default: the strip itself is not rendered yet.
+        expect(el.querySelector('[data-testid="signin-passkey-how-it-works"]')).toBeNull()
+        ;(toggle as HTMLElement).click()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        const strip = el.querySelector('[data-testid="signin-passkey-how-it-works"]')
+        expect(strip).toBeTruthy()
+        expect(strip?.textContent).toContain('Sign in.')
+        expect(strip?.textContent).toContain('Open your mailboxes.')
+        expect(strip?.textContent).toContain('Unlock encrypted mail.')
+    })
+
     it('shows the passkey explainer in the help tab only when the user system is on', async () => {
         stubWebAuthn()
         stubs.openSettings = makeOpenSettings({ disableUserSystem: false })

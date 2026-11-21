@@ -59,8 +59,9 @@ const probe = async () => {
         if (seq !== probeSeq) return
         if (!enc?.publicKey) return // not an encrypted mailbox
         serverPublicKey.value = enc.publicKey
-        const params = new URLSearchParams({ query: address.value, limit: '100', offset: '0' })
-        const { results } = await api.fetch(`/user_api/bind_address?${params.toString()}`,
+        // No `query` filter: it would be rejected for addresses containing
+        // `_` or `%`; fetch the list and match the exact name instead.
+        const { results } = await api.fetch('/user_api/bind_address?limit=100&offset=0',
             { showLoading: false })
         if (seq !== probeSeq) return
         const bound = (results || []).some((row) => row.name === address.value)

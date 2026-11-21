@@ -10,11 +10,13 @@
  *      e.g. the max-address cap — show the server message and the step stays
  *      open, so nothing looks half-done.)
  *   03 Add a passkey backup (encrypted mailboxes only).
- *      Wraps the raw key with a passkey (WebAuthn PRF) while it is transiently
- *      in memory — supplied directly after creation/rotation, otherwise the
- *      user pastes the saved decryption link (same logic as "Create protected
- *      backup from my key"). Skippable: the mailbox still opens with the
- *      passkey, its mail just stays locked on new devices.
+ *      Wraps the pasted saved decryption link with a passkey (WebAuthn PRF) —
+ *      the same paste logic as "Create protected backup from my key". (A key
+ *      that is already stored on this device is non-extractable and cannot be
+ *      wrapped, so a backup can only be created while the raw link exists.)
+ *      Accounts without any passkey get a "create a passkey" action here
+ *      first, since a backup needs one. Skippable: the mailbox still opens
+ *      with the passkey, its mail just stays locked on new devices.
  *
  * The step machine (utils/passkey-mailbox.js setupStepStates/setupOutcome) is
  * pure and unit-tested; this component only drives it. The final message
@@ -28,6 +30,7 @@ import { startAuthentication, startRegistration } from '@simplewebauthn/browser'
 import { useGlobalState } from '../store'
 import { api } from '../api'
 import { publicKeyFromPrivate } from '../utils/mail-crypto'
+import { isWebAuthnSupported } from '../utils/passkey-account'
 import {
     wrapKeyWithPasskey,
     PasskeyPrfUnsupportedError, PasskeyCancelledError,
@@ -51,16 +54,6 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    // Transient raw key material when the host still holds it (creation /
-    // rotation). When empty, step 3 asks for the saved decryption link.
-    rawKey: {
-        type: String,
-        default: '',
-    },
-    keyId: {
-        type: String,
-        default: '',
-    },
 })
 
 const emit = defineEmits(['update:show', 'done'])
@@ -73,8 +66,8 @@ const { userJwt, userOpenSettings, openSettings } = useGlobalState()
 const message = useMessage()
 
 const signedIn = computed(() => !!userJwt.value)
-const passkeySignupEnabled = computed(() =>
-    !!userOpenSettings.value?.enable && userOpenSettings.value?.enablePasskeySignup === true)
+const passkeySignupEnabled = computed(() => isWebAuthnSupported()
+    && !!userOpenSettings.value?.enable && userOpenSettings.value?.enablePasskeySignup === true)
 
 // Per-step runtime state. The machine in setupStepStates turns these into
 // 'done' | 'todo' | 'locked' | 'skipped' | 'hidden'.
@@ -178,8 +171,9 @@ const linkError = ref('')
 const refreshAccountContext = async () => {
     if (!signedIn.value || !props.address) return
     try {
-        const params = new URLSearchParams({ query: props.address, limit: '100', offset: '0' })
-        const { results } = await api.fetch(`/user_api/bind_address?${params.toString()}`)
+        // No `query` filter: it would be rejected for addresses containing
+        // `_` or `%`; fetch the list and match the exact name instead.
+        const { results } = await api.fetch('/user_api/bind_address?limit=100&offset=0')
         linked.value = (results || []).some((row) => row.name === props.address)
         if (linked.value) {
             try {
@@ -229,8 +223,43 @@ const passkeyOptions = computed(() => passkeys.value.map((item) => ({
     value: item.passkey_id,
 })))
 
+// A backup wraps the key with one of the account's passkeys; an account
+// without any (e.g. email + password) must create one first.
+const createPasskeyBusy = ref(false)
+const createPasskeyError = ref('')
+
+const createAccountPasskey = async () => {
+    if (createPasskeyBusy.value) return
+    createPasskeyBusy.value = true
+    createPasskeyError.value = ''
+    try {
+        // Same registration endpoints as the user center's "Create passkey".
+        const options = await api.fetch('/user_api/passkey/register_request', {
+            method: 'POST',
+            body: JSON.stringify({ domain: location.hostname }),
+        })
+        const credential = await startRegistration({ optionsJSON: options })
+        await api.fetch('/user_api/passkey/register_response', {
+            method: 'POST',
+            body: JSON.stringify({
+                origin: location.origin,
+                passkey_name: (window.navigator.userAgentData?.platform || 'Unknown')
+                    + ': ' + Math.random().toString(36).substring(7),
+                credential,
+            }),
+        })
+        passkeys.value = await api.listPasskeys()
+        selectedPasskeyId.value = ''
+        message.success(t('passkeyCreated'))
+    } catch (error) {
+        console.error(error)
+        createPasskeyError.value = error?.message || 'error'
+    } finally {
+        createPasskeyBusy.value = false
+    }
+}
+
 const resolveKeyMaterial = async () => {
-    if (props.rawKey && props.keyId) return { rawKey: props.rawKey, keyId: props.keyId }
     const rawKey = extractRawKeyFromText(backupInput.value)
     if (!rawKey) throw new Error(accountT('backupKeyInvalid'))
     const keyId = await publicKeyFromPrivate(rawKey)
@@ -306,6 +335,7 @@ watch(() => props.show, async (show) => {
     linkError.value = ''
     backupInput.value = ''
     selectedPasskeyId.value = ''
+    createPasskeyError.value = ''
     // userOpenSettings is normally fetched by the user center; the mailbox
     // page may never have loaded it, so fetch it here to know whether
     // passkey-only sign-up is offered.
@@ -391,8 +421,23 @@ watch(() => props.show, async (show) => {
                             <strong>{{ t('step3Title') }}</strong> {{ t('step3Text') }}
                         </p>
                         <template v-if="stepStates.backup === 'todo'">
-                            <p class="muted pk-setup__tip">{{ accountT('createBackupWhyPaste') }}</p>
-                            <template v-if="!rawKey">
+                            <n-alert v-if="passkeys.length === 0" type="warning" :show-icon="false"
+                                :bordered="false" data-testid="setup-no-passkeys">
+                                <div class="pk-setup__nopasskey">
+                                    <span>{{ t('noPasskeyOnAccount') }}</span>
+                                    <n-button size="small" secondary type="primary"
+                                        :loading="createPasskeyBusy" data-testid="setup-create-passkey"
+                                        @click="createAccountPasskey">
+                                        {{ t('createPasskeyNow') }}
+                                    </n-button>
+                                </div>
+                            </n-alert>
+                            <n-alert v-else-if="createPasskeyError" type="error" :show-icon="false"
+                                :bordered="false" data-testid="setup-create-passkey-error">
+                                {{ t('createPasskeyFailed', { msg: createPasskeyError }) }}
+                            </n-alert>
+                            <template v-if="passkeys.length > 0">
+                                <p class="muted pk-setup__tip">{{ accountT('createBackupWhyPaste') }}</p>
                                 <n-input v-model:value="backupInput" type="textarea" :autosize="{ minRows: 2 }"
                                     :placeholder="accountT('createBackupInputPlaceholder')"
                                     data-testid="setup-backup-input" />
@@ -402,7 +447,7 @@ watch(() => props.show, async (show) => {
                                     :options="passkeyOptions" size="small" style="min-width: 200px;"
                                     data-testid="setup-backup-select" />
                                 <n-button size="small" type="primary" :loading="backupBusy"
-                                    :disabled="!rawKey && !backupInput.trim()"
+                                    :disabled="passkeys.length === 0 || !backupInput.trim()"
                                     data-testid="setup-add-backup" @click="addBackup">
                                     {{ t('addBackup') }}
                                 </n-button>
@@ -523,6 +568,14 @@ watch(() => props.show, async (show) => {
     margin: 0;
     font-size: var(--font-xs);
     line-height: 18px;
+}
+
+.pk-setup__nopasskey {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
 }
 
 .pk-setup__actions {

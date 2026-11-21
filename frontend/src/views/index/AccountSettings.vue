@@ -352,8 +352,9 @@ const refreshPasskeyBackups = async () => {
     passkeyRestoreError.value = ''
     if (!accountLoggedIn.value || !settings.value.address) return
     try {
-        const params = new URLSearchParams({ query: settings.value.address, limit: '100', offset: '0' })
-        const { results } = await api.fetch(`/user_api/bind_address?${params.toString()}`)
+        // No `query` filter: it would be rejected for addresses containing
+        // `_` or `%`; fetch the list and match the exact name instead.
+        const { results } = await api.fetch('/user_api/bind_address?limit=100&offset=0')
         addressBound.value = (results || []).some((row) => row.name === settings.value.address)
         if (!addressBound.value) {
             passkeyBackups.value = []

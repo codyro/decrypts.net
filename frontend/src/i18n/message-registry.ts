@@ -449,6 +449,22 @@ export const MESSAGE_REGISTRY = {
       "en": "No saved link? This mailbox can't get a passkey backup. It'll still open with your passkey, but its mail stays locked on new devices.",
       "zh": "没有保存的链接？此邮箱将无法添加通行密钥备份。它仍可用通行密钥打开，但邮件在新设备上将保持锁定。"
     },
+    "noPasskeyOnAccount": {
+      "en": "This account has no passkey yet. Create one to use it for the backup.",
+      "zh": "此账户还没有通行密钥。请先创建一个，用于备份。"
+    },
+    "createPasskeyNow": {
+      "en": "Create a passkey",
+      "zh": "创建通行密钥"
+    },
+    "passkeyCreated": {
+      "en": "Passkey created",
+      "zh": "通行密钥已创建"
+    },
+    "createPasskeyFailed": {
+      "en": "Could not create the passkey: {msg}",
+      "zh": "无法创建通行密钥：{msg}"
+    },
     "lockedLink": {
       "en": "Link the mailbox first — this step unlocks after step 02.",
       "zh": "请先完成步骤 02 绑定邮箱。"
@@ -4709,6 +4725,10 @@ export const MESSAGE_REGISTRY = {
     "helpPasskeysTitle": {
       "en": "Passkeys",
       "zh": "通行密钥"
+    },
+    "passkeyHowItWorksToggle": {
+      "en": "How passkeys work here",
+      "zh": "通行密钥在此如何使用"
     },
     "helpEncryptedLead": {
       "en": "Encrypted mailboxes.",
