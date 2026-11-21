@@ -34,6 +34,7 @@ release notes the upstream release tag it is based on.
 - Bundle faker locally so random address name generation keeps working under the strict Content-Security-Policy.
 - Generate the `--app-text-N` theme CSS variables the stylesheets reference.
 - Show the day count in the retention sentences.
+- Copy the worker key-backup validator into the Docker e2e frontend image, which its passkey-wrap unit test imports.
 
 ### Changes
 

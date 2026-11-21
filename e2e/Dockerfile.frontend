@@ -10,6 +10,11 @@ RUN pnpm install --frozen-lockfile || (echo "WARN: frozen-lockfile failed, falli
 
 COPY frontend/ .
 
+# passkey-wrap.test.js checks the frontend blob format against the worker-side
+# validator, so the unit-test run (`pnpm test` in this image) needs that file.
+# It has no imports; copy it to the same relative path as in the repo.
+COPY worker/src/utils/key_backup.ts /app/worker/src/utils/key_backup.ts
+
 # Generate self-signed cert for HTTPS (required for WebAuthn/crypto.subtle)
 RUN openssl req -x509 -newkey rsa:2048 -keyout /tmp/key.pem -out /tmp/cert.pem \
     -days 365 -nodes -subj '/CN=frontend'
