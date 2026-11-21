@@ -41,7 +41,15 @@ run = "pnpm test"
 [tasks."test:e2e"]
 description = "Full Docker e2e suite (API, browser, SMTP proxy); slow"
 dir = "e2e"
-run = ["npm install", "npm test", "npm run test:down"]
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+# Always tear the compose project down, even when tests fail, so stale
+# containers/volumes (e.g. the daily send-quota counter) don't leak into the next run.
+trap 'npm run test:down >/dev/null 2>&1 || true' EXIT
+npm install
+npm test
+'''
 
 [tasks.build]
 description = "Production frontend build + worker dry-run bundle"
