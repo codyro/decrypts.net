@@ -15,6 +15,7 @@ import { getRouterPathWithLang } from '../../utils'
 import AddressSelect from '../../components/AddressSelect.vue'
 import AddressCredentialModal from '../../components/AddressCredentialModal.vue'
 import KeyBackupReminder from '../../components/KeyBackupReminder.vue'
+import PasskeyUnlockBanner from '../../components/PasskeyUnlockBanner.vue'
 import LandingContent from './landing/LandingContent.vue'
 
 const router = useRouter()
@@ -75,6 +76,7 @@ onMounted(async () => {
                 </AddressSelect>
             </section>
             <KeyBackupReminder />
+            <PasskeyUnlockBanner />
         </template>
         <div v-else-if="isTelegram" class="panel address-management-panel">
             <TelegramAddress />

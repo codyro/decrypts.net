@@ -272,6 +272,266 @@ export const MESSAGE_REGISTRY = {
       "zh": "已上传通行密钥保护的备份"
     }
   },
+  "components.PasskeyHowItWorks": {
+    "step1Title": {
+      "en": "Sign in.",
+      "zh": "登录。"
+    },
+    "step1Text": {
+      "en": "Your passkey signs you in to a private account. No email or password needed.",
+      "zh": "你的通行密钥会登录到一个专属账户，无需邮箱或密码。"
+    },
+    "step2Title": {
+      "en": "Open your mailboxes.",
+      "zh": "打开你的邮箱。"
+    },
+    "step2Text": {
+      "en": "Mailboxes linked to that account open with your passkey.",
+      "zh": "绑定到该账户的邮箱可以用通行密钥打开。"
+    },
+    "step3Title": {
+      "en": "Unlock encrypted mail.",
+      "zh": "解锁加密邮件。"
+    },
+    "step3Text": {
+      "en": "Only for mailboxes that have a passkey backup. Adding one needs the mailbox's key (at creation or from your saved decryption link).",
+      "zh": "仅适用于拥有通行密钥备份的邮箱。添加备份需要邮箱密钥（创建时，或来自你保存的解密链接）。"
+    },
+    "statusSignedInYes": {
+      "en": "Signed in",
+      "zh": "已登录"
+    },
+    "statusSignedInNo": {
+      "en": "Not signed in yet",
+      "zh": "尚未登录"
+    },
+    "statusLinkedYes": {
+      "en": "Linked to your account",
+      "zh": "已绑定到你的账户"
+    },
+    "statusLinkedNo": {
+      "en": "No mailbox linked yet",
+      "zh": "尚未绑定邮箱"
+    },
+    "statusBackupYes": {
+      "en": "Passkey backup added",
+      "zh": "已添加通行密钥备份"
+    },
+    "statusBackupNo": {
+      "en": "No passkey backup yet",
+      "zh": "还没有通行密钥备份"
+    },
+    "statusBackupNotNeeded": {
+      "en": "Not needed — this mailbox isn't encrypted",
+      "zh": "无需此步骤——此邮箱未加密"
+    },
+    "learnMore": {
+      "en": "Learn more",
+      "zh": "了解更多"
+    }
+  },
+  "components.PasskeyMailboxLogin": {
+    "loginWithPasskey": {
+      "en": "Log in with passkey",
+      "zh": "使用通行密钥登录"
+    },
+    "helperLine": {
+      "en": "Signs you in to your passkey account and opens its linked mailboxes.",
+      "zh": "登录你的通行密钥账户，并打开与其绑定的邮箱。"
+    },
+    "pickerTitle": {
+      "en": "Choose a mailbox",
+      "zh": "选择邮箱"
+    },
+    "pickerTip": {
+      "en": "These mailboxes are linked to your passkey account.",
+      "zh": "这些邮箱已绑定到你的通行密钥账户。"
+    },
+    "badgeYes": {
+      "en": "Passkey backup ✓",
+      "zh": "通行密钥备份 ✓"
+    },
+    "badgeNo": {
+      "en": "No passkey backup",
+      "zh": "无通行密钥备份"
+    },
+    "open": {
+      "en": "Open",
+      "zh": "打开"
+    },
+    "noneMessage": {
+      "en": "You're signed in, but no mailboxes are linked to this account yet. Open a mailbox and choose \"Use a passkey for this mailbox\" in its Account Settings.",
+      "zh": "你已登录，但此账户尚未绑定任何邮箱。请先打开一个邮箱，然后在其账号设置中选择「为此邮箱启用通行密钥」。"
+    },
+    "createAddress": {
+      "en": "Create Email Address",
+      "zh": "创建邮箱"
+    },
+    "close": {
+      "en": "Close",
+      "zh": "关闭"
+    }
+  },
+  "components.PasskeyMailboxSetup": {
+    "title": {
+      "en": "Use a passkey for this mailbox",
+      "zh": "为此邮箱启用通行密钥"
+    },
+    "step1Title": {
+      "en": "Sign in or create a passkey account.",
+      "zh": "登录或创建通行密钥账户。"
+    },
+    "step1Text": {
+      "en": "Your passkey signs you in to a private account. No email or password needed.",
+      "zh": "你的通行密钥会登录到一个专属账户，无需邮箱或密码。"
+    },
+    "step1Done": {
+      "en": "Signed in with your passkey.",
+      "zh": "已使用通行密钥登录。"
+    },
+    "signupWithPasskey": {
+      "en": "Create a passkey account (no email)",
+      "zh": "创建通行密钥账户（无需邮箱）"
+    },
+    "signinWithPasskey": {
+      "en": "Sign in with an existing passkey",
+      "zh": "使用已有通行密钥登录"
+    },
+    "step2Title": {
+      "en": "Link this mailbox to your account.",
+      "zh": "将此邮箱绑定到你的账户。"
+    },
+    "step2Text": {
+      "en": "Linked mailboxes open with your passkey from the Login page.",
+      "zh": "绑定后，可在登录页用通行密钥打开此邮箱。"
+    },
+    "step2Done": {
+      "en": "This mailbox is linked to your account.",
+      "zh": "此邮箱已绑定到你的账户。"
+    },
+    "linkMailbox": {
+      "en": "Link this mailbox",
+      "zh": "绑定此邮箱"
+    },
+    "lockedSignin": {
+      "en": "Sign in first — this step unlocks after step 01.",
+      "zh": "请先完成步骤 01 登录。"
+    },
+    "step3Title": {
+      "en": "Add a passkey backup (encrypted mailboxes only).",
+      "zh": "添加通行密钥备份（仅限加密邮箱）。"
+    },
+    "step3Text": {
+      "en": "Wraps the mailbox key with your passkey so it can be restored — and the mail unlocked — on a new device.",
+      "zh": "用通行密钥保护邮箱密钥，以便在新设备上恢复密钥、解锁邮件。"
+    },
+    "step3Done": {
+      "en": "Passkey backup added.",
+      "zh": "已添加通行密钥备份。"
+    },
+    "step3Skipped": {
+      "en": "Finished without a passkey backup.",
+      "zh": "已跳过通行密钥备份。"
+    },
+    "step3SkippedTip": {
+      "en": "The passkey opens this mailbox, but its mail stays locked on new devices until you add a passkey backup.",
+      "zh": "通行密钥仍可打开此邮箱，但在添加通行密钥备份之前，其邮件在新设备上将保持锁定。"
+    },
+    "addBackup": {
+      "en": "Add passkey backup",
+      "zh": "添加通行密钥备份"
+    },
+    "skipBackup": {
+      "en": "Finish without a backup",
+      "zh": "暂不添加，直接完成"
+    },
+    "noLinkFallback": {
+      "en": "No saved link? This mailbox can't get a passkey backup. It'll still open with your passkey, but its mail stays locked on new devices.",
+      "zh": "没有保存的链接？此邮箱将无法添加通行密钥备份。它仍可用通行密钥打开，但邮件在新设备上将保持锁定。"
+    },
+    "lockedLink": {
+      "en": "Link the mailbox first — this step unlocks after step 02.",
+      "zh": "请先完成步骤 02 绑定邮箱。"
+    },
+    "prfUnsupported": {
+      "en": "This passkey/browser doesn't support PRF — a passkey backup isn't possible here. Use a passphrase backup instead: create one from your key with a passphrase.",
+      "zh": "此通行密钥/浏览器不支持 PRF，无法创建通行密钥备份。请改用密码短语备份：使用你的密钥创建带密码的备份。"
+    },
+    "cancelled": {
+      "en": "Passkey prompt cancelled.",
+      "zh": "已取消通行密钥验证。"
+    },
+    "wrapFailed": {
+      "en": "Could not create the passkey backup: {msg}",
+      "zh": "无法创建通行密钥备份：{msg}"
+    },
+    "outcomeWithBackup": {
+      "en": "Done. Your passkey now signs you in and can unlock this mailbox on other devices.",
+      "zh": "完成。你的通行密钥现在可以登录，并能在其他设备上解锁此邮箱。"
+    },
+    "outcomeWithoutBackup": {
+      "en": "Done. Your passkey signs you in and opens this mailbox. Its mail stays locked on new devices until you add a passkey backup.",
+      "zh": "完成。你的通行密钥可以登录并打开此邮箱。但在添加通行密钥备份之前，其邮件在新设备上将保持锁定。"
+    },
+    "outcomePlain": {
+      "en": "Done. Your passkey now signs you in and opens this mailbox.",
+      "zh": "完成。你的通行密钥现在可以登录并打开此邮箱。"
+    },
+    "closeDone": {
+      "en": "Done",
+      "zh": "完成"
+    },
+    "closeLater": {
+      "en": "Finish later",
+      "zh": "稍后继续"
+    }
+  },
+  "components.PasskeyUnlockBanner": {
+    "titleRestore": {
+      "en": "Unlock this mailbox with your passkey",
+      "zh": "使用通行密钥解锁此邮箱"
+    },
+    "bodyRestore": {
+      "en": "This device doesn't have the mailbox key, but your account has a passkey backup. Restore it to read encrypted mail here.",
+      "zh": "此设备上没有邮箱密钥，但你的账户中有通行密钥备份。恢复后即可在此阅读加密邮件。"
+    },
+    "unlock": {
+      "en": "Unlock with passkey",
+      "zh": "使用通行密钥解锁"
+    },
+    "restored": {
+      "en": "Decryption key restored from the passkey backup",
+      "zh": "已从通行密钥备份恢复解密密钥"
+    },
+    "titleLocked": {
+      "en": "This mailbox's mail stays locked on this device",
+      "zh": "此邮箱的邮件在此设备上保持锁定"
+    },
+    "bodyLocked": {
+      "en": "This mailbox has no passkey backup, so its mail stays locked on this device. Restore it with your saved decryption link or a passphrase backup.",
+      "zh": "此邮箱没有通行密钥备份，因此其邮件在此设备上保持锁定。请使用保存的解密链接或密码短语备份恢复密钥。"
+    },
+    "openBackupSettings": {
+      "en": "Open backup settings",
+      "zh": "打开备份设置"
+    },
+    "restoreFailed": {
+      "en": "The key could not be stored on this device",
+      "zh": "密钥无法保存在此设备上"
+    },
+    "prfUnsupported": {
+      "en": "This passkey/browser doesn't support PRF — restore isn't possible here. Use your saved decryption link or a passphrase backup instead.",
+      "zh": "此通行密钥/浏览器不支持 PRF，无法在此恢复。请改用保存的解密链接或密码短语备份。"
+    },
+    "unwrapFailed": {
+      "en": "Couldn't unwrap the backup with this passkey (wrong passkey or tampered backup).",
+      "zh": "无法使用此通行密钥解开备份（通行密钥不匹配或备份已被篡改）。"
+    },
+    "cancelled": {
+      "en": "Passkey prompt cancelled.",
+      "zh": "已取消通行密钥验证。"
+    }
+  },
   "components.KeyBackupPanel": {
     "rawLinkShownOnceWarning": {
       "en": "The raw decryption link below is shown only once. Anyone with it can read the encrypted mail of this address, and it cannot be recovered if lost. Prefer creating a passphrase-protected backup below.",
@@ -1187,6 +1447,10 @@ export const MESSAGE_REGISTRY = {
       "en": "Passkeys",
       "zh": "通行密钥"
     },
+    "passkeyHowItWorksToggle": {
+      "en": "How passkeys work here",
+      "zh": "通行密钥在此如何使用"
+    },
     "passkeyTip": {
       "en": "Sign in with your device instead of a password.",
       "zh": "使用设备验证代替密码登录。"
@@ -2072,6 +2336,14 @@ export const MESSAGE_REGISTRY = {
     "mailEncryption": {
       "en": "Mail Encryption",
       "zh": "邮件加密"
+    },
+    "usePasskeyForMailbox": {
+      "en": "Use a passkey for this mailbox",
+      "zh": "为此邮箱启用通行密钥"
+    },
+    "passkeyHowItWorksToggle": {
+      "en": "How passkeys work here",
+      "zh": "通行密钥在此如何使用"
     },
     "encryptionUnavailable": {
       "en": "Mail encryption is not enabled on this server.",
@@ -4433,6 +4705,10 @@ export const MESSAGE_REGISTRY = {
     "helpTitle": {
       "en": "How it works",
       "zh": "如何使用"
+    },
+    "helpPasskeysTitle": {
+      "en": "Passkeys",
+      "zh": "通行密钥"
     },
     "helpEncryptedLead": {
       "en": "Encrypted mailboxes.",

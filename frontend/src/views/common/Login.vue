@@ -32,6 +32,8 @@ import AdminContact from '../common/AdminContact.vue'
 import About from '../common/About.vue'
 import HowItWorks from '../../components/HowItWorks.vue'
 import Turnstile from '../../components/Turnstile.vue'
+import PasskeyHowItWorks from '../../components/PasskeyHowItWorks.vue'
+import PasskeyMailboxLogin from '../../components/PasskeyMailboxLogin.vue'
 
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
@@ -41,6 +43,9 @@ import { generateKeyPair } from '../../utils/mail-crypto'
 import { randomEmailLocalPart } from '../../utils/random-name'
 import { addPrivateKey } from '../../utils/mail-key-store'
 import { offerKeyBackup } from '../../utils/key-backup-prompts'
+import { isWebAuthnSupported } from '../../utils/passkey-account'
+import { canOfferPasskeyMailboxLogin } from '../../utils/passkey-mailbox'
+import { setPasskeyLoginSwitchToCreate } from '../../utils/passkey-mailbox-login'
 
 const props = defineProps({
     bindUserAddress: {
@@ -61,7 +66,8 @@ const router = useRouter()
 
 const {
     jwt, loading, openSettings,
-    showAddressCredential, userSettings, addressPassword, settings
+    showAddressCredential, userSettings, addressPassword, settings,
+    showUserSystem
 } = useGlobalState()
 
 const enableMailEncryption = ref(false)
@@ -184,6 +190,25 @@ const loginAndBindTag = computed(() => {
 // Quick-start steps for the help tab live in the shared HowItWorks component
 // (compact mode), so the landing page and the help tab never drift apart.
 const showHelpAbout = ref(false)
+
+// "Log in with passkey" mirrors the user-center passkey login: offered only
+// when the user system is enabled and the browser can do WebAuthn.
+const passkeyLoginVisible = computed(() => canOfferPasskeyMailboxLogin({
+    showUserSystem: showUserSystem.value,
+    webAuthnSupported: isWebAuthnSupported(),
+}))
+const switchToCreateTab = () => {
+    tabValueTouched.value = false
+    applyingDefaultTab = true
+    tabValue.value = 'register'
+    applyingDefaultTab = false
+}
+// The app-level PasskeyMailboxLoginHost ("no linked mailboxes" dialog) asks
+// the Login card to switch to the Create tab. Unregister on unmount: after a
+// passkey sign-in the landing swaps this card for the user's address list,
+// and a stale handler would silently do nothing.
+setPasskeyLoginSwitchToCreate(switchToCreateTab)
+onBeforeUnmount(() => setPasskeyLoginSwitchToCreate(null))
 
 const addressRegex = computed(() => {
     try {
@@ -525,6 +550,7 @@ watch(tabValue, () => stabilizePaneHeight())
                             {{ loginMethod === 'password' ? t('credentialLogin') : t('passwordLogin') }}
                         </n-button>
                     </div>
+                    <PasskeyMailboxLogin v-if="passkeyLoginVisible" />
                     <n-divider v-if="showNewAddressTab" title-placement="center">
                         <span class="muted">{{ t('or') }}</span>
                     </n-divider>
@@ -549,6 +575,10 @@ watch(tabValue, () => stabilizePaneHeight())
                 <div class="panel help-panel">
                     <h2 class="panel-title">{{ t('helpTitle') }}</h2>
                     <HowItWorks compact />
+                    <template v-if="showUserSystem">
+                        <h3 class="panel-title help-panel__passkey-title">{{ t('helpPasskeysTitle') }}</h3>
+                        <PasskeyHowItWorks compact />
+                    </template>
                     <p v-if="openSettings.enableMailEncryption" class="help-step__text help-enc">
                         <strong>{{ t('helpEncryptedLead') }}</strong> {{ t('helpEncrypted') }}
                     </p>
@@ -601,6 +631,7 @@ watch(tabValue, () => stabilizePaneHeight())
 
 /* Help tab quick-start */
 .help-panel { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
+.help-panel__passkey-title { margin: var(--space-2) 0 0; }
 .help-step__text { margin: 0; font-size: var(--font-sm); line-height: 20px; color: var(--app-text-3); }
 .help-step__text strong { color: var(--app-text-1); font-weight: 600; }
 .help-enc { border-left: 2px solid var(--app-warning); padding-left: var(--space-3); }

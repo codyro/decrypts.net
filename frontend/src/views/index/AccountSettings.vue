@@ -38,6 +38,8 @@ import KeyBackupPanel from '../../components/KeyBackupPanel.vue'
 import PasskeyWrapControls from '../../components/PasskeyWrapControls.vue'
 import KeyStatusCard from '../../components/KeyStatusCard.vue'
 import OpenDeviceQrPanel from '../../components/OpenDeviceQrPanel.vue'
+import PasskeyHowItWorks from '../../components/PasskeyHowItWorks.vue'
+import PasskeyMailboxSetup from '../../components/PasskeyMailboxSetup.vue'
 
 const {
     jwt, settings, showAddressCredential, loading, openSettings,
@@ -630,6 +632,13 @@ const burnMailboxNow = async () => {
     }
 }
 
+// ---- "Use a passkey for this mailbox" guided setup ---------------------------
+// Sign in (or create a passkey account), link this mailbox, optionally add a
+// passkey backup — one dialog, each step ticked as it completes.
+
+const showPasskeySetup = ref(false)
+const showPasskeyHowItWorks = ref(false)
+
 // ---- scroll-to-backup signal -------------------------------------------------
 // The reminder banner and the QR panel ask for the backup section; consumed
 // here both live (watch) and on mount (the tab pane may mount only now).
@@ -729,6 +738,22 @@ onMounted(() => {
         </section>
         <section v-if="openSettings.enableMailEncryption && settings.address" class="panel settings-section">
             <h3 class="panel-title settings-section__header">{{ t('mailEncryption') }}</h3>
+            <template v-if="showUserSystem">
+                <div class="toolbar enc-passkey-setup">
+                    <n-button size="small" secondary type="primary" data-testid="use-passkey-for-mailbox"
+                        @click="showPasskeySetup = true">
+                        {{ t('usePasskeyForMailbox') }}
+                    </n-button>
+                    <n-button size="small" quaternary data-testid="toggle-passkey-how-it-works"
+                        @click="showPasskeyHowItWorks = !showPasskeyHowItWorks">
+                        {{ t('passkeyHowItWorksToggle') }}
+                    </n-button>
+                </div>
+                <n-collapse v-if="showPasskeyHowItWorks" class="enc-passkey-how">
+                    <PasskeyHowItWorks compact :signed-in="accountLoggedIn" :linked="addressBound === true"
+                        :has-passkey-backup="passkeyBackups.length > 0" :encrypted="!!encServerPublicKey" />
+                </n-collapse>
+            </template>
             <n-alert v-if="keyStoreMode === 'memory'" type="warning" :show-icon="false" :bordered="false">
                 {{ t('keyStoreMemoryWarning') }}
             </n-alert>
@@ -761,7 +786,7 @@ onMounted(() => {
                     <KeyStatusCard v-if="encServerPublicKey" :has-key="encHasLocalKey"
                         :has-passphrase-backup="encHasBackup" :passkey-backup-state="keyStatusPasskeyState"
                         @import-key="showImportBackup = true" @create-backup="showCreateBackup = true"
-                        @add-passkey-backup="showCreateBackup = true" @sign-in="goToUserCenter"
+                        @add-passkey-backup="showPasskeySetup = true" @sign-in="goToUserCenter"
                         @link-mailbox="goToUserCenter" />
                 </template>
                 <div class="toolbar enc-actions">
@@ -972,6 +997,9 @@ onMounted(() => {
             </template>
         </n-modal>
 
+        <PasskeyMailboxSetup v-model:show="showPasskeySetup" :address="settings.address"
+            :encrypted="!!encServerPublicKey" @done="refreshPasskeyBackups()" />
+
         <n-modal :show="showNewKeyBackup" @update:show="showNewKeyBackup = $event" preset="dialog"
             :title="t('newKeyBackupTitle')">
             <p>{{ t('newKeyBackupTip') }}</p>
@@ -1051,6 +1079,8 @@ onMounted(() => {
 .enc-actions, .enc-import { margin-top: var(--space-3); }
 .enc-backup { margin-top: var(--space-3); }
 .enc-passkey-backups { margin-top: var(--space-3); display: grid; gap: var(--space-2); }
+.enc-passkey-setup { margin-top: 0; }
+.enc-passkey-how { margin-top: var(--space-2); }
 .enc-passkey-backups__tip { margin: 0; }
 .enc-passkey-backups__row {
     display: flex;

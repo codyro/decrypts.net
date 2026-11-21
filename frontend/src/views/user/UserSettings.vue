@@ -9,6 +9,7 @@ import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { isPasskeyPseudoEmail } from '../../utils/passkey-account'
 import BurnAccount from './BurnAccount.vue'
+import PasskeyHowItWorks from '../../components/PasskeyHowItWorks.vue'
 
 const { userJwt, userSettings, jwt } = useGlobalState()
 const message = useMessage()
@@ -214,6 +215,11 @@ const renamePasskey = async () => {
     <div class="user-settings stack" v-if="userSettings.user_email">
         <section class="panel settings-section">
             <h3 class="panel-title settings-section__header">{{ t('passkeySection') }}</h3>
+            <n-collapse class="passkey-how-collapse">
+                <n-collapse-item name="how" :title="t('passkeyHowItWorksToggle')">
+                    <PasskeyHowItWorks compact :signed-in="true" />
+                </n-collapse-item>
+            </n-collapse>
             <n-alert v-if="showSecondPasskeyNudge" type="warning" :show-icon="false" :bordered="false" closable
                 class="passkey-nudge" @close="dismissSecondPasskeyNudge">
                 <div class="passkey-nudge__body">
@@ -286,6 +292,7 @@ const renamePasskey = async () => {
 .account-tip { margin: 0; }
 .settings-row__action.toolbar { flex-wrap: nowrap; }
 .passkey-nudge { margin-bottom: var(--space-3); }
+.passkey-how-collapse { margin-bottom: var(--space-3); }
 .passkey-nudge__body { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .passkey-backup-tip { margin: var(--space-2) 0 0; }
 @media (max-width: 767.98px) {

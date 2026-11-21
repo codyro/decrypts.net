@@ -15,6 +15,7 @@ import { DEFAULT_LOCALE, isSupportedLocale } from './i18n/utils'
 import { APP_CONFIG } from './config'
 import { buildThemeOverrides, toCssVars, tokensFor } from './theme'
 import KeyBackupHost from './components/KeyBackupHost.vue'
+import PasskeyMailboxLoginHost from './components/PasskeyMailboxLoginHost.vue'
 
 const {
   isDark, loading, useSideMargin, telegramApp, isTelegram
@@ -115,6 +116,7 @@ onMounted(async () => {
           </div>
           <n-back-top />
           <KeyBackupHost />
+          <PasskeyMailboxLoginHost />
         </n-message-provider>
       </n-notification-provider>
     </n-spin>

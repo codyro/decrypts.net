@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createApp, ref } from 'vue'
+import { computed, createApp, ref } from 'vue'
 
 import i18n from '@/i18n'
 import Login from '../Login.vue'
@@ -80,6 +80,8 @@ vi.mock('@/store', () => ({
         userSettings: ref({ user_email: '', user_role: null }),
         showAddressCredential: ref(false),
         addressPassword: ref(''),
+        showUserSystem: computed(() => stubs.openSettings.value.fetched
+            && !stubs.openSettings.value.disableUserSystem),
     }),
 }))
 
@@ -211,6 +213,74 @@ describe('Login.vue initial tab', () => {
         const el = await mountLogin()
         const paneText = el.querySelector('.n-tab-pane')?.textContent || ''
         expect(paneText).toContain('Email Address Credential')
+    })
+})
+
+describe('Login.vue passkey login button', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        i18n.global.locale.value = 'en'
+        localStorageStub.clear()
+        vi.unstubAllGlobals()
+        vi.stubGlobal('localStorage', localStorageStub)
+        // navigator.credentials is set with defineProperty (not tracked by
+        // vitest's stubGlobal): remove it so each test starts WebAuthn-free.
+        delete (window.navigator as { credentials?: unknown }).credentials
+    })
+
+    const stubWebAuthn = () => {
+        vi.stubGlobal('PublicKeyCredential', function PublicKeyCredential() { })
+        Object.defineProperty(window.navigator, 'credentials', {
+            value: {},
+            configurable: true,
+        })
+    }
+
+    const openSigninPane = async (el: HTMLElement) => {
+        // Saved mailboxes make the Login tab the default; otherwise click it.
+        const tabs = el.querySelectorAll<HTMLElement>('.n-tabs-tab')
+        tabs[1]?.click()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+
+    it('shows "Log in with passkey" when the user system is on and WebAuthn works', async () => {
+        stubWebAuthn()
+        stubs.openSettings = makeOpenSettings({ disableUserSystem: false })
+        const el = await mountLogin()
+        await openSigninPane(el)
+        const button = el.querySelector('[data-testid="passkey-login-button"]')
+        expect(button).toBeTruthy()
+        expect(el.textContent).toContain('Signs you in to your passkey account and opens its linked mailboxes.')
+    })
+
+    it('hides the button when the user system is disabled', async () => {
+        stubWebAuthn()
+        stubs.openSettings = makeOpenSettings({ disableUserSystem: true })
+        const el = await mountLogin()
+        await openSigninPane(el)
+        expect(el.querySelector('[data-testid="passkey-login-button"]')).toBeNull()
+    })
+
+    it('hides the button when the browser has no WebAuthn', async () => {
+        // jsdom has neither PublicKeyCredential nor navigator.credentials.
+        stubs.openSettings = makeOpenSettings({ disableUserSystem: false })
+        const el = await mountLogin()
+        await openSigninPane(el)
+        expect(el.querySelector('[data-testid="passkey-login-button"]')).toBeNull()
+    })
+
+    it('shows the passkey explainer in the help tab only when the user system is on', async () => {
+        stubWebAuthn()
+        stubs.openSettings = makeOpenSettings({ disableUserSystem: false })
+        const el = await mountLogin()
+        const tabs = el.querySelectorAll<HTMLElement>('.n-tabs-tab')
+        tabs[2]?.click()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        const text = el.textContent || ''
+        expect(text).toContain('Passkeys')
+        expect(text).toContain('Sign in.')
+        expect(text).toContain('Open your mailboxes.')
+        expect(text).toContain('Unlock encrypted mail.')
     })
 })
 

@@ -108,6 +108,46 @@ In addition to passphrase-protected backups, a **logged-in user account** can pr
 - **Restore**: on a new device, log in to the account, open Account Settings for the bound address, and click "Restore Key From Passkey" in the passkey backup list — the browser runs the assertion, unwraps the blob, and stores the private key on this device as a non-extractable key. A failed unwrap (wrong key/passkey or tampering) is reported explicitly.
 - **Storage**: DB v0.0.13 adds the `user_key_backups` table (run `Admin -> Quick Setup -> Database -> Migrate Database` or `POST /admin/db_migration`); the server stores only the opaque blob. Backups are removed together when the passkey, the address is deleted, the address is unbound/transferred, or the user is deleted. Caps: 20 per address, 200 per user. See [Mail API](./mail-api.md#passkey-backup-storage) for the storage endpoints.
 
+## Passkeys and encrypted mailboxes
+
+A passkey built for a **user account** can also open that account's mailboxes. The model has three parts, and keeping them apart is the whole point:
+
+1. **Sign in.** Your passkey signs you in to a private account. No email or password needed.
+2. **Open your mailboxes.** Mailboxes *linked* to that account open with your passkey.
+3. **Unlock encrypted mail.** Only for mailboxes that have a *passkey backup*. Adding one needs the mailbox's key (at creation, or by pasting your saved decryption link later).
+
+A passkey never decrypts mail by itself — it signs you in. Only a passkey backup (which wraps the mailbox key) can unlock an encrypted mailbox on a new device.
+
+### What each piece can and can't do
+
+| Piece | What it does | What it can't do |
+|---|---|---|
+| Login passkey | Signs you in to your user account (no email/password) | Decrypt mail; open mailboxes that aren't linked to the account |
+| Linked mailbox | Opens with the account's passkey from the Login tab; manageable in the user center | Bring its decryption key to a new device by itself |
+| Passkey backup | Unlocks an encrypted mailbox's key on a new device after a passkey sign-in (server stores only the wrapped blob) | Be created without the mailbox key; work with a passkey/browser without PRF |
+| Passphrase backup (`#kp=`) | Restores the key anywhere with the passphrase; independent of accounts and passkeys | Be recovered without the passphrase; be created after the raw key is gone |
+| Decryption link (`#k=`) | Imports the raw key directly; shown once at creation | Be re-created later; be sent to the server safely (keep it secret) |
+
+### "Use a passkey for this mailbox"
+
+Account Settings → Mail Encryption → **Use a passkey for this mailbox** runs a guided setup that lists what it will do, then ticks each step as it completes:
+
+1. **Sign in or create a passkey account.** If you're already signed in this shows ✓ immediately; otherwise you can create a passkey-only account (no email, when the operator enabled passkey sign-up) or sign in with an existing passkey.
+2. **Link this mailbox to your account** (the existing bind API; ✓ if already linked). Failures — e.g. the account's max-address count — show the server message and the step stays open.
+3. **Add a passkey backup** (encrypted mailboxes only). While the raw key is still in memory (creation/rotation) the existing passkey wrap runs directly; otherwise you paste your saved decryption link — the same logic as "Create protected backup from my key". The step can be skipped: the mailbox still opens with your passkey, but its mail stays locked on new devices until a backup is added.
+
+The final message states exactly what the passkey can do now: with a backup — "Your passkey now signs you in and can unlock this mailbox on other devices"; without one — it signs you in and opens the mailbox, but mail stays locked on new devices; for unencrypted mailboxes — it signs you in and opens the mailbox.
+
+### Logging in to a mailbox with a passkey
+
+The mailbox card's Login tab shows **Log in with passkey** whenever the user system is enabled and the browser supports WebAuthn (the same conditions as the user-center passkey login). It signs you in to the passkey account and then:
+
+- exactly one linked mailbox → opens it directly;
+- several → a picker lists them, with a "Passkey backup ✓ / No passkey backup" badge for encrypted ones;
+- none → an explanation that mailboxes must be linked first, with a shortcut to the Create tab.
+
+When the opened mailbox is encrypted and this device lacks its key, an inline prompt offers **Unlock this mailbox with your passkey** (runs the restore flow above) — or, when no passkey backup exists, says the mail stays locked on this device and points at the decryption-link / passphrase-backup restore options in Account Settings.
+
 ## Open on another device (`#jwt=` fragments and QR)
 
 Account Settings → Access → "Open on another device" shows a QR code (hidden until you press "Show QR", so it never sits visible when the settings open) plus a copyable link, for signing in to this mailbox on another device:
