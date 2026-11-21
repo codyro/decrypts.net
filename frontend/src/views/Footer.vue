@@ -29,7 +29,7 @@ const aboutModalStyle = computed(() => ({
 
 <template>
     <footer class="app-footer">
-        <span>{{ t('copyright') }} © 2023-{{ new Date().getFullYear() }}</span>
+        <span>{{ t('copyright') }} © {{ new Date().getFullYear() }}</span>
         <template v-if="openSettings.copyright">
             <span aria-hidden="true">·</span>
             <span class="footer-copyright" v-html="DOMPurify.sanitize(openSettings.copyright)"></span>

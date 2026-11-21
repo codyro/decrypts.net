@@ -1070,8 +1070,8 @@ export const MESSAGE_REGISTRY = {
       "zh": "状态"
     },
     "title": {
-      "en": "Cloudflare Temp Email",
-      "zh": "Cloudflare 临时邮件"
+      "en": "decrypts",
+      "zh": "decrypts"
     },
     "userCenter": {
       "en": "User Center",

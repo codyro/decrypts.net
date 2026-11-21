@@ -48,9 +48,9 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
       },
       manifest: {
-        name: 'Temp Email',
-        short_name: 'Temp Email',
-        description: 'Temp Email - Temporary Email',
+        name: 'decrypts',
+        short_name: 'decrypts',
+        description: 'decrypts: disposable email, encrypted at rest and decrypted only in your browser.',
         theme_color: '#0B0B0C',
         background_color: '#0B0B0C',
         icons: [
