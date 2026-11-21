@@ -1,0 +1,81 @@
+# Fork tooling. `mise run <task>` from anywhere in the repo; `mise tasks` lists them.
+# Deploy flow: `mise run deploy` = tests -> prod frontend build -> worker deploy (serves frontend/dist).
+
+[tools]
+node = "24"          # matches .github/workflows
+pnpm = "10.10.0"     # matches packageManager in the package.json files
+
+[tasks.install]
+description = "Install worker and frontend dependencies"
+run = [
+  "pnpm --dir worker install",
+  "pnpm --dir frontend install",
+]
+
+[tasks."install:docs"]
+description = "Install docs dependencies"
+run = "pnpm --dir vitepress-docs install"
+
+[tasks.dev]
+description = "Run the worker locally on :8787 (local D1, .dev.vars overrides, serves frontend/dist)"
+dir = "worker"
+run = "pnpm dev"
+
+[tasks."dev:frontend"]
+description = "Run the Vite dev server against the local worker (VITE_API_BASE from .env.development.local)"
+dir = "frontend"
+run = "pnpm dev"
+
+[tasks.lint]
+description = "Lint the worker"
+dir = "worker"
+run = "pnpm lint"
+
+[tasks.test]
+description = "Worker lint + frontend unit tests"
+depends = ["lint"]
+dir = "frontend"
+run = "pnpm test"
+
+[tasks."test:e2e"]
+description = "Full Docker e2e suite (API, browser, SMTP proxy); slow"
+dir = "e2e"
+run = ["npm install", "npm test", "npm run test:down"]
+
+[tasks.build]
+description = "Production frontend build + worker dry-run bundle"
+run = [
+  "pnpm --dir frontend build",
+  "pnpm --dir worker build",
+]
+
+[tasks.deploy]
+description = "Test, build the production frontend, then deploy the worker (with assets) to Cloudflare"
+depends = ["test"]
+run = [
+  "pnpm --dir frontend build",
+  "pnpm --dir worker run deploy",
+]
+
+[tasks."db:migrate"]
+description = "Run Admin -> Database -> Migrate on production (needs ADMIN_AUTH; optional CUSTOM_AUTH, APP_URL)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+: "${ADMIN_AUTH:?set ADMIN_AUTH to an ADMIN_PASSWORDS value}"
+url="${APP_URL:-https://decrypts.net}"
+extra=()
+if [ -n "${CUSTOM_AUTH:-}" ]; then extra=(-H "x-custom-auth: ${CUSTOM_AUTH}"); fi
+curl -fsS -X POST "${url}/admin/db_migration" -H "x-admin-auth: ${ADMIN_AUTH}" "${extra[@]}"
+echo
+'''
+
+[tasks.logs]
+description = "Stream live production worker logs"
+dir = "worker"
+run = "pnpm exec wrangler tail"
+
+[tasks.docs]
+description = "Build the VitePress docs"
+dir = "vitepress-docs"
+run = "pnpm build"
