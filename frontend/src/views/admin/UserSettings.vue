@@ -71,9 +71,9 @@ onMounted(async () => {
                     <n-switch v-model:value="userSettings.enable" :round="false" />
                 </n-form-item-row>
                 <n-form-item-row :label="t('enablePasskeySignup')">
-                    <n-flex vertical :wrap="false" style="width: 100%;">
+                    <n-flex vertical align="start" :wrap="false" style="width: 100%;">
                         <n-switch v-model:value="userSettings.enablePasskeySignup" :round="false" />
-                        <span class="muted admin-tip">{{ t('enablePasskeySignupTip') }}</span>
+                        <span class="muted admin-tip" style="width: 100%;">{{ t('enablePasskeySignupTip') }}</span>
                     </n-flex>
                 </n-form-item-row>
                 <n-form-item-row :label="t('enableMailVerify')">

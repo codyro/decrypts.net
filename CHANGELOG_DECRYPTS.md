@@ -30,6 +30,8 @@ release notes the upstream release tag it is based on.
 
 ### Fixes
 
+- Left-align the "Allow Passkey Sign-up" switch in Admin → User → User Settings so it matches the other switches on the page.
+
 - Run the `user_key_backups` migration as a single-line D1 statement, because `DB.exec()` splits on newlines.
 - Bundle faker locally so random address name generation keeps working under the strict Content-Security-Policy.
 - Generate the `--app-text-N` theme CSS variables the stylesheets reference.
