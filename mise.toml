@@ -72,6 +72,40 @@ curl -fsS -X POST "${url}/admin/db_migration" -H "x-admin-auth: ${ADMIN_AUTH}" "
 echo
 '''
 
+[tasks."upstream:check"]
+description = "Show the newest upstream release tag and whether main already contains it"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+git fetch -q upstream --tags
+tag="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+if git merge-base --is-ancestor "$tag" main; then
+  echo "main already includes the latest upstream release ($tag)"
+else
+  echo "new upstream release available: $tag"
+  git log --oneline "main..$tag" | head -20
+fi
+'''
+
+[tasks."upstream:merge"]
+description = "Merge an upstream release tag into main (TAG=v1.x.y; default: newest tag). Resolve conflicts, then run tests"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+[ "$(git branch --show-current)" = "main" ] || { echo "switch to main first"; exit 1; }
+[ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "commit or stash your changes first"; exit 1; }
+git fetch -q upstream --tags
+tag="${TAG:-$(git tag --list 'v*' --sort=-v:refname | head -1)}"
+if git merge-base --is-ancestor "$tag" main; then echo "main already includes $tag"; exit 0; fi
+git merge --no-ff -m "Merge upstream $tag into main" "$tag"
+echo "merged $tag; now run: mise run test"
+'''
+
+[tasks.push]
+description = "Run the tests, then push main to your repo (origin = codyro/decrypts.net)"
+depends = ["test"]
+run = "git push origin main"
+
 [tasks.logs]
 description = "Stream live production worker logs"
 dir = "worker"
