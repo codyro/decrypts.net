@@ -18,6 +18,7 @@ import { DEFAULT_LOCALE, isSupportedLocale, replaceLocaleInFullPath } from '../i
 import { getLocaleLabel, SUPPORTED_LOCALES } from '../i18n/locale-registry'
 import Turnstile from '../components/Turnstile.vue'
 import PreferencesDrawer from '../components/PreferencesDrawer.vue'
+import LogoMark from '../components/LogoMark.vue'
 
 const message = useMessage()
 const notification = useNotification()
@@ -148,7 +149,7 @@ onMounted(async () => {
         <header class="app-header" :class="{ 'app-header--fluid': !showSideMargin }">
             <div class="app-header__inner">
                 <div class="app-brand" @click="logoClick">
-                    <img class="header-logo" src="/logo.png" alt="" />
+                    <LogoMark class="header-logo" />
                     <span class="app-title">{{ openSettings.title || t('title') }}</span>
                 </div>
                 <nav v-if="!isMobile" class="app-nav" aria-label="Primary">
@@ -265,7 +266,17 @@ onMounted(async () => {
     cursor: pointer;
 }
 
-.header-logo { flex: 0 0 auto; width: 28px; height: 28px; }
+.header-logo {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    color: var(--app-accent);
+}
+
+/* Faint phosphor glow on the mark, dark mode only (matches the wordmark). */
+html.dark .header-logo {
+    filter: drop-shadow(0 0 6px rgba(255, 176, 0, 0.45));
+}
 
 .app-title {
     overflow: hidden;

@@ -23,6 +23,7 @@ release notes the upstream release tag it is based on.
 - **Honest retention display.** The site shows mail and address retention generated from the real auto-cleanup settings, so the copy can't drift from the config.
 - **About-page encryption explainer.** A plain-language description of what the encryption does and doesn't protect: not end-to-end from the sender, some metadata still visible, no recovery without the key, not independently audited.
 - **Phosphor theme.** A retro terminal look: amber phosphor on near-black in dark mode, soft graphite on warm-grey paper in light mode (softened to reduce glare), self-hosted IBM Plex Mono/Sans, and WCAG AA contrast locked in by tests.
+- **Ghost envelope icon.** An SVG favicon and header mark (coloured by the theme accent), with generated PWA, maskable, Apple touch and `.ico` fallbacks replacing upstream's logo.
 - **Cleaner, simpler UI.** A quieter interface built around the address bar and the inbox, with settings consolidated into drawers, the public logo-click entry to the admin page removed, and the upstream community links removed from the About modal.
 
 ### Fixes

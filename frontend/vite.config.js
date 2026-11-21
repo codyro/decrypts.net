@@ -48,6 +48,7 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: null,
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       devOptions: {
         enabled: false
       },
@@ -66,9 +67,27 @@ export default defineConfig({
         background_color: '#0B0B0C',
         icons: [
           {
-            src: '/logo.png',
+            src: '/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: '/favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml'
           }
         ]
       }
