@@ -14,6 +14,8 @@ release notes the upstream release tag it is based on.
 
 ## Unreleased
 
+## 1.0.0 — 2026-11-21 (based on upstream v1.14.0)
+
 ### Fixes
 
 - Admin user deletion (`DELETE /admin/users/:user_id`) no longer leaves orphaned rows: it now removes the user's passkeys and role bindings (plus key backups and address bindings) through the same shared helper as burn account, and accepts an explicit optional `"burn_addresses": true` body flag to also delete the bound mailboxes with their data instead of only unlinking them.
