@@ -392,8 +392,8 @@ export const MESSAGE_REGISTRY = {
   },
   "components.KeyBackupHost": {
     "createdTitle": {
-      "en": "End-to-End Encryption Enabled",
-      "zh": "已启用端到端加密"
+      "en": "Mail Encryption Enabled",
+      "zh": "已启用邮件加密"
     },
     "createdTip": {
       "en": "Save the decryption link below somewhere safe. Opening it on another device imports the decryption key there. Anyone with this link can read your encrypted mail.",
@@ -580,7 +580,7 @@ export const MESSAGE_REGISTRY = {
     },
     "lockedMissingKey": {
       "en": "This mail is encrypted and the decryption key is not on this device.",
-      "zh": "此邮件已端到端加密，此设备上没有解密密钥。"
+      "zh": "此邮件已加密，此设备上没有解密密钥。"
     },
     "lockedDecryptFailed": {
       "en": "This mail could not be decrypted with the stored key.",
@@ -908,8 +908,8 @@ export const MESSAGE_REGISTRY = {
       "zh": "任何获得此链接的人都可以登录并阅读此地址的加密邮件，请勿分享。"
     },
     "mailEncryption": {
-      "en": "End-to-end encryption",
-      "zh": "端到端加密"
+      "en": "Mail encryption",
+      "zh": "邮件加密"
     },
     "privateKey": {
       "en": "Private key",
@@ -1938,8 +1938,8 @@ export const MESSAGE_REGISTRY = {
       "zh": "成功"
     },
     "mailEncryption": {
-      "en": "End-to-End Mail Encryption",
-      "zh": "端到端邮件加密"
+      "en": "Mail Encryption",
+      "zh": "邮件加密"
     },
     "encryptionUnavailable": {
       "en": "Mail encryption is not enabled on this server.",
@@ -3599,8 +3599,8 @@ export const MESSAGE_REGISTRY = {
       "zh": "任何持有这些链接的人都可访问邮箱。私有部署仍需要站点访问凭据。结果仅保存在内存中，离开此页面或清空后即消失。"
     },
     "encryptBatchCheckbox": {
-      "en": "Encrypt received mail end-to-end (a key pair is generated per address in this browser)",
-      "zh": "端到端加密收到的邮件（每个地址都会在本浏览器中生成一对密钥）"
+      "en": "Encrypt stored mail (a key pair is generated per address in this browser)",
+      "zh": "加密存储的邮件（每个地址都会在本浏览器中生成一对密钥）"
     },
     "encryptBatchWarning": {
       "en": "Only the public keys are sent to the server. The private keys exist only in the export you download afterwards — if it is lost, the mail cannot be recovered.",
@@ -3673,8 +3673,8 @@ export const MESSAGE_REGISTRY = {
       "zh": "创建成功"
     },
     "encryptMailCheckbox": {
-      "en": "Encrypt received mail end-to-end (only the key holder can read it; incompatible with forwarding, webhook, Telegram and AI extraction)",
-      "zh": "端到端加密收到的邮件（只有密钥持有者能阅读；与转发、Webhook、Telegram 和 AI 提取不兼容）"
+      "en": "Encrypt stored mail (only the key holder can decrypt it; incompatible with forwarding, webhook, Telegram and AI extraction)",
+      "zh": "加密存储的邮件（只有密钥持有者能解密；与转发、Webhook、Telegram 和 AI 提取不兼容）"
     },
     "encryptMailWarning": {
       "en": "A key pair is generated in this browser and only the public key is sent to the server. The private key is shown once in the result dialog and is not saved on this device — copy it somewhere safe, or the mail cannot be recovered.",
@@ -4315,16 +4315,16 @@ export const MESSAGE_REGISTRY = {
       "zh": "启用后，创建出来的地址会自动挂在随机子域名下，建议仅用于收件。需要在基础域名 DNS 中配置通配 MX 记录，详见随机子域名文档。"
     },
     "encryptMailCheckbox": {
-      "en": "Encrypt received mail end-to-end (only you can read it; incompatible with forwarding, webhook, Telegram and AI extraction)",
-      "zh": "端到端加密收到的邮件（只有你能阅读；与转发、Webhook、Telegram 和 AI 提取不兼容）"
+      "en": "Encrypt stored mail (only your browser can decrypt it; incompatible with forwarding, webhook, Telegram and AI extraction)",
+      "zh": "加密存储的邮件（只有你的浏览器能解密；与转发、Webhook、Telegram 和 AI 提取不兼容）"
     },
     "encryptMailWarning": {
       "en": "The private key is generated in your browser and never sent to the server. If you lose it, encrypted mail cannot be recovered by anyone.",
       "zh": "私钥在浏览器中生成，绝不会发送到服务器。如果丢失私钥，加密邮件将无法被任何人恢复。"
     },
     "encryptionCreatedTitle": {
-      "en": "End-to-End Encryption Enabled",
-      "zh": "已启用端到端加密"
+      "en": "Mail Encryption Enabled",
+      "zh": "已启用邮件加密"
     },
     "encryptionCreatedTip": {
       "en": "Save the decryption link below somewhere safe. Opening it on another device imports the decryption key there. Anyone with this link can read your encrypted mail.",
@@ -4605,8 +4605,8 @@ export const MESSAGE_REGISTRY = {
       "zh": "每封收到的邮件在存储前都会使用该公钥加密，包括发件人、主题、正文和附件。从该邮箱发送的邮件也会被加密保存。"
     },
     "does3Lead": {
-      "en": "Only you can read it.",
-      "zh": "只有你能阅读。"
+      "en": "Only your browser can decrypt it.",
+      "zh": "只有你的浏览器能解密。"
     },
     "does3": {
       "en": "Your browser holds the private key and decrypts mail on your device. Our server can't read what it has stored.",

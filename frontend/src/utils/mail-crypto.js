@@ -1,5 +1,5 @@
 /**
- * Per-mailbox end-to-end encryption of stored mail (browser side).
+ * Per-mailbox encryption of stored mail (browser side).
  *
  * The private key (base64url PKCS8) lives only in the browser (URL fragment +
  * localStorage) and is never sent to the server. Envelope format and KDF

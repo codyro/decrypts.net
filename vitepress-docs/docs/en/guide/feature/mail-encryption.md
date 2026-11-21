@@ -1,6 +1,6 @@
 # Mailbox Encryption
 
-Optional per-mailbox end-to-end encryption of stored mail: when enabled, the worker holds only the address **public key** and encrypts each incoming mail's whole raw MIME before storing it. The **private key lives only in the browser** (a decryption link shown once at creation + a non-extractable WebCrypto key in IndexedDB), is never sent to any server, and the frontend decrypts and parses mail client-side.
+Optional per-mailbox encryption of stored mail (encryption at rest): when enabled, the worker holds only the address **public key** and encrypts each incoming mail's whole raw MIME before storing it. The **private key lives only in the browser** (a decryption link shown once at creation + a non-extractable WebCrypto key in IndexedDB), is never sent to any server, and the frontend decrypts and parses mail client-side.
 
 Controlled by the worker variable `ENABLE_MAIL_ENCRYPTION`, off by default.
 

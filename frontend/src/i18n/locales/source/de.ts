@@ -14,7 +14,7 @@ export const deMessages = {
   "views.admin.BatchCreate.clearResults": "Ergebnisse leeren",
   "views.admin.BatchCreate.batchTotal": "Gespeicherte Ergebnisse: {count}",
   "views.admin.BatchCreate.batchSecurity": "Jeder mit diesen Links kann auf die Postfächer zugreifen. Private Installationen benötigen weiterhin die Zugangsdaten der Website. Ergebnisse bleiben nur bis zum Verlassen dieser Ansicht oder zum Leeren im Arbeitsspeicher.",
-  "views.admin.BatchCreate.encryptBatchCheckbox": "Empfangene Mails Ende-zu-Ende verschlüsseln (pro Adresse wird ein Schlüsselpaar in diesem Browser erzeugt)",
+  "views.admin.BatchCreate.encryptBatchCheckbox": "Gespeicherte Mails verschlüsseln (pro Adresse wird ein Schlüsselpaar in diesem Browser erzeugt)",
   "views.admin.BatchCreate.encryptBatchWarning": "Nur die öffentlichen Schlüssel werden an den Server gesendet. Die privaten Schlüssel existieren nur in dem anschließend heruntergeladenen Export — geht er verloren, können die Mails nicht wiederhergestellt werden.",
   "views.admin.BatchCreate.batchCsvRawKeysHint": "Hinweis: Die exportierte CSV enthält die unverschlüsselten privaten Schlüssel der verschlüsselten Adressen — bewahre sie sicher auf.",
   "views.admin.BatchExportModal.title": "Anmeldelinks exportieren",

@@ -355,7 +355,7 @@ test.describe('Passkey wrapped key backups (WebAuthn PRF)', () => {
       await page.locator('.n-tabs-tab').getByText('Create Email Address', { exact: true }).click();
       const form = page.locator('.n-tab-pane:visible form');
       await form.locator('.n-input-group .n-input input').fill(uniqueId('pkdanon'));
-      await form.getByText('Encrypt received mail end-to-end', { exact: false }).click();
+      await form.getByText('Encrypt stored mail', { exact: false }).click();
       const createdResponse = page.waitForResponse(
         (response) => new URL(response.url()).pathname === '/api/new_address',
       );

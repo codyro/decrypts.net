@@ -1,5 +1,5 @@
 /**
- * Browser-side store for per-mailbox end-to-end encryption private keys.
+ * Browser-side store for per-mailbox encryption private keys.
  *
  * Private keys are held ONLY as non-extractable CryptoKeys (ECDH P-256,
  * usages ['deriveBits'], extractable: false) persisted in IndexedDB

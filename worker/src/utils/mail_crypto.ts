@@ -1,5 +1,5 @@
 /**
- * Per-mailbox end-to-end encryption of stored mail (worker side).
+ * Per-mailbox encryption of stored mail (worker side).
  *
  * Envelope format (see vitepress-docs guide/feature/mail-encryption.md):
  *   "cfte1." + base64url( ephPubRaw(65B, P-256 uncompressed) || iv(12B) || AES-GCM(ciphertext||tag) )

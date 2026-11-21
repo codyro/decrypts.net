@@ -113,7 +113,7 @@
 | `REMOVE_EXCEED_SIZE_ATTACHMENT` | 文本/JSON | 否       | 如果附件大小超过 2MB，则删除附件，邮件可能由于解析而丢失一些信息           | `false`         | `true`                     |
 | `REMOVE_ALL_ATTACHMENT`         | 文本/JSON | 否       | 移除所有附件，邮件可能由于解析而丢失一些信息                               | `false`         | `true`                     |
 | `ENABLE_MAIL_GZIP`              | 文本/JSON | 否       | 启用后新邮件将 Gzip 压缩存储到 `raw_blob` 字段，可节省 D1 数据库空间。已有明文 `raw` 数据自动兼容读取。**启用前请先执行数据库迁移（`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`），确保 `raw_blob` 列已创建。该功能会增加压缩/解压 CPU 开销，建议使用 Cloudflare Worker 付费 Plan 再开启。** | `false` | `true` |
-| `ENABLE_MAIL_ENCRYPTION`        | 文本/JSON | 否       | 可选的按邮箱端到端加密存储：Worker 只保存邮箱公钥，收到邮件时将整封原始 MIME 加密后再存储（发件箱记录同样加密存储），私钥永不离开浏览器。详见[邮箱加密](./feature/mail-encryption.md)。**启用前请先执行数据库迁移（`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`），确保 `address.encryption_public_key` 列已创建。** | `false` | `true` |
+| `ENABLE_MAIL_ENCRYPTION`        | 文本/JSON | 否       | 可选的按邮箱加密存储（静态加密）：Worker 只保存邮箱公钥，收到邮件时将整封原始 MIME 加密后再存储（发件箱记录同样加密存储），私钥永不离开浏览器。详见[邮箱加密](./feature/mail-encryption.md)。**启用前请先执行数据库迁移（`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`），确保 `address.encryption_public_key` 列已创建。** | `false` | `true` |
 | `DEFAULT_MAIL_ENCRYPTION`       | 文本/JSON | 否       | 仅在同时启用 `ENABLE_MAIL_ENCRYPTION` 时生效：让所有创建界面（登录页、管理端单个/批量创建、Telegram 小程序）的“加密收到的邮件”复选框默认勾选，用户仍可按地址取消勾选。 | `false` | `true` |
 | `CLEANUP_BATCH_SIZE`            | 数字      | 否       | 内置邮件、发件箱及地址清理任务的单次处理上限，有效范围 `1-5000`。较小值可降低单次 D1 压力，较大值可加快积压数据清理 | `3000` | `3000` |
 

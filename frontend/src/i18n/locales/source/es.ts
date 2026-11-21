@@ -14,7 +14,7 @@ export const esMessages = {
   "views.admin.BatchCreate.clearResults": "Borrar resultados",
   "views.admin.BatchCreate.batchTotal": "Resultados guardados: {count}",
   "views.admin.BatchCreate.batchSecurity": "Cualquier persona con estos enlaces puede acceder a los buzones. Las instalaciones privadas siguen requiriendo las credenciales de acceso al sitio. Los resultados solo permanecen en memoria hasta que salgas de esta vista o los borres.",
-  "views.admin.BatchCreate.encryptBatchCheckbox": "Cifrar el correo recibido de extremo a extremo (se genera un par de claves por dirección en este navegador)",
+  "views.admin.BatchCreate.encryptBatchCheckbox": "Cifrar el correo almacenado (se genera un par de claves por dirección en este navegador)",
   "views.admin.BatchCreate.encryptBatchWarning": "Solo las claves públicas se envían al servidor. Las claves privadas solo existen en la exportación que descargues después; si se pierde, el correo no podrá recuperarse.",
   "views.admin.BatchCreate.batchCsvRawKeysHint": "Nota: el CSV exportado contiene las claves privadas sin cifrar de las direcciones cifradas. Guárdalo de forma segura.",
   "views.admin.BatchExportModal.title": "Exportar enlaces de acceso",

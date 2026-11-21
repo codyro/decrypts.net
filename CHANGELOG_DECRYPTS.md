@@ -14,6 +14,10 @@ release notes the upstream release tag it is based on.
 
 ## Unreleased
 
+### Fixes
+
+- Stopped calling the mailbox encryption "end-to-end" in UI copy, translations and docs: mail is encrypted before storage (encryption at rest), so strings now say "Encrypt stored mail" / "Mail encryption" and the same claim was removed from de/es/ja/ptBR translations and the docs. The About page and FAQ honest caveats are unchanged.
+
 ### Features
 
 - **Richer mail metadata in the open-mail view.** From shows as a pill (display name plus address, click to copy), To as an accent pill, and Date in full local form next to a muted mono label. A details area beside the header — a slim icon rail on desktop, a "Details" disclosure with tabs on mobile — shows a Security panel (SPF, DKIM, DMARC, TLS, and ARC/rDNS when reported, with a passed/failed score and per-check explanations) and a Delivery panel (Message-ID, Return-Path, Reply-To, sending server, hop count, size, attachments, List-Unsubscribe). All of it is derived in the browser from the raw MIME headers; only Authentication-Results/ARC-Authentication-Results headers whose authserv-id matches the receiving MTA (`mx.cloudflare.net`) are trusted, and TLS is read from the topmost Received header, so forged sender-side headers are ignored. New `success`/`successSoft` theme tokens carry the passing-check green in both themes.
