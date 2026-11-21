@@ -44,6 +44,7 @@
   - |E2E| 新增 key-backups API 测试（`e2e/api/tests/key-backups.spec.ts`）与 CDP 虚拟验证器 PRF 浏览器测试（`e2e/browser/tests/mail/passkey-key-backup.spec.ts`，覆盖新设备空状态恢复、PRF 不支持提示与仅邮箱访客回退提示）
 - feat: |UI| 前端生产构建启用严格 Content-Security-Policy：构建时注入 meta 标签并生成 `dist/_headers`（Cloudflare Pages 与 Worker `[assets]` 生效，含 `frame-ancestors 'none'`、`X-Content-Type-Options: nosniff`、`Referrer-Policy`），永不包含 `unsafe-eval` 与 script `unsafe-inline`；新增 `VITE_CSP_DISABLED`、`VITE_CSP_EXTRA_SCRIPT_SRC`/`VITE_CSP_EXTRA_CONNECT_SRC`/`VITE_CSP_EXTRA_IMG_SRC`/`VITE_CSP_EXTRA_FRAME_SRC`，并按构建变量（Telegram 构建、`VITE_CF_WEB_ANALY_TOKEN`、`VITE_GOOGLE_AD_CLIENT`、跨域 `VITE_API_BASE`）自动追加来源；开发服务器不受影响
 - feat: |E2E| 新增生产构建 CSP 校验（`security/csp.spec.ts`）与密钥备份（`mail/key-backup.spec.ts`）浏览器测试，新增 `Dockerfile.frontend-preview` 前端预览服务（以生产构建 + CSP 运行浏览器测试）
+- feat: |UI| 页头右侧新增 GitHub 图标按钮链接到 fork 仓库 `codyro/decrypts.net`（遵循 `SHOW_GITHUB` 系列开关，桌面端位于主题/偏好设置按钮旁，移动端收纳进菜单抽屉），页脚版本链接与代理技能文档链接同步指向 fork 仓库；关于对话框底部新增一行致谢：decrypts 基于 cloudflare_temp_email（Dream Hunter，MIT）并链接上游仓库
 
 ### Bug Fixes
 

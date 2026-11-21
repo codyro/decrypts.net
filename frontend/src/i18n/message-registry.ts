@@ -1069,6 +1069,10 @@ export const MESSAGE_REGISTRY = {
       "en": "Status",
       "zh": "状态"
     },
+    "sourceOnGithub": {
+      "en": "Source on GitHub",
+      "zh": "GitHub 源码"
+    },
     "title": {
       "en": "decrypts",
       "zh": "decrypts"
@@ -4399,6 +4403,14 @@ export const MESSAGE_REGISTRY = {
     "retentionDeleted": {
       "en": "Deleted mail can't be recovered. Encrypted mail is deleted the same way.",
       "zh": "已删除的邮件无法恢复，加密邮件也以同样方式删除。"
+    },
+    "upstreamCreditPrefix": {
+      "en": "decrypts is built on ",
+      "zh": "decrypts 基于 "
+    },
+    "upstreamCreditSuffix": {
+      "en": " by Dream Hunter (MIT).",
+      "zh": " 构建，作者为 Dream Hunter（MIT 协议）。"
     }
   }
 } as const

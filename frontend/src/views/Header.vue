@@ -8,9 +8,11 @@ import {
     DarkModeOutlined, LightModeOutlined, MenuRound,
     SettingsOutlined, KeyboardArrowDownOutlined, LanguageRound
 } from '@vicons/material'
+import { GithubAlt } from '@vicons/fa'
 
 import { useGlobalState } from '../store'
 import { api } from '../api'
+import { REPO_URL } from '../constant'
 import { getRouterPathWithLang, hashPassword } from '../utils'
 import { DEFAULT_LOCALE, isSupportedLocale, replaceLocaleInFullPath } from '../i18n/utils'
 import { getLocaleLabel, SUPPORTED_LOCALES } from '../i18n/locale-registry'
@@ -23,7 +25,7 @@ const notification = useNotification()
 const {
     toggleDark, isDark, isTelegram, showAdminPage, showUserSystem,
     showAuth, auth, loading, openSettings, preferredLocale, userSettings,
-    useSideMargin
+    useSideMargin, showGithubForCurrentUser
 } = useGlobalState()
 const route = useRoute()
 const router = useRouter()
@@ -173,6 +175,11 @@ onMounted(async () => {
                         :title="t('preferences')" @click="showPreferences = true">
                         <template #icon><n-icon :component="SettingsOutlined" /></template>
                     </n-button>
+                    <n-button v-if="showGithubForCurrentUser && !isMobile" quaternary circle size="small"
+                        class="header-github-button" tag="a" :href="REPO_URL" target="_blank" rel="noopener noreferrer"
+                        :aria-label="t('sourceOnGithub')" :title="t('sourceOnGithub')">
+                        <template #icon><n-icon :component="GithubAlt" /></template>
+                    </n-button>
                     <n-button v-if="isMobile" quaternary circle :aria-label="t('menu')" :title="t('menu')"
                         @click="showMobileMenu = true">
                         <template #icon><n-icon :component="MenuRound" /></template>
@@ -202,6 +209,12 @@ onMounted(async () => {
                         <n-icon :component="SettingsOutlined" />
                         <span class="mobile-menu-action-label">{{ t('preferences') }}</span>
                     </button>
+                    <a v-if="showGithubForCurrentUser" class="mobile-menu-utility-button mobile-menu-github-link"
+                        :href="REPO_URL" target="_blank" rel="noopener noreferrer" :aria-label="t('sourceOnGithub')"
+                        :title="t('sourceOnGithub')">
+                        <n-icon :component="GithubAlt" />
+                        <span class="mobile-menu-action-label">{{ t('sourceOnGithub') }}</span>
+                    </a>
                 </div>
             </n-drawer-content>
         </n-drawer>
@@ -314,6 +327,9 @@ html.dark .app-title {
 }
 
 .mobile-menu-utility-button:hover { background: var(--app-accent-soft); }
+.header-github-button:hover { color: var(--app-accent); }
+.mobile-menu-github-link { text-decoration: none; }
+.mobile-menu-github-link:hover { color: var(--app-accent); }
 .mobile-menu-action-label { min-width: 0; margin: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mobile-menu-action-arrow { flex: 0 0 auto; margin-left: 2px; }
 

@@ -8,6 +8,7 @@ import { useGlobalState } from '../../store'
 import { sanitizeHtml } from '../../utils/sanitize-html'
 import { buildRetentionSentences } from '../../utils/retention-text'
 import { useScopedI18n } from '@/i18n/app'
+import { UPSTREAM_REPO_URL } from '../../constant'
 
 const { announcement, openSettings } = useGlobalState()
 const { t } = useScopedI18n('views.common.About')
@@ -113,6 +114,11 @@ const keyItems = ['key1', 'key2', 'key3', 'key4']
 
         <p v-else-if="showAppTitleFallback && openSettings.title" class="about__fallback">
             {{ openSettings.title }}
+        </p>
+
+        <p class="about__credit">
+            {{ t('upstreamCreditPrefix') }}<a :href="UPSTREAM_REPO_URL" target="_blank"
+                rel="noopener noreferrer">cloudflare_temp_email</a>{{ t('upstreamCreditSuffix') }}
         </p>
     </div>
 </template>
@@ -302,6 +308,16 @@ const keyItems = ['key1', 'key2', 'key3', 'key4']
 .about__fallback {
     margin: 0;
     text-align: center;
+    color: var(--app-text-3);
+}
+
+.about__credit {
+    margin: 0;
+    border-top: 1px solid var(--app-divider);
+    padding-top: var(--space-4);
+    text-align: center;
+    font-size: var(--font-xs);
+    line-height: 18px;
     color: var(--app-text-3);
 }
 

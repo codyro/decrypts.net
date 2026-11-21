@@ -146,6 +146,11 @@ export const useGlobalState = createGlobalState(
             || userSettings.value.is_admin
             || openSettings.value.disableAdminPasswordCheck
         );
+        const showGithubForCurrentUser = computed(() => {
+            if (!openSettings.value.showGithub) return false
+            if (openSettings.value.showGithubForUser) return true
+            return showAdminPage.value
+        });
         const telegramApp = ref(window.Telegram?.WebApp || {});
         const isTelegram = ref(!!window.Telegram?.WebApp?.initData);
         const _oauth2StateSession = useSessionStorage('userOauth2SessionState', '');
@@ -200,6 +205,7 @@ export const useGlobalState = createGlobalState(
             telegramApp,
             isTelegram,
             showAdminPage,
+            showGithubForCurrentUser,
             showUserSystem,
             showUserMailboxes,
             userOauth2SessionState,

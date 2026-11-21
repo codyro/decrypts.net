@@ -61,12 +61,19 @@ describe('About.vue', () => {
     it('does not render the community links', async () => {
         stubs.openSettings.enableMailEncryption = false
         const html = await renderAbout()
-        expect(html).not.toContain('https://github.com/dreamhunter2333/cloudflare_temp_email')
         expect(html).not.toContain('https://discord.gg/')
         expect(html).not.toContain('https://t.me/')
-        expect(html).not.toContain('Github')
         expect(html).not.toContain('Discord')
         expect(html).not.toContain('Telegram')
+    })
+
+    it('credits the upstream project with a link at the bottom', async () => {
+        stubs.openSettings.enableMailEncryption = false
+        const html = await renderAbout()
+        expect(html).toContain('https://github.com/dreamhunter2333/cloudflare_temp_email')
+        expect(html).toContain('cloudflare_temp_email')
+        expect(html).toContain('rel="noopener noreferrer"')
+        expect(html).toContain('Dream Hunter (MIT).')
     })
 
     it('renders the day counts in the retention sentences', async () => {

@@ -6,6 +6,7 @@ import { APP_CONFIG } from '@/config'
 
 import { useGlobalState } from '../store'
 import { decodeAddressToken } from '../utils/local-address-cache'
+import { REPO_URL } from '../constant'
 import KeyBackupPanel from './KeyBackupPanel.vue'
 
 const props = defineProps({
@@ -49,7 +50,7 @@ const apiBaseUrl = computed(() => (configuredApiBaseUrl || frontendBaseUrl.value
 const docLocale = computed(() => locale.value === 'zh' ? 'zh' : 'en')
 const agentDocUrl = computed(() => `https://temp-mail-docs.awsl.uk/${docLocale.value}/guide/feature/agent-email.html`)
 const smtpImapDocUrl = computed(() => `https://temp-mail-docs.awsl.uk/${docLocale.value}/guide/feature/config-smtp-proxy.html`)
-const agentSkillUrl = 'https://github.com/dreamhunter2333/cloudflare_temp_email/blob/main/skills/cf-temp-mail-agent-mail/SKILL.md'
+const agentSkillUrl = `${REPO_URL}/blob/main/skills/cf-temp-mail-agent-mail/SKILL.md`
 const autoLoginUrl = computed(() => `${frontendBaseUrl.value}/?jwt=${encodeURIComponent(props.jwt)}`)
 // Combined auto-login + decryption link from the in-memory key provided by
 // the caller (e.g. admin just created this encrypted mailbox), independent

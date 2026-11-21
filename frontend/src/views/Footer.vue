@@ -1,23 +1,20 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { GithubAlt } from '@vicons/fa'
 import { useScopedI18n } from '@/i18n/app'
 import { useGlobalState } from '../store'
 import About from './common/About.vue'
 import DOMPurify from 'dompurify'
+import { REPO_URL } from '../constant'
 
-const { openSettings, showAdminPage } = useGlobalState()
+const { openSettings, showGithubForCurrentUser } = useGlobalState()
 const route = useRoute()
 const showAbout = ref(false)
 const { t } = useScopedI18n('views.Footer')
 const { t: headerT } = useScopedI18n('views.Header')
 const { t: indexT } = useScopedI18n('views.Index')
 const version = import.meta.env.PACKAGE_VERSION ? `v${import.meta.env.PACKAGE_VERSION}` : ''
-const showGithubForCurrentUser = computed(() => {
-    if (!openSettings.value.showGithub) return false
-    if (openSettings.value.showGithubForUser) return true
-    return showAdminPage.value
-})
 const showAboutLink = computed(() => openSettings.value.enableIndexAbout || route.path.includes('admin'))
 const aboutModalStyle = computed(() => ({
     width: openSettings.value.enableMailEncryption
@@ -40,8 +37,8 @@ const aboutModalStyle = computed(() => ({
         </template>
         <template v-if="showGithubForCurrentUser">
             <span aria-hidden="true">·</span>
-            <n-button text size="tiny" tag="a" target="_blank" rel="noopener noreferrer"
-                href="https://github.com/dreamhunter2333/cloudflare_temp_email">
+            <n-button text size="tiny" tag="a" target="_blank" rel="noopener noreferrer" :href="REPO_URL">
+                <template #icon><n-icon :component="GithubAlt" /></template>
                 {{ version || 'Github' }}
             </n-button>
         </template>
