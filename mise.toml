@@ -28,12 +28,13 @@ run = "pnpm dev"
 
 [tasks.lint]
 description = "Lint the worker"
+depends = ["install"]
 dir = "worker"
 run = "pnpm lint"
 
 [tasks.test]
 description = "Worker lint + frontend unit tests"
-depends = ["lint"]
+depends = ["install", "lint"]
 dir = "frontend"
 run = "pnpm test"
 
@@ -44,6 +45,7 @@ run = ["npm install", "npm test", "npm run test:down"]
 
 [tasks.build]
 description = "Production frontend build + worker dry-run bundle"
+depends = ["install"]
 run = [
   "pnpm --dir frontend build",
   "pnpm --dir worker build",
