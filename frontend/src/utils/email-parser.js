@@ -77,6 +77,17 @@ function humanFileSize(size) {
     return parseFloat((size / Math.pow(1024, i)).toFixed(2)) + ' ' + ['B', 'KB', 'MB', 'GB', 'TB'][i];
 }
 
+export { humanFileSize };
+
+// Header lists from both parser paths normalised to [{ key, value }]; the
+// mail view derives sender pills and SPF/DKIM/DMARC/TLS details from them.
+const normalizeHeaders = (headers) => (Array.isArray(headers) ? headers : [])
+    .map((header) => ({
+        key: typeof header?.key === 'string' ? header.key : '',
+        value: typeof header?.value === 'string' ? header.value : '',
+    }))
+    .filter((header) => header.key.length > 0);
+
 export async function processItem(item) {
     // Decrypt first when the raw MIME is a "cfte1." envelope; the plaintext
     // parsing below then runs unchanged. Locked mails return early so the
@@ -96,6 +107,7 @@ export async function processItem(item) {
         item.subject = parsedEmail.subject || '';
         item.message = parsedEmail.body_html || parsedEmail.text || '';
         item.text = parsedEmail.text || '';
+        item.headers = normalizeHeaders(parsedEmail.headers);
         item.attachments = parsedEmail.attachments?.map((a_item) => {
             const blob = new Blob(
                 [a_item.content],
@@ -130,6 +142,7 @@ export async function processItem(item) {
         item.subject = parsedEmail.subject || 'No Subject';
         item.message = parsedEmail.html || parsedEmail.text || item.raw;
         item.text = parsedEmail.text || '';
+        item.headers = normalizeHeaders(parsedEmail.headers);
         item.attachments = parsedEmail.attachments?.map((a_item) => {
             const blob = new Blob(
                 [a_item.content],

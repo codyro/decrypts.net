@@ -52,6 +52,11 @@ describe('theme tokens meet WCAG AA contrast', () => {
         assertAa(tokens.accent, tokens.surface, `${name} accent/surface`)
       })
 
+      it('success passes AA on bg and surface (auth check badges)', () => {
+        assertAa(tokens.success, tokens.bg, `${name} success/bg`)
+        assertAa(tokens.success, tokens.surface, `${name} success/surface`)
+      })
+
       it('primary button text passes AA on the accent fill', () => {
         assertAa(tokens.onAccent, tokens.accent, `${name} onAccent/accent`)
       })

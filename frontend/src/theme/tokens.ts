@@ -19,6 +19,8 @@ export const lightTokens = {
   warningSoft: 'rgba(156, 74, 26, 0.06)',
   danger: '#9E3B46',
   dangerSoft: 'rgba(158, 59, 70, 0.06)',
+  success: '#2F6B3A',
+  successSoft: 'rgba(47, 107, 58, 0.07)',
   shadowRaised: '0 1px 2px rgba(30,28,24,.04), 0 6px 18px rgba(30,28,24,.07)',
 }
 
@@ -43,6 +45,8 @@ export const darkTokens: AppTokens = {
   warningSoft: 'rgba(255, 120, 71, 0.10)',
   danger: '#E47373',
   dangerSoft: 'rgba(228, 115, 115, 0.10)',
+  success: '#84C68A',
+  successSoft: 'rgba(132, 198, 138, 0.12)',
   shadowRaised: '0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.5)',
 }
 

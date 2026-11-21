@@ -58,4 +58,22 @@ describe('PostalMime fallback', () => {
         expect(await item.attachments[1].blob.text()).toBe(attachedMail);
         expect(item.attachments[0].blob.type).toBe('image/png');
     });
+
+    it('keeps the full header list for the mail metadata panels', async () => {
+        const raw = [
+            'Received: from relay.example (relay.example [192.0.2.1]) by mx.cloudflare.net (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256); Mon, 01 Jan 2024 00:00:01 +0000',
+            'Authentication-Results: mx.cloudflare.net; spf=pass smtp.mailfrom=example.com',
+            'From: Sender <first@example.com>',
+            'Subject: Headers',
+            'Content-Type: text/plain; charset=utf-8', '', 'body',
+        ].join('\r\n');
+        const item = await processItem({ raw, source: 'bounce@transport.example' });
+        expect(item.headers).toEqual([
+            { key: 'received', value: expect.stringContaining('relay.example') },
+            { key: 'authentication-results', value: expect.stringContaining('spf=pass') },
+            { key: 'from', value: 'Sender <first@example.com>' },
+            { key: 'subject', value: 'Headers' },
+            { key: 'content-type', value: 'text/plain; charset=utf-8' },
+        ]);
+    });
 });

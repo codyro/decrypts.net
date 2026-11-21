@@ -617,6 +617,122 @@ export const MESSAGE_REGISTRY = {
     "copyCodeFailed": {
       "en": "Copy failed",
       "zh": "复制失败"
+    },
+    "date": {
+      "en": "Date",
+      "zh": "日期"
+    },
+    "copyAddress": {
+      "en": "Copy address",
+      "zh": "复制邮箱地址"
+    },
+    "addressCopied": {
+      "en": "Address copied",
+      "zh": "邮箱地址已复制"
+    },
+    "details": {
+      "en": "Details",
+      "zh": "详情"
+    },
+    "security": {
+      "en": "Security",
+      "zh": "安全"
+    },
+    "delivery": {
+      "en": "Delivery",
+      "zh": "投递"
+    },
+    "authScorePassed": {
+      "en": "{passed}/{total} passed",
+      "zh": "{passed}/{total} 项通过"
+    },
+    "authScoreFailed": {
+      "en": "{passed}/{total} passed · {failed} failed",
+      "zh": "{passed}/{total} 项通过 · {failed} 项失败"
+    },
+    "authNotReported": {
+      "en": "Not reported",
+      "zh": "未报告"
+    },
+    "authNoteTrusted": {
+      "en": "Checks reported by the receiving server ({server}).",
+      "zh": "由接收服务器（{server}）报告的检查结果。"
+    },
+    "authNoteUntrusted": {
+      "en": "No authentication results from the receiving server; sender-side headers are not trusted.",
+      "zh": "没有来自接收服务器的认证结果；发件侧的头部字段不可信。"
+    },
+    "tlsNotReported": {
+      "en": "TLS: not reported",
+      "zh": "TLS：未报告"
+    },
+    "spfTip": {
+      "en": "SPF: whether the sender's domain allows this server to send its mail",
+      "zh": "SPF：发件域名是否允许该服务器代其发信"
+    },
+    "dkimTip": {
+      "en": "DKIM: whether the message's cryptographic signature verifies",
+      "zh": "DKIM：邮件的加密签名能否验证通过"
+    },
+    "dmarcTip": {
+      "en": "DMARC: whether the mail aligns with the sender's domain policy",
+      "zh": "DMARC：邮件是否符合发件域名的策略要求"
+    },
+    "tlsTip": {
+      "en": "TLS: encryption on the connection that delivered this mail to the receiving server",
+      "zh": "TLS：邮件送达接收服务器所用连接是否加密"
+    },
+    "arcTip": {
+      "en": "ARC: whether the authenticated forwarding chain stays valid",
+      "zh": "ARC：经过认证的转发链是否仍然有效"
+    },
+    "iprevTip": {
+      "en": "rDNS: whether the sender's IP matches its reverse DNS, as verified by the receiving server",
+      "zh": "rDNS：发件 IP 的反向 DNS 是否与之一致（由接收服务器验证）"
+    },
+    "resultPass": {
+      "en": "pass",
+      "zh": "通过"
+    },
+    "resultFail": {
+      "en": "fail",
+      "zh": "失败"
+    },
+    "resultSoftfail": {
+      "en": "softfail",
+      "zh": "软失败"
+    },
+    "resultNeutral": {
+      "en": "neutral",
+      "zh": "中立"
+    },
+    "resultNone": {
+      "en": "none (no policy published)",
+      "zh": "无（未发布策略）"
+    },
+    "resultTemperror": {
+      "en": "temporary error",
+      "zh": "临时错误"
+    },
+    "resultPermerror": {
+      "en": "permanent error",
+      "zh": "永久错误"
+    },
+    "resultNotReported": {
+      "en": "not reported",
+      "zh": "未报告"
+    },
+    "sendingServer": {
+      "en": "Sending server",
+      "zh": "发件服务器"
+    },
+    "hops": {
+      "en": "Hops",
+      "zh": "中转跳数"
+    },
+    "unsubscribe": {
+      "en": "Unsubscribe",
+      "zh": "退订"
     }
   },
   "components.ShortcutsOverlay": {
