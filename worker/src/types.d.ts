@@ -107,6 +107,10 @@ type Bindings = {
     SMTP_CONFIG: string | object | undefined
     SEND_MAIL_DOMAINS: string | string[] | undefined
 
+    // CORS: JSON array of exact origins allowed cross-origin access.
+    // Unset or empty keeps the historical unrestricted `*` behaviour.
+    CORS_ALLOWED_ORIGINS: string | string[] | undefined
+
     // telegram config
     TELEGRAM_BOT_TOKEN: string
     TG_MAX_ADDRESS: number | undefined

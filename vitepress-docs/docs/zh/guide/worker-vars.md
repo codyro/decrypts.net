@@ -61,6 +61,7 @@
 | `ENABLE_AGENT_EMAIL_INFO`             | 文本/JSON | 否       | 是否在前端“地址凭证与连接方式”弹窗中展示 AI Agent 接入信息（Address JWT、parsed-mail API、skill 链接）                             | `false`         | `true`                                    |
 | `SMTP_IMAP_PROXY_CONFIG`              | JSON      | 否       | 在前端“地址凭证与连接方式”弹窗中展示 SMTP/IMAP 代理连接信息；仅用于展示给用户，不会启动代理服务，代理服务仍需单独部署               | 空，不展示      | 见下方示例                                |
 | `SEND_MAIL_DOMAINS`                   | JSON      | 否       | 限制 `SEND_MAIL` binding 可用于哪些发件域名                                                                                        | `[]`，允许所有域名 | `["example.com", "mail.example.com"]`   |
+| `CORS_ALLOWED_ORIGINS`                | JSON      | 否       | 允许哪些源（origin）的浏览器页面跨域调用 API。未设置或为空数组时保持历史的 `*` 行为（前端单独部署为 Pages 时需要）；同源部署建议设置为站点源。不带 `Origin` 头的请求不受影响 | 未设置；`Access-Control-Allow-Origin: *` | `["https://decrypts.net"]`；本地开发：`["http://localhost:5173"]` |
 
 > [!NOTE]
 > `DEFAULT_DOMAINS` 未配置或配置为空数组时，会回退使用 `DOMAINS`。

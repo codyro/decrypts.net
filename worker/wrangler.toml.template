@@ -24,6 +24,14 @@ keep_vars = true
 # SEND_MAIL_DOMAINS = ["example.com", "mail.example.com"]
 
 [vars]
+# CORS allow-list: JSON array of exact origins that may call the API from a
+# browser. Unset or empty keeps the historical unrestricted `*` behaviour.
+# Set it to your frontend origin(s) when the worker also serves the frontend
+# from the same origin, e.g.:
+# CORS_ALLOWED_ORIGINS = ["https://decrypts.net"]
+# For local dev against Vite (:5173), use:
+# CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+
 # DEFAULT_LANG = "zh"
 # TITLE = "Custom Title" # custom title
 # ANNOUNCEMENT = "Custom Announcement"

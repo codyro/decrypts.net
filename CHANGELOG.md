@@ -10,6 +10,9 @@
 
 ### Features
 
+- feat: |安全| 新增 Worker 变量 `CORS_ALLOWED_ORIGINS`（JSON 精确源数组）：未设置或为空保持历史的 `Access-Control-Allow-Origin: *`（前端单独部署为 Pages 时兼容）；设置后仅白名单源返回 CORS 头（回显源并带 `Vary: Origin`），无 `Origin` 头的请求（curl、脚本、同源 GET）不受影响；同源部署建议设为站点源（如 `["https://decrypts.net"]`，本地开发为 `["http://localhost:5173"]`）
+- feat: |安全| 加固 HTTP 安全头：`_headers` 新增 `Strict-Transport-Security: max-age=31536000`（不含 includeSubDomains/preload）、`Permissions-Policy`（禁用 camera/microphone/geolocation/payment/usb/serial/bluetooth/browsing-topics，保留 WebAuthn `publickey-credentials-get/create=(self)`，不限制 clipboard）、`Cross-Origin-Opener-Policy: same-origin`（无跨域 window.opener 依赖：OAuth2 为整页跳转，仅两处 `window.open` 打开外部文档）、`X-Frame-Options: DENY`（Telegram 构建随 `frame-ancestors` 一并省略）；`/assets/*` 哈希资源缓存改为 `max-age=31536000, immutable`，HTML/SW/manifest 保持 revalidate；Worker 生成的 API 响应统一补充 `X-Content-Type-Options: nosniff`、`Referrer-Policy: strict-origin-when-cross-origin`、`X-Frame-Options: DENY`（不覆盖 assets 绑定已设置的头部）
+
 - feat: |UI| 收件箱体验三合一：加密邮件在浏览器本地识别验证码与验证/登录链接（邮件列表行内一键复制的等宽字芯片 + 邮件视图展示链接域名，`noopener noreferrer` 打开；全程不发送任何内容，可在偏好设置关闭，默认开启）；新邮件提醒（自动刷新发现未读邮件时标签页标题加 `(n)` 前缀，返回标签页后恢复；可选浏览器通知仅提示"某地址有新邮件"，绝不包含发件人与主题）；收件箱键盘快捷键（`c` 复制地址、`r` 刷新、`j`/`k` 切换上一封/下一封、`Enter`/`o` 打开、`Esc` 关闭、`/` 聚焦过滤框、`?` 打开快捷键帮助，输入框与弹窗打开时自动忽略）
 - feat: |邮箱加密| 新增 `DEFAULT_MAIL_ENCRYPTION` 部署者选项：与 `ENABLE_MAIL_ENCRYPTION` 同时启用时，登录页、管理端单个/批量创建、Telegram 小程序的“加密收到的邮件”复选框默认勾选（用户仍可按地址取消勾选）；`GET /open_api/settings` 新增 `defaultMailEncryption` 字段
 - feat: |UI| 网站如实展示邮件与地址的保留时长：`GET /open_api/settings` 新增由自动清理配置生成的 `retention` 字段（仅含已启用且天数为正数的规则，未启用任何规则时为 `null`）；登录页“如何使用”标签页与关于对话框据此显示自动删除说明（含单复数天数，en/zh i18n），关于对话框同时说明已删除邮件无法恢复

@@ -119,12 +119,48 @@ describe('buildHeadersFile', () => {
     expect(headers).toContain(`Content-Security-Policy: ${policy}; frame-ancestors 'none'`)
     expect(headers).toContain('X-Content-Type-Options: nosniff')
     expect(headers).toContain('Referrer-Policy: strict-origin-when-cross-origin')
+    expect(headers).toContain('X-Frame-Options: DENY')
+    expect(headers).toContain('Strict-Transport-Security: max-age=31536000')
+    // no includeSubDomains/preload: mail subdomains may exist without web
+    expect(headers).not.toMatch(/Strict-Transport-Security:.*(includeSubDomains|preload)/)
   })
 
-  it('omits frame-ancestors for the Telegram build', () => {
+  it('locks down Permissions-Policy while keeping WebAuthn and clipboard', () => {
+    const headers = buildHeadersFile({ policy, isTelegram })
+    expect(headers).toContain('Permissions-Policy:')
+    for (const feature of ['camera', 'microphone', 'geolocation', 'payment', 'usb', 'serial', 'bluetooth', 'browsing-topics']) {
+      expect(headers).toContain(`${feature}=()`)
+    }
+    expect(headers).toContain('publickey-credentials-get=(self)')
+    expect(headers).toContain('publickey-credentials-create=(self)')
+    // clipboard (copy buttons) must stay allowed
+    expect(headers).not.toContain('clipboard')
+    // notifications are not controlled by Permissions-Policy; never restrict them
+    expect(headers).not.toContain('notifications')
+  })
+
+  it('uses COOP same-origin', () => {
+    const headers = buildHeadersFile({ policy, isTelegram })
+    expect(headers).toContain('Cross-Origin-Opener-Policy: same-origin')
+  })
+
+  it('caches content-hashed assets immutably but leaves HTML/SW revalidating', () => {
+    const headers = buildHeadersFile({ policy, isTelegram })
+    expect(headers).toContain('/assets/*')
+    expect(headers).toContain('Cache-Control: public, max-age=31536000, immutable')
+    // single Cache-Control rule only, applying to /assets/* glob
+    expect(headers.match(/Cache-Control:/g)).toHaveLength(1)
+  })
+
+  it('omits frame-ancestors and X-Frame-Options for the Telegram build', () => {
     const telegram = buildCspPolicy({ ...baseEnv, VITE_IS_TELEGRAM: 'true' })
     const headers = buildHeadersFile(telegram)
     expect(headers).toContain(`Content-Security-Policy: ${telegram.policy}`)
     expect(headers).not.toContain('frame-ancestors')
+    expect(headers).not.toContain('X-Frame-Options')
+    // HSTS/COOP/Permissions-Policy still apply to the Telegram build
+    expect(headers).toContain('Strict-Transport-Security: max-age=31536000')
+    expect(headers).toContain('Cross-Origin-Opener-Policy: same-origin')
+    expect(headers).toContain('Permissions-Policy:')
   })
 })

@@ -161,14 +161,38 @@ export const buildHeadersFile = ({ policy, isTelegram }) => {
   // frame-ancestors cannot be expressed by a meta tag, so the meta policy
   // omits it; the _headers file adds it unless the app is embedded by
   // Telegram clients (which require frame-ancestors * or the client origin).
+  // X-Frame-Options is the legacy companion and follows the same rule.
+  //
+  // HSTS: no includeSubDomains/preload — mail subdomains may exist without
+  // a web origin. Permissions-Policy: WebAuthn passkeys stay allowed for
+  // same-origin documents (the directive is ignored where unsupported);
+  // clipboard is deliberately not restricted (copy buttons). COOP
+  // same-origin: no flow relies on cross-origin window.opener (OAuth2 login
+  // is a full redirect, the two window.open calls open external docs in new
+  // tabs without using the opener).
   const fullPolicy = isTelegram ? policy : `${policy}; frame-ancestors 'none'`
-  return [
+  const headers = [
     '/*',
     `  Content-Security-Policy: ${fullPolicy}`,
     `  X-Content-Type-Options: nosniff`,
     `  Referrer-Policy: strict-origin-when-cross-origin`,
+    `  Strict-Transport-Security: max-age=31536000`,
+    // WebAuthn: publickey-credentials-create is honoured by supporting
+    // browsers and ignored (not "unknown-feature" fatal) elsewhere.
+    `  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=(), publickey-credentials-get=(self), publickey-credentials-create=(self)`,
+    `  Cross-Origin-Opener-Policy: same-origin`,
+  ]
+  if (!isTelegram) {
+    headers.push(`  X-Frame-Options: DENY`)
+  }
+  // Hashed assets are content-addressed and can be cached forever; the HTML
+  // entry point, service worker and manifest stay revalidating.
+  headers.push(
     '',
-  ].join('\n')
+    '/assets/*',
+    `  Cache-Control: public, max-age=31536000, immutable`,
+  )
+  return headers.join('\n')
 }
 
 export default function cspPlugin() {

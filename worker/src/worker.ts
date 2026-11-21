@@ -1,6 +1,7 @@
 import { Context, Hono } from 'hono'
 import { cors } from 'hono/cors';
 import { Jwt } from 'hono/utils/jwt'
+import { getCorsAllowedOrigins, resolveCorsOrigin } from './utils/cors';
 import { addressJwtAuth } from './address_auth';
 
 import { api as commonApi } from './commom_api';
@@ -31,7 +32,31 @@ const API_PATHS = [
 
 const app = new Hono<HonoCustomType>()
 //cors
-app.use('/*', cors());
+// CORS_ALLOWED_ORIGINS is a JSON array of exact origins (see utils/cors.ts).
+// Unset or empty keeps the historical unrestricted `*` behaviour, so
+// deployments with a separate Pages frontend keep working. When set, only
+// listed origins receive CORS headers; requests without an Origin header
+// (curl, scripts, same-origin GETs) are unaffected either way.
+app.use('/*', cors({
+	origin: (origin, c) => resolveCorsOrigin(
+		getCorsAllowedOrigins(c.env.CORS_ALLOWED_ORIGINS), origin
+	),
+}));
+// security headers for worker-generated (JSON/text) responses. Static asset
+// responses come back from the ASSETS binding with frontend/dist/_headers
+// already applied, so never override headers that are already set.
+app.use('/*', async (c, next) => {
+	await next();
+	if (!c.res.headers.has('X-Content-Type-Options')) {
+		c.res.headers.set('X-Content-Type-Options', 'nosniff');
+	}
+	if (!c.res.headers.has('Referrer-Policy')) {
+		c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+	}
+	if (!c.res.headers.has('X-Frame-Options')) {
+		c.res.headers.set('X-Frame-Options', 'DENY');
+	}
+});
 // error handler
 app.onError((err, c) => {
 	console.error(err)
