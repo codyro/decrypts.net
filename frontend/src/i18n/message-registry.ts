@@ -4052,6 +4052,28 @@ export const MESSAGE_REGISTRY = {
       "zh": "如果你需要帮助，请联系管理员 ({msg})"
     }
   },
+  "utils.retentionText": {
+    "mails": {
+      "en": "Mail is deleted automatically after {days} day. | Mail is deleted automatically after {days} days.",
+      "zh": "邮件会在 {days} 天后被自动删除。 | 邮件会在 {days} 天后被自动删除。"
+    },
+    "sendbox": {
+      "en": "Sent mail is kept for {days} day. | Sent mail is kept for {days} days.",
+      "zh": "已发送的邮件保留 {days} 天。 | 已发送的邮件保留 {days} 天。"
+    },
+    "inactiveAddresses": {
+      "en": "Addresses unused for {days} day are removed. | Addresses unused for {days} days are removed.",
+      "zh": "超过 {days} 天未使用的地址会被移除。 | 超过 {days} 天未使用的地址会被移除。"
+    },
+    "addresses": {
+      "en": "Addresses are removed {days} day after creation. | Addresses are removed {days} days after creation.",
+      "zh": "地址创建 {days} 天后会被移除。 | 地址创建 {days} 天后会被移除。"
+    },
+    "unboundAddresses": {
+      "en": "Addresses not linked to an account are removed after {days} day. | Addresses not linked to an account are removed after {days} days.",
+      "zh": "未绑定账号的地址会在 {days} 天后被移除。 | 未绑定账号的地址会在 {days} 天后被移除。"
+    }
+  },
   "views.common.About": {
     "encryptionTitle": {
       "en": "Encrypted mailboxes",
@@ -4176,6 +4198,18 @@ export const MESSAGE_REGISTRY = {
     "encryptionFinePrint": {
       "en": "Uses standard browser cryptography (P-256 ECDH, AES-256-GCM). It has not been independently audited. Mailboxes without encryption work exactly as before.",
       "zh": "使用标准浏览器密码学（P-256 ECDH、AES-256-GCM），未经独立安全审计。未加密的邮箱与之前完全一样。"
+    },
+    "retentionTitle": {
+      "en": "Data retention",
+      "zh": "数据保留"
+    },
+    "retentionLead": {
+      "en": "Mail deletes itself.",
+      "zh": "邮件会自动删除。"
+    },
+    "retentionDeleted": {
+      "en": "Deleted mail can't be recovered. Encrypted mail is deleted the same way.",
+      "zh": "已删除的邮件无法恢复，加密邮件也以同样方式删除。"
     }
   }
 } as const

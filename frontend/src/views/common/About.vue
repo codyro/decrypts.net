@@ -2,17 +2,22 @@
 import { computed, unref } from 'vue'
 import {
     LockOutlined, ShieldOutlined, WarningAmberRound, KeyOutlined,
-    CheckCircleOutlineRound, WarningOutlined, ErrorOutlineRound,
+    CheckCircleOutlineRound, WarningOutlined, ErrorOutlineRound, AutoDeleteOutlined,
 } from '@vicons/material'
 import { useGlobalState } from '../../store'
 import { sanitizeHtml } from '../../utils/sanitize-html'
+import { buildRetentionSentences } from '../../utils/retention-text'
 import { useScopedI18n } from '@/i18n/app'
 
 const { announcement, openSettings } = useGlobalState()
 const { t } = useScopedI18n('views.common.About')
+const { t: retentionT } = useScopedI18n('utils.retentionText')
 const safeAnnouncement = computed(() => sanitizeHtml(announcement.value))
 const showAppTitleFallback = computed(() =>
     !safeAnnouncement.value && !unref(openSettings)?.enableMailEncryption
+)
+const retentionSentences = computed(() =>
+    buildRetentionSentences(unref(openSettings)?.retention, retentionT)
 )
 
 const doesItems = ['does1', 'does2', 'does3']
@@ -85,6 +90,25 @@ const keyItems = ['key1', 'key2', 'key3', 'key4']
             </div>
 
             <p class="enc__fine caption">{{ t('encryptionFinePrint') }}</p>
+        </section>
+
+        <section v-if="retentionSentences.length > 0" class="panel enc-panel retention-panel">
+            <h3 class="enc-panel__title enc-panel__title--accent">
+                <n-icon :component="AutoDeleteOutlined" :size="18" />
+                {{ t('retentionTitle') }}
+            </h3>
+            <ul class="enc-list">
+                <li class="enc-item">
+                    <n-icon class="enc-item__icon enc-item__icon--accent" :component="CheckCircleOutlineRound"
+                        :size="15" />
+                    <p class="enc-item__text"><strong>{{ t('retentionLead') }}</strong>
+                        {{ retentionSentences.join(' ') }}</p>
+                </li>
+                <li class="enc-item">
+                    <n-icon class="enc-item__icon enc-item__icon--warning" :component="WarningOutlined" :size="15" />
+                    <p class="enc-item__text">{{ t('retentionDeleted') }}</p>
+                </li>
+            </ul>
         </section>
 
         <p v-else-if="showAppTitleFallback && openSettings.title" class="about__fallback">

@@ -11,6 +11,7 @@
 ### Features
 
 - feat: |邮箱加密| 新增 `DEFAULT_MAIL_ENCRYPTION` 部署者选项：与 `ENABLE_MAIL_ENCRYPTION` 同时启用时，登录页、管理端单个/批量创建、Telegram 小程序的“加密收到的邮件”复选框默认勾选（用户仍可按地址取消勾选）；`GET /open_api/settings` 新增 `defaultMailEncryption` 字段
+- feat: |UI| 网站如实展示邮件与地址的保留时长：`GET /open_api/settings` 新增由自动清理配置生成的 `retention` 字段（仅含已启用且天数为正数的规则，未启用任何规则时为 `null`）；登录页“如何使用”标签页与关于对话框据此显示自动删除说明（含单复数天数，en/zh i18n），关于对话框同时说明已删除邮件无法恢复
 - feat: |UI| 重写登录页“帮助”标签为“如何使用”快速上手（01/02/03 等宽编号步骤 + 加密邮箱警示块），文案全部走 i18n（en/zh），并可通过按钮直接打开关于对话框
 
 - feat: |UI| Phosphor 终端复古主题：暗色模式为近黑显像管 + 琥珀荧光强调色，浅色模式为暖色打印纸 + 焦琥珀强调色；IBM Plex Mono/Sans 通过 npm 自托管（仅拉丁子集，无远程字体）；邮箱地址栏闪烁块光标、页头 `>_` 符号、暗色模式荧光微光与极淡扫描线；新增令牌对比度测试锁定 WCAG AA 标准

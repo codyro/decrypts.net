@@ -114,3 +114,5 @@
     > 选择 `cron` 表达式，输入 `0 0 * * *`（此表达式表示每天午夜运行），点击 `Add` 增加。请根据您的需求调整此表达式。
     >
     > 只在 admin 页面开启自动清理配置还不够，必须添加 Cron Trigger 后 Worker 的 `scheduled` 事件才会运行。D1 到达容量上限后会出现 `D1_ERROR: Exceeded maximum DB size`，新邮件无法继续写入，表现为“突然收不到邮件；删除几封后恢复”。
+    >
+    > 这里配置的数值也会展示给访问者：`GET /open_api/settings` 会返回由已启用清理规则生成的 `retention` 对象（例如 `{ "mailsDays": 7, "inactiveAddressDays": 30 }`），网站会在登录帮助标签页和关于面板中显示这些保留时长。未启用任何清理规则时该字段为 `null`，自定义 SQL 清理任务不会被公开。

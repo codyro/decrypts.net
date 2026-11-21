@@ -114,3 +114,5 @@
     > Select `cron` expression, enter `0 0 * * *` (this expression means run daily at midnight), click `Add` to add. Please adjust this expression according to your needs.
     >
     > Enabling auto cleanup in the admin page is not enough by itself. You must add a Cron Trigger so the Worker's `scheduled` event actually runs. When D1 reaches its size limit, writes fail with `D1_ERROR: Exceeded maximum DB size`, new mails cannot be stored, and the symptom is "mail suddenly stops arriving; deleting a few mails makes it work again".
+    >
+    > The values configured here are also published to visitors: `GET /open_api/settings` returns a `retention` object (e.g. `{ "mailsDays": 7, "inactiveAddressDays": 30 }`) built from the enabled cleanup rules, and the website shows these retention periods in the login help tab and the About panel. It is `null` when no cleanup rule is enabled, and custom SQL cleanup tasks are never exposed.

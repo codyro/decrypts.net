@@ -131,6 +131,7 @@ const getOpenSettings = async (message, notification) => {
             statusUrl: res["statusUrl"] || "",
             enableGlobalTurnstileCheck: res["enableGlobalTurnstileCheck"] || false,
             defaultMailEncryption: res["defaultMailEncryption"] || false,
+            retention: res["retention"] || null,
         });
         if (openSettings.value.needAuth) {
             showAuth.value = true;

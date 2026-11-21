@@ -11,6 +11,7 @@
 ### Features
 
 - feat: |Mailbox Encryption| Add the `DEFAULT_MAIL_ENCRYPTION` operator option: together with `ENABLE_MAIL_ENCRYPTION`, it defaults the "encrypt received mail" checkbox to checked on the login page, admin single/batch creation and the Telegram mini-app (users can still uncheck it per address); `GET /open_api/settings` gains a `defaultMailEncryption` field
+- feat: |UI| Show honest mail and address retention on the website: `GET /open_api/settings` gains a `retention` field derived from the auto-cleanup settings (only enabled rules with positive days, `null` when none are enabled); the login "How it works" tab and the About dialog render the generated sentences (singular/plural days, en/zh i18n), and the About dialog notes deleted mail can't be recovered
 - feat: |UI| Rewrite the Login "Help" tab as a "How it works" quick-start (mono 01/02/03 numbered steps plus an encrypted-mailboxes warning block), all copy in i18n (en/zh), with a button that opens the About dialog
 
 - feat: |UI| Phosphor terminal retro theme: near-black tube with amber phosphor accent in dark mode, warm printout paper with burnt-amber accent in light mode; IBM Plex Mono/Sans self-hosted via npm (latin subset, no remote fonts); blinking block cursor on the mailbox address, `>_` header glyph, phosphor glow and faint scanlines in dark mode; WCAG AA contrast pinned by a token contrast test

@@ -35,6 +35,7 @@ import Turnstile from '../../components/Turnstile.vue'
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { getRouterPathWithLang, hashPassword } from '../../utils'
+import { buildRetentionSentences } from '../../utils/retention-text'
 import { generateKeyPair } from '../../utils/mail-crypto'
 import { randomEmailLocalPart } from '../../utils/random-name'
 import { addPrivateKey } from '../../utils/mail-key-store'
@@ -156,6 +157,13 @@ const login = async () => {
 
 const { locale, t } = useScopedI18n('views.common.Login')
 const { t: indexT } = useScopedI18n('views.Index')
+const { t: retentionT } = useScopedI18n('utils.retentionText')
+
+// How long mails and addresses are kept, straight from the operator's
+// auto-cleanup settings. Empty when auto cleanup is off.
+const retentionSentences = computed(() =>
+    buildRetentionSentences(openSettings.value?.retention, retentionT)
+)
 
 const loginAndBindTag = computed(() => {
     if (userSettings.value.user_email) {
@@ -462,6 +470,9 @@ onMounted(async () => {
                     </ol>
                     <p v-if="openSettings.enableMailEncryption" class="help-step__text help-enc">
                         <strong>{{ t('helpEncryptedLead') }}</strong> {{ t('helpEncrypted') }}
+                    </p>
+                    <p v-if="retentionSentences.length > 0" class="muted help-step__text help-retention">
+                        {{ retentionSentences.join(' ') }}
                     </p>
                     <p class="muted help-footer">
                         {{ t('helpFooterBefore') }}

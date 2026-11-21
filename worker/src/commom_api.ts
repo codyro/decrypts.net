@@ -1,10 +1,35 @@
 import { Hono } from 'hono'
 
 import utils from './utils';
+import { getJsonSetting } from './utils';
 import { CONSTANTS } from './constants';
 import { isS3Enabled } from './mails_api/s3_attachment';
 import { isAnySendMailEnabled } from './common';
 import { getWebhookAttachment } from './open_api/webhook_attachment';
+import { CleanupSettings } from './models';
+
+// Derive the public retention info from the auto-cleanup settings so the
+// website can state exactly how long mails and addresses are kept. Only
+// enabled rules with a positive number of days are exposed; custom SQL
+// cleanup tasks are operator-specific and stay hidden.
+const getRetentionFromCleanupSettings = (
+    settings: CleanupSettings | null
+): Record<string, number> | null => {
+    if (!settings) return null;
+    const retention: Record<string, number> = {};
+    const addRule = (enabled: boolean | undefined, days: unknown, key: string) => {
+        if (enabled && typeof days === 'number' && Number.isFinite(days) && days > 0) {
+            retention[key] = days;
+        }
+    };
+    addRule(settings.enableMailsAutoCleanup, settings.cleanMailsDays, 'mailsDays');
+    addRule(settings.enableUnknowMailsAutoCleanup, settings.cleanUnknowMailsDays, 'unknownMailsDays');
+    addRule(settings.enableSendBoxAutoCleanup, settings.cleanSendBoxDays, 'sendboxDays');
+    addRule(settings.enableInactiveAddressAutoCleanup, settings.cleanInactiveAddressDays, 'inactiveAddressDays');
+    addRule(settings.enableAddressAutoCleanup, settings.cleanAddressDays, 'addressDays');
+    addRule(settings.enableUnboundAddressAutoCleanup, settings.cleanUnboundAddressDays, 'unboundAddressDays');
+    return Object.keys(retention).length > 0 ? retention : null;
+}
 
 const api = new Hono<HonoCustomType>
 
@@ -21,6 +46,7 @@ api.get('/open_api/settings', async (c) => {
     ) || {};
     const smtpProxyConfig = smtpImapProxyConfig.smtp || {};
     const imapProxyConfig = smtpImapProxyConfig.imap || {};
+    const autoCleanupSettings = await getJsonSetting<CleanupSettings>(c, CONSTANTS.AUTO_CLEANUP_KEY);
 
     return c.json({
         "title": c.env.TITLE,
@@ -75,7 +101,8 @@ api.get('/open_api/settings', async (c) => {
             },
         },
         "statusUrl": utils.getStringValue(c.env.STATUS_URL),
-        "enableGlobalTurnstileCheck": utils.isGlobalTurnstileEnabled(c)
+        "enableGlobalTurnstileCheck": utils.isGlobalTurnstileEnabled(c),
+        "retention": getRetentionFromCleanupSettings(autoCleanupSettings)
     });
 })
 
