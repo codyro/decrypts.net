@@ -127,6 +127,7 @@ type Bindings = {
     ENABLE_MAIL_GZIP: string | boolean | undefined
     ENABLE_MAIL_READ_STATUS: string | boolean | undefined
     ENABLE_MAIL_ENCRYPTION: string | boolean | undefined
+    DEFAULT_MAIL_ENCRYPTION: string | boolean | undefined
     CLEANUP_BATCH_SIZE: string | number | undefined
 }
 

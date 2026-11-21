@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useScopedI18n } from '@/i18n/app'
+import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { generateKeyPair } from '../../utils/mail-crypto'
 import BatchExportModal from './BatchExportModal.vue'
@@ -25,6 +26,19 @@ const showExportModal = ref(false)
 // one key pair per address is generated in this browser when enabled; the
 // private keys stay in component memory until exported or the view is left
 const encryptBatch = ref(false)
+
+// Apply the operator-configured encryption default once the open settings are
+// loaded; never override a choice the admin already made in this form.
+const { openSettings } = useGlobalState()
+const encryptionDefaultApplied = ref(false)
+watch(() => openSettings.value?.fetched, (fetched) => {
+    if (!fetched || encryptionDefaultApplied.value) return
+    encryptionDefaultApplied.value = true
+    if (openSettings.value?.enableMailEncryption && openSettings.value?.defaultMailEncryption) {
+        encryptBatch.value = true
+    }
+}, { immediate: true })
+
 let unmounted = false
 onBeforeUnmount(() => { unmounted = true })
 

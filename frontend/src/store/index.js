@@ -62,6 +62,7 @@ export const useGlobalState = createGlobalState(
             statusUrl: '',
             enableGlobalTurnstileCheck: false,
             enableMailEncryption: false,
+            defaultMailEncryption: false,
         })
         const settings = ref({
             fetched: false,

@@ -156,6 +156,9 @@ ENABLE_AUTO_REPLY = false
 # enable per-mailbox end-to-end encryption of stored mail (run db_migration first,
 # adds address.encryption_public_key; each address uploads its public key via /api/address_encryption)
 # ENABLE_MAIL_ENCRYPTION = true
+# default the "encrypt received mail" checkbox to checked on creation UIs
+# (only takes effect when ENABLE_MAIL_ENCRYPTION is also true)
+# DEFAULT_MAIL_ENCRYPTION = true
 # Per-run limit for built-in mail, sent-mail, and address cleanup tasks. Defaults to 3000, maximum 5000.
 # CLEANUP_BATCH_SIZE = 3000
 # Email extraction, automatically extract verification codes, auth links, etc.

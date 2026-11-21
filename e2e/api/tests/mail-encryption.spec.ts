@@ -69,7 +69,11 @@ test.describe('Mailbox encryption (ENABLE_MAIL_ENCRYPTION)', () => {
   test('open settings expose enableMailEncryption and GET /api/address_encryption returns enabled with no key', async ({ request }) => {
     const settingsRes = await request.get(`${WORKER_URL}/open_api/settings`);
     expect(settingsRes.ok()).toBe(true);
-    expect((await settingsRes.json()).enableMailEncryption).toBe(true);
+    const settings = await settingsRes.json();
+    expect(settings.enableMailEncryption).toBe(true);
+    // DEFAULT_MAIL_ENCRYPTION is unset in this environment, so the creation
+    // UIs must keep the encryption opt-in unchecked by default.
+    expect(settings.defaultMailEncryption).toBe(false);
 
     const { jwt } = await createAddressWithKey(request, 'enc-status');
     try {

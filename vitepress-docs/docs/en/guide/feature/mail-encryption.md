@@ -106,7 +106,7 @@ In addition to passphrase-protected backups, a **logged-in user account** can pr
 
 ## User flow
 
-1. Operator: set `ENABLE_MAIL_ENCRYPTION = true` (worker var) and run the database migration first (`Admin -> Quick Setup -> Database -> Migrate Database` or `POST /admin/db_migration`) so the `address.encryption_public_key` column exists.
+1. Operator: set `ENABLE_MAIL_ENCRYPTION = true` (worker var) and run the database migration first (`Admin -> Quick Setup -> Database -> Migrate Database` or `POST /admin/db_migration`) so the `address.encryption_public_key` column exists. Optionally also set `DEFAULT_MAIL_ENCRYPTION = true` to default the "encrypt received mail" checkbox to checked on every creation UI (users can still uncheck it).
 2. User: check "enable mailbox encryption" when creating an address, or enable/rotate/disable it later in Account Settings. After enabling or rotating, if the address still has plaintext mail, the frontend offers to "encrypt existing mail"; a persistent button for it also lives in Account Settings, with progress display and cancel support.
 3. On creation the frontend generates the key pair and uploads the public key, then shows the plaintext decryption link **once** and offers to create a passphrase-protected backup (after which you can copy the protected backup link or download the backup file); when logged in to a user account with the address bound, you can alternatively protect the backup with a passkey (see above). Once the dialog is closed the frontend can no longer produce the plaintext link.
 4. Admin: in `Admin -> Account`, single creation offers the same opt-in (same one-time plaintext link display and backup prompt); batch creation generates one key pair per address in the browser, and the export CSV includes `private_key` and `decryption_link` columns when any created address is encrypted (the CSV holds raw private keys — treat it as secret).
@@ -122,7 +122,7 @@ POST /api/address_encryption          body: { "publicKey": <b64url|null> }
 ```
 
 - Requires `Authorization: Bearer <address JWT>`.
-- Whether the feature is enabled is also exposed publicly via the `enableMailEncryption` field of `GET /open_api/settings` (no JWT needed).
+- Whether the feature is enabled is also exposed publicly via the `enableMailEncryption` field of `GET /open_api/settings` (no JWT needed). The same response carries `defaultMailEncryption` (true only when both `ENABLE_MAIL_ENCRYPTION` and `DEFAULT_MAIL_ENCRYPTION` are set), which tells creation UIs to default the opt-in checkbox to checked.
 - `publicKey: null` clears the key (subsequent mail is stored plaintext; stored mail stays encrypted).
 - When the feature is disabled: `GET` returns `{ "enabled": false, "publicKey": null }` and `POST` returns 400.
 

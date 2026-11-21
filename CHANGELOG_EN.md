@@ -10,6 +10,9 @@
 
 ### Features
 
+- feat: |Mailbox Encryption| Add the `DEFAULT_MAIL_ENCRYPTION` operator option: together with `ENABLE_MAIL_ENCRYPTION`, it defaults the "encrypt received mail" checkbox to checked on the login page, admin single/batch creation and the Telegram mini-app (users can still uncheck it per address); `GET /open_api/settings` gains a `defaultMailEncryption` field
+- feat: |UI| Rewrite the Login "Help" tab as a "How it works" quick-start (mono 01/02/03 numbered steps plus an encrypted-mailboxes warning block), all copy in i18n (en/zh), with a button that opens the About dialog
+
 - feat: |UI| Phosphor terminal retro theme: near-black tube with amber phosphor accent in dark mode, warm printout paper with burnt-amber accent in light mode; IBM Plex Mono/Sans self-hosted via npm (latin subset, no remote fonts); blinking block cursor on the mailbox address, `>_` header glyph, phosphor glow and faint scanlines in dark mode; WCAG AA contrast pinned by a token contrast test
 - feat: |UI| Redesign the frontend: unified accent and spacing, mailbox page reduced to address bar + inbox, appearance moved to a Preferences drawer, About/GitHub/Status moved to the footer, Auto Reply and S3 attachments merged into Mailbox Settings
 - feat: |UI| Add an "Encrypted mailboxes" explainer to the About dialog: when `ENABLE_MAIL_ENCRYPTION` is on, it shows an honest summary of what mailbox encryption does and doesn't do (icon + panel layout, two columns on wide screens, single column on mobile), with key-responsibility warnings and a fine print; community links become quiet secondary buttons and the embedded card is removed

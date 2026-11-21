@@ -43,6 +43,8 @@ api.get('/open_api/settings', async (c) => {
         "enableUserDeleteEmail": utils.getBooleanValue(c.env.ENABLE_USER_DELETE_EMAIL),
         "enableMailReadStatus": utils.getBooleanValue(c.env.ENABLE_MAIL_READ_STATUS),
         "enableMailEncryption": utils.getBooleanValue(c.env.ENABLE_MAIL_ENCRYPTION),
+        "defaultMailEncryption": utils.getBooleanValue(c.env.ENABLE_MAIL_ENCRYPTION)
+            && utils.getBooleanValue(c.env.DEFAULT_MAIL_ENCRYPTION),
         "enableAutoReply": utils.getBooleanValue(c.env.ENABLE_AUTO_REPLY),
         "enableIndexAbout": utils.getBooleanValue(c.env.ENABLE_INDEX_ABOUT),
         "copyright": c.env.COPYRIGHT,

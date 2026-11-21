@@ -3777,9 +3777,49 @@ export const MESSAGE_REGISTRY = {
       "en": "Password Login",
       "zh": "密码登录"
     },
-    "pleaseGetNewEmail": {
-      "en": "Please login or click \"Get New Email\" button to get a new email address",
-      "zh": "请\"登录\"或点击 \"注册新邮箱\" 按钮来获取一个新的邮箱地址"
+    "helpTitle": {
+      "en": "How it works",
+      "zh": "如何使用"
+    },
+    "helpStep1Lead": {
+      "en": "Get an address.",
+      "zh": "获取地址。"
+    },
+    "helpStep1": {
+      "en": "Open the \"{tab}\" tab, pick a name or generate one, and create it. Mail sent to that address shows up here within seconds.",
+      "zh": "打开「{tab}」标签页，输入一个名称或随机生成，然后创建。发送到该地址的邮件会在几秒内显示在这里。"
+    },
+    "helpStep2Lead": {
+      "en": "Save your credential.",
+      "zh": "保存好你的凭据。"
+    },
+    "helpStep2": {
+      "en": "You get a credential when the address is created. It's the only way back into this mailbox from another browser or after clearing site data, so keep it somewhere safe.",
+      "zh": "地址创建成功后会得到一个凭据，它是从其他浏览器或清除网站数据后重新进入该邮箱的唯一途径，请妥善保管。"
+    },
+    "helpStep3Lead": {
+      "en": "Already have one?",
+      "zh": "已有邮箱？"
+    },
+    "helpStep3": {
+      "en": "Paste your credential in the \"{tab}\" tab, or sign in to an account to see all your saved addresses.",
+      "zh": "在「{tab}」标签页粘贴你的凭据，或登录账号查看所有已保存的地址。"
+    },
+    "helpEncryptedLead": {
+      "en": "Encrypted mailboxes.",
+      "zh": "加密邮箱。"
+    },
+    "helpEncrypted": {
+      "en": "Encrypted mail can only be read with the private key stored in this browser. Save the decryption link or a protected backup when you create the mailbox: without it, nobody can recover your mail.",
+      "zh": "加密邮件只能用存储在本浏览器中的私钥阅读。创建邮箱时请保存解密链接或受保护的备份：没有它，任何人都无法恢复你的邮件。"
+    },
+    "helpFooterBefore": {
+      "en": "See",
+      "zh": "加密能保护什么、不能保护什么，请见"
+    },
+    "helpFooterAfter": {
+      "en": "for what encryption does and doesn't protect.",
+      "zh": "。"
     },
     "randomSubdomainTip": {
       "en": "When enabled, the created address will use a random subdomain. Recommended for receiving only. Requires a wildcard MX DNS record on the base domain — see the random subdomain docs.",

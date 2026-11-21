@@ -130,6 +130,7 @@ const getOpenSettings = async (message, notification) => {
             smtpImapProxyConfig: res["smtpImapProxyConfig"] || openSettings.value.smtpImapProxyConfig,
             statusUrl: res["statusUrl"] || "",
             enableGlobalTurnstileCheck: res["enableGlobalTurnstileCheck"] || false,
+            defaultMailEncryption: res["defaultMailEncryption"] || false,
         });
         if (openSettings.value.needAuth) {
             showAuth.value = true;

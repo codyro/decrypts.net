@@ -33,6 +33,17 @@ const busy = ref(false)
 const creationMode = ref('single')
 const enableMailEncryption = ref(false)
 
+// Apply the operator-configured encryption default once; never override a
+// choice the admin already made in this form.
+const encryptionDefaultApplied = ref(false)
+watch(() => openSettings.value?.fetched, (fetched) => {
+    if (!fetched || encryptionDefaultApplied.value) return
+    encryptionDefaultApplied.value = true
+    if (openSettings.value?.enableMailEncryption && openSettings.value?.defaultMailEncryption) {
+        enableMailEncryption.value = true
+    }
+}, { immediate: true })
+
 const invalidDomain = computed(() => !emailDomain.value
     || (subdomainMode.value === "custom" && !customSubdomain.value.trim()))
 const batchOptions = computed(() => ({

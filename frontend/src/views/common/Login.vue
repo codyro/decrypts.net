@@ -29,6 +29,7 @@ import { useRouter } from 'vue-router'
 import { NewLabelOutlined, EmailOutlined, RedeemOutlined } from '@vicons/material'
 
 import AdminContact from '../common/AdminContact.vue'
+import About from '../common/About.vue'
 import Turnstile from '../../components/Turnstile.vue'
 
 import { useGlobalState } from '../../store'
@@ -62,6 +63,18 @@ const {
 } = useGlobalState()
 
 const enableMailEncryption = ref(false)
+
+// Apply the operator-configured "encrypt received mail" default once the open
+// settings are loaded. Only the initial value is applied here — a choice the
+// user already made in this form is never overridden afterwards.
+const encryptionDefaultApplied = ref(false)
+watch(() => openSettings.value?.fetched, (fetched) => {
+    if (!fetched || encryptionDefaultApplied.value) return
+    encryptionDefaultApplied.value = true
+    if (openSettings.value?.enableMailEncryption && openSettings.value?.defaultMailEncryption) {
+        enableMailEncryption.value = true
+    }
+}, { immediate: true })
 
 const tabValue = ref('signin')
 const credential = ref('')
@@ -142,6 +155,7 @@ const login = async () => {
 }
 
 const { locale, t } = useScopedI18n('views.common.Login')
+const { t: indexT } = useScopedI18n('views.Index')
 
 const loginAndBindTag = computed(() => {
     if (userSettings.value.user_email) {
@@ -149,6 +163,15 @@ const loginAndBindTag = computed(() => {
     }
     return t('login')
 })
+
+// Quick-start steps for the help tab. Step copy interpolates the real tab
+// labels so the help stays accurate in every language.
+const helpSteps = computed(() => [
+    { num: '01', lead: t('helpStep1Lead'), text: t('helpStep1', { tab: t('getNewEmail') }) },
+    { num: '02', lead: t('helpStep2Lead'), text: t('helpStep2') },
+    { num: '03', lead: t('helpStep3Lead'), text: t('helpStep3', { tab: loginAndBindTag.value }) },
+])
+const showHelpAbout = ref(false)
 
 const addressRegex = computed(() => {
     try {
@@ -295,6 +318,9 @@ onMounted(async () => {
 
 <template>
     <div>
+        <n-modal v-model:show="showHelpAbout" preset="card" :title="indexT('about')">
+            <About />
+        </n-modal>
         <n-alert v-if="userSettings.user_email" :show-icon="false" :bordered="false" closable>
             <span>{{ t('bindUserInfo') }}</span>
         </n-alert>
@@ -426,9 +452,26 @@ onMounted(async () => {
                 </n-spin>
             </n-tab-pane>
             <n-tab-pane name="help" :tab="t('help')">
-                <n-alert :show-icon="false" :bordered="false">
-                    <span>{{ t('pleaseGetNewEmail') }}</span>
-                </n-alert>
+                <div class="panel help-panel">
+                    <h2 class="panel-title">{{ t('helpTitle') }}</h2>
+                    <ol class="help-steps">
+                        <li v-for="step in helpSteps" :key="step.num" class="help-step">
+                            <span class="help-step__num mono">{{ step.num }}</span>
+                            <p class="help-step__text"><strong>{{ step.lead }}</strong> {{ step.text }}</p>
+                        </li>
+                    </ol>
+                    <p v-if="openSettings.enableMailEncryption" class="help-step__text help-enc">
+                        <strong>{{ t('helpEncryptedLead') }}</strong> {{ t('helpEncrypted') }}
+                    </p>
+                    <p class="muted help-footer">
+                        {{ t('helpFooterBefore') }}
+                        <n-button v-if="openSettings.enableIndexAbout" text size="tiny" class="help-about-button"
+                            @click="showHelpAbout = true">
+                            {{ indexT('about') }}
+                        </n-button>
+                        {{ t('helpFooterAfter') }}
+                    </p>
+                </div>
                 <AdminContact />
             </n-tab-pane>
         </n-tabs>
@@ -455,8 +498,35 @@ onMounted(async () => {
 .redeem-entry-section .n-button { flex: 0 0 auto; }
 .switch-login-button { display: flex; justify-content: center; }
 
+/* Help tab quick-start */
+.help-panel { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
+.help-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.help-step { display: flex; align-items: flex-start; gap: var(--space-3); }
+.help-step__num {
+    flex: 0 0 auto;
+    font-size: var(--font-xs);
+    line-height: 20px;
+    letter-spacing: 0.08em;
+    color: var(--app-accent);
+}
+.help-step__text { margin: 0; font-size: var(--font-sm); line-height: 20px; color: var(--app-text-3); }
+.help-step__text strong { color: var(--app-text-1); font-weight: 600; }
+.help-enc { border-left: 2px solid var(--app-warning); padding-left: var(--space-3); }
+.help-enc strong { color: var(--app-warning); }
+.help-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    margin: 0;
+    border-top: 1px solid var(--app-divider);
+    padding-top: var(--space-4);
+}
+.help-about-button { font-size: var(--font-sm); }
+
 @media (max-width: 767.98px) {
     .redeem-entry-section { flex-direction: column; align-items: stretch; }
     .redeem-entry-section .n-button { width: 100%; }
+    .help-step { gap: var(--space-2); }
 }
 </style>

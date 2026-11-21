@@ -106,7 +106,7 @@ export async function unwrapBackup({ blob, address, passphrase }) {
 
 ## 使用流程
 
-1. 部署者：设置 `ENABLE_MAIL_ENCRYPTION = true`（Worker 变量），并先执行数据库迁移（`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`），确保 `address.encryption_public_key` 列存在。
+1. 部署者：设置 `ENABLE_MAIL_ENCRYPTION = true`（Worker 变量），并先执行数据库迁移（`Admin -> 快速设置 -> 数据库 -> 升级数据库 Schema` 或 `POST /admin/db_migration`），确保 `address.encryption_public_key` 列存在。可选地再设置 `DEFAULT_MAIL_ENCRYPTION = true`，让所有创建界面的“加密收到的邮件”复选框默认勾选（用户仍可按地址取消勾选）。
 2. 用户：创建邮箱时勾选"启用邮箱加密"，或在登录后于"账号设置"中开启/轮换/关闭加密。开启或轮换后，如果该邮箱仍有明文邮件，前端会提示"加密已有邮件"；账号设置中也始终提供该按钮，执行时显示进度并支持取消。
 3. 创建时前端自动生成密钥对并上传公钥，随后**一次性**展示明文解密链接，并提示设置口令创建保护备份（创建后可复制保护备份链接或下载备份文件）；已登录用户账号且地址已绑定时，也可以改用通行密钥创建保护备份（见上文）。关闭对话框后前端不再能生成明文链接。
 4. 管理员：在 `Admin -> 账号` 中，单个创建提供同样的加密选项（同样一次性展示明文链接并提示备份）；批量创建会在浏览器中为每个地址生成一对密钥，导出 CSV 在存在加密地址时包含 `private_key` 和 `decryption_link` 列（CSV 含明文私钥，请视为机密）。
@@ -122,7 +122,7 @@ POST /api/address_encryption          body: { "publicKey": <b64url|null> }
 ```
 
 - 需要 `Authorization: Bearer <地址JWT>`。
-- 功能是否启用也可通过公开接口 `GET /open_api/settings` 的 `enableMailEncryption` 字段查询（无需 JWT）。
+- 功能是否启用也可通过公开接口 `GET /open_api/settings` 的 `enableMailEncryption` 字段查询（无需 JWT）。同一响应还包含 `defaultMailEncryption` 字段（仅当 `ENABLE_MAIL_ENCRYPTION` 与 `DEFAULT_MAIL_ENCRYPTION` 同时启用时才为 `true`），创建界面据此将加密复选框默认勾选。
 - `publicKey` 为 `null` 时清除公钥（后续邮件明文存储；已存邮件保持加密）。
 - 功能未启用时 `GET` 返回 `{ "enabled": false, "publicKey": null }`，`POST` 返回 400。
 
