@@ -19,7 +19,7 @@ const header = (key, value) => ({ key, value });
 // its own results, a foreign (sender-side) Authentication-Results sits below.
 const cloudflareTrusted = [
     header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10]) by mx.cloudflare.net with ESMTPS id abc123 for <box@decrypts.net>; Mon, 01 Jan 2024 00:00:00 +0000'),
-    header('ARC-Authentication-Results', 'mx.cloudflare.net; spf=pass smtp.mailfrom=example.com; dkim=pass header.d=example.com; dmarc=pass header.from=example.com; arc=pass; iprev=pass smtp.remote-ip=192.0.2.10'),
+    header('ARC-Authentication-Results', 'i=1; mx.cloudflare.net; spf=pass smtp.mailfrom=example.com; dkim=pass header.d=example.com; dmarc=pass header.from=example.com; arc=pass; iprev=pass smtp.remote-ip=192.0.2.10'),
     header('Authentication-Results', 'mx.cloudflare.net; spf=pass smtp.mailfrom=example.com; dkim=pass header.d=example.com; dmarc=pass header.from=example.com'),
     header('Authentication-Results', 'mail.sender.example; spf=fail smtp.mailfrom=evil.example; dkim=fail header.d=evil.example'),
 ];
@@ -189,6 +189,62 @@ describe('analyzeMailSecurity', () => {
     it('exports the Cloudflare authserv-id as trusted', () => {
         expect(TRUSTED_AUTHSERV_IDS).toContain('mx.cloudflare.net');
     });
+
+    // RFC 8617: ARC-Authentication-Results starts with an instance tag
+    // ("i=1;") before the authserv-id — the production bug this guards.
+    it('reads ARC results with an i= instance tag and no plain A-R', () => {
+        const security = analyzeMailSecurity([
+            header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10]) by mx.cloudflare.net with ESMTPS id abc123; Mon, 01 Jan 2024 00:00:00 +0000'),
+            header('ARC-Authentication-Results', 'i=1; mx.cloudflare.net; dkim=pass header.d=example.com; dmarc=pass header.from=example.com; spf=pass smtp.mailfrom=example.com'),
+        ]);
+        expect(security.authservId).toBe('mx.cloudflare.net');
+        expect(security.checks.spf.status).toBe('pass');
+        expect(security.checks.dkim.status).toBe('pass');
+        expect(security.checks.dmarc.status).toBe('pass');
+    });
+
+    it('accepts whitespace-tolerant and versioned authserv-ids in ARC', () => {
+        const security = analyzeMailSecurity([
+            header('ARC-Authentication-Results', 'i=1 ;   mx.cloudflare.net 1; dkim=pass header.d=example.com'),
+        ]);
+        expect(security.authservId).toBe('mx.cloudflare.net');
+        expect(security.checks.dkim.status).toBe('pass');
+    });
+
+    it('uses the trusted ARC set with the highest i= over a foreign one', () => {
+        const security = analyzeMailSecurity([
+            header('ARC-Authentication-Results', 'i=1; mail.sender.example; dkim=fail header.d=example.com; spf=fail smtp.mailfrom=example.com'),
+            header('ARC-Authentication-Results', 'i=2; mx.cloudflare.net; dkim=pass header.d=example.com; spf=pass smtp.mailfrom=example.com'),
+        ]);
+        expect(security.authservId).toBe('mx.cloudflare.net');
+        expect(security.checks.dkim.status).toBe('pass');
+        expect(security.checks.spf.status).toBe('pass');
+    });
+
+    it('prefers the highest trusted i= among several trusted ARC sets', () => {
+        const security = analyzeMailSecurity([
+            header('ARC-Authentication-Results', 'i=1; mx.cloudflare.net; dkim=fail header.d=example.com'),
+            header('ARC-Authentication-Results', 'i=2; mx.cloudflare.net; dkim=pass header.d=example.com'),
+        ]);
+        expect(security.checks.dkim.status).toBe('pass');
+    });
+
+    it('ignores a forged ARC header from an untrusted authserv-id', () => {
+        const security = analyzeMailSecurity([
+            header('ARC-Authentication-Results', 'i=1; evil.example; dkim=pass header.d=evil.example; spf=pass smtp.mailfrom=evil.example'),
+        ]);
+        expect(security.authservId).toBeNull();
+        expect(security.checks.dkim.status).toBe('not reported');
+        expect(security.checks.spf.status).toBe('not reported');
+    });
+
+    it('accepts an authserv-id with a version number in a plain A-R header', () => {
+        const security = analyzeMailSecurity([
+            header('Authentication-Results', 'mx.cloudflare.net 1; dkim=pass header.d=example.com'),
+        ]);
+        expect(security.authservId).toBe('mx.cloudflare.net');
+        expect(security.checks.dkim.status).toBe('pass');
+    });
 });
 
 describe('TLS parsing', () => {
@@ -203,6 +259,24 @@ describe('TLS parsing', () => {
             { version: null, cipher: null }],
         ['ESMTPSA without version', 'with ESMTPSA id abc123',
             { version: null, cipher: null }],
+        ['UTF8SMTPS without version', 'with UTF8SMTPS id abc123',
+            { version: null, cipher: null }],
+        ['paren using form with bits suffix', '(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits))',
+            { version: 'TLSv1.3', cipher: 'TLS_AES_128_GCM_SHA256' }],
+        ['Exim TLS1_3 version/cipher', '(version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384)',
+            { version: 'TLSv1.3', cipher: 'TLS_AES_256_GCM_SHA384' }],
+        ['Exim TLS1_2 version/cipher', '(version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256)',
+            { version: 'TLSv1.2', cipher: 'ECDHE-RSA-AES128-GCM-SHA256' }],
+        ['tls= key/value', 'tls=TLSv1.3',
+            { version: 'TLSv1.3', cipher: null }],
+        ['bare TLSv1.2 token', 'TLSv1.2',
+            { version: 'TLSv1.2', cipher: null }],
+        ['bare TLS1_3 token', 'TLS1_3',
+            { version: 'TLSv1.3', cipher: null }],
+        ['OpenSSL cipher via cipher=', 'cipher=ECDHE-RSA-AES128-GCM-SHA256',
+            { version: null, cipher: 'ECDHE-RSA-AES128-GCM-SHA256' }],
+        ['OpenSSL cipher via with cipher', 'with cipher ECDHE-RSA-AES256-GCM-SHA384',
+            { version: null, cipher: 'ECDHE-RSA-AES256-GCM-SHA384' }],
     ])('parses the %s form', (_name, fragment, expected) => {
         expect(parseTlsInfo(`from relay.example (relay.example [192.0.2.20]) by mx.cloudflare.net ${fragment}; Mon, 01 Jan 2024 00:00:00 +0000`))
             .toEqual(expected);
@@ -232,6 +306,30 @@ describe('TLS parsing', () => {
             header('Received', 'from a.example (a.example [192.0.2.1]) by mx.cloudflare.net (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256); Mon, 01 Jan 2024 00:00:02 +0000'),
         ]);
         expect(security.tls).toEqual({ version: 'TLSv1.3', cipher: 'TLS_AES_256_GCM_SHA384' });
+    });
+
+    it('unfolds folded Received headers before detecting TLS', () => {
+        const security = analyzeMailSecurity([
+            header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10])\r\n\tby mx.cloudflare.net with ESMTPS (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384\r\n\tbits=256/256) id abc123; Mon, 01 Jan 2024 00:00:00 +0000'),
+        ]);
+        expect(security.tls).toEqual({ version: 'TLSv1.3', cipher: 'TLS_AES_256_GCM_SHA384' });
+    });
+
+    it('scans an internal trusted hop when the topmost has no TLS info', () => {
+        const security = analyzeMailSecurity([
+            header('Received', 'from mx.cloudflare.net (mx.cloudflare.net [198.51.100.9]) by internal.mx.cloudflare.net with ESMTP id internal; Mon, 01 Jan 2024 00:00:02 +0000'),
+            header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10]) by mx.cloudflare.net (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256); Mon, 01 Jan 2024 00:00:01 +0000'),
+            header('Received', 'from relay.example (relay.example [192.0.2.20]) by sender-mail.example (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384); Mon, 01 Jan 2024 00:00:00 +0000'),
+        ]);
+        expect(security.tls).toEqual({ version: 'TLSv1.3', cipher: 'TLS_AES_256_GCM_SHA384' });
+    });
+
+    it('reports TLS from a trusted subdomain hop over a lower external hop', () => {
+        const security = analyzeMailSecurity([
+            header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10]) by xxx.mx.cloudflare.net (using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)); Mon, 01 Jan 2024 00:00:01 +0000'),
+            header('Received', 'from relay.example (relay.example [192.0.2.20]) by sender-mail.example (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384); Mon, 01 Jan 2024 00:00:00 +0000'),
+        ]);
+        expect(security.tls).toEqual({ version: 'TLSv1.3', cipher: 'TLS_AES_128_GCM_SHA256' });
     });
 
     it('counts TLS as a passing check in the score', () => {
