@@ -2,6 +2,60 @@
 
 This file provides shared guidance to coding agents working in this repository.
 
+## This repo is the decrypts.net fork (read first)
+
+This is **decrypts.net**, a public fork of [cloudflare_temp_email](https://github.com/dreamhunter2333/cloudflare_temp_email). The sections after this one are upstream's guidance and still apply. Where they conflict, this section wins.
+
+### Remotes and branches
+- `origin` = `git@github.com:codyro/decrypts.net.git`. `main` is the **build/deploy branch** and the repo's default branch.
+- `upstream` = `dreamhunter2333/cloudflare_temp_email`. Its push URL is set to `no-push-to-upstream`. **Never push to upstream** and never open PRs there unless the owner asks.
+- Branch work from `main` into short-lived branches, then land it back with a fast-forward (rebase the branch onto `main` first if needed). **Never rewrite or force-push `main`.**
+- Push only when the owner asks: `mise run push` runs the tests and then `git push origin main`.
+
+### Merging upstream (release tags only)
+- Merge **upstream release tags** (`vX.Y.Z`), never upstream's untagged `main`. Use `mise run upstream:check`, then `mise run upstream:merge` (or `TAG=v1.15.0 mise run upstream:merge`). It does `git merge --no-ff <tag>`. **Never rebase `main` onto upstream.**
+- After a merge, run `mise run test`. If the merge touched the worker or the frontend, also run `mise run test:e2e`.
+- Expected conflicts and how to resolve them:
+  - `README.md`: keep the fork's. `README_EN.md` / `README_JA.md` stay deleted.
+  - `CHANGELOG.md` / `CHANGELOG_EN.md`: keep both sides' entries.
+  - `AGENTS.md`: keep this section and take upstream's changes below it.
+  - `.github/workflows/sync.yaml` stays deleted. The fork does not auto-sync.
+  - Upstream refactors that move code the fork changed (address creation, mail parser, `common.ts`): re-apply the fork's changes in the new location. Don't drop them. The fork's features are listed in `README.md`. The encryption code paths are `worker/src/utils/mail_crypto.ts`, `mail_encryption.ts`, `key_backup.ts`, `worker/src/email/storage.ts`, `worker/src/mails_api/address_encryption.ts` and `encrypt_existing.ts`, and `frontend/src/utils/mail-*.js` / `key-backup*.js`.
+- **DB versions diverge from upstream.** The fork uses `v0.0.11` for `address.encryption_public_key`, `v0.0.12` for the `is_encrypted` flag and `v0.0.13` for `user_key_backups`. Upstream's `v0.0.11` is `address.expires_at`, which arrives with v1.15.0.
+  - Never reuse or renumber a version that has shipped. Add upstream's schema changes as a **new** fork version (e.g. `v0.0.14`) in `worker/src/admin_api/db_api.ts`.
+  - Gate every migration step on a column/table existence check (`PRAGMA table_info` / `CREATE ... IF NOT EXISTS`), so databases that are already further along still get upstream's columns.
+  - Also add a dated `db/*.sql` patch and update `db/schema.sql`.
+- D1 `exec()` treats every newline as a statement separator. Keep each `DB.exec()` statement on a single line, or use `prepare(...).run()`.
+
+### Fork invariants (don't regress these)
+- **Mailbox encryption** (see `vitepress-docs/docs/en/guide/feature/mail-encryption.md`):
+  - Keys are generated in the browser and kept as non-extractable WebCrypto keys. The server only ever stores public keys and ciphertext.
+  - Never emit a raw `#k=` key after creation. Links and QR codes use the URL fragment, never the query string.
+  - Encrypted mailboxes get only content-free notifications, and every content-leaking side path stays skipped.
+  - Sendbox/backups never fall back to plaintext.
+- **Strict CSP** (`frontend/vite-plugin-csp.js`): no remote scripts, styles or fonts, and no CDNs. Bundle dependencies locally and lazy-load the heavy ones. Don't loosen the policy to make something work.
+- **Phosphor theme** (`docs/changes/phosphor-theme.md`):
+  - Colours come only from `frontend/src/theme/tokens.ts` → `--app-*` CSS vars, with no hard-coded colours. Light and dark token keys must match.
+  - WCAG AA contrast is enforced by `frontend/src/theme/__tests__/contrast.test.ts`.
+  - Sender HTML in mail content must never inherit theme styles.
+- **User-facing copy:** add new strings to `frontend/src/i18n/message-registry.ts` with `en` + `zh`. Other locales fall back to English. Don't overstate what encryption protects; keep copy consistent with the About page.
+- **No public pointers to `/admin`.** The header Admin link only shows once authenticated.
+
+### Config and local dev
+- `worker/wrangler.toml` is **gitignored** and holds production secrets. Never commit it or paste its values anywhere. It is derived from `wrangler.toml.template`.
+- In `wrangler.toml`, top-level keys such as `send_email` must come **before** the first `[table]` (e.g. `[assets]`), and `[triggers]` gets its own table. A key placed under a table header silently belongs to that table.
+- Local dev:
+  - `mise run dev` runs the worker on :8787 with local D1. `.dev.vars` overrides vars (Turnstile test keys, encryption on).
+  - `mise run dev:frontend` runs Vite. `frontend/.env.development.local` points it at :8787.
+  - The production build uses `frontend/.env` with an empty `VITE_API_BASE`, because the worker serves `frontend/dist` from the same origin.
+- Deploy: `mise run deploy` runs the tests, then the production frontend build, then `wrangler deploy`. After a schema change, run the production migration via Admin → Database → Migrate or `ADMIN_AUTH=… mise run db:migrate`. After pulling new dependencies, mise tasks run `pnpm install` first.
+
+### Project notes
+- `docs/decisions.md`: dated decisions (deploy branch, encryption design, key export, theme). Add a line when you make a lasting decision.
+- `docs/backlog.md`: open work and owner to-dos.
+- `docs/changes/*.md`: specs for larger changes.
+- The commit, CHANGELOG (zh + en) and docs (zh + en) rules in the sections below still apply to fork work.
+
 ## Agent Skills
 
 - Keep project skills in `.agents/skills/` as the source of truth.
