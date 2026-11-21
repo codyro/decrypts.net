@@ -104,6 +104,23 @@ In addition to passphrase-protected backups, a **logged-in user account** can pr
 - **Restore**: on a new device, log in to the account, open Account Settings for the bound address, and click "Restore Key From Passkey" in the passkey backup list — the browser runs the assertion, unwraps the blob, and stores the private key on this device as a non-extractable key. A failed unwrap (wrong key/passkey or tampering) is reported explicitly.
 - **Storage**: DB v0.0.13 adds the `user_key_backups` table (run `Admin -> Quick Setup -> Database -> Migrate Database` or `POST /admin/db_migration`); the server stores only the opaque blob. Backups are removed together when the passkey, the address is deleted, the address is unbound/transferred, or the user is deleted. Caps: 20 per address, 200 per user. See [Mail API](./mail-api.md#passkey-backup-storage) for the storage endpoints.
 
+## Open on another device (`#jwt=` fragments and QR)
+
+Account Settings → Access → "Open on another device" shows a QR code (hidden until you press "Show QR", so it never sits visible when the settings open) plus a copyable link, for signing in to this mailbox on another device:
+
+```
+https://your-domain/#jwt=<credential>[&kp=<wrapped backup blob>&a=<address>]
+```
+
+- Both the mailbox credential and — for encrypted mailboxes — the **protected backup** travel in the URL **fragment**. Browsers never send fragments to servers and they do not appear in server logs, unlike the legacy `?jwt=` query parameter, which is sent to the server and must not be used for hand-off. A raw `#k=` key is **never** put in a QR code or link.
+- On load, the frontend strips the fragment from the address bar immediately, logs in with the `#jwt=` credential, and imports a bundled `#kp=` backup through the usual passphrase prompt (wrong-passphrase and malformed-fragment behaviour is unchanged).
+- When the mailbox is encrypted but has no protected backup, the QR/link carries the credential only, with a note that the decryption key must be restored separately — create a protected backup first to include it in the link.
+- **Warning:** anyone who scans the QR or opens the link can open your mailbox. Only show it to your own devices. QR generation is entirely local (a lazily loaded encoder rendered as SVG); nothing is uploaded anywhere.
+
+## Burning a mailbox
+
+Account Settings → Danger zone → "Burn mailbox" (shown only when the operator enables `ENABLE_USER_DELETE_EMAIL`) permanently deletes the address and all of its data on the server — inbox, sendbox, auto-reply rules, send access, user bindings and server-side passkey key backups (`user_key_backups`) — and then removes this browser's private keys and saved login for the address. The server-side delete runs first: if it fails, the local keys are kept so the mailbox stays readable here. The confirmation dialog requires typing the full address; the action cannot be undone.
+
 ## User flow
 
 1. Operator: set `ENABLE_MAIL_ENCRYPTION = true` (worker var) and run the database migration first (`Admin -> Quick Setup -> Database -> Migrate Database` or `POST /admin/db_migration`) so the `address.encryption_public_key` column exists. Optionally also set `DEFAULT_MAIL_ENCRYPTION = true` to default the "encrypt received mail" checkbox to checked on every creation UI (users can still uncheck it).

@@ -310,6 +310,66 @@ export const MESSAGE_REGISTRY = {
       "zh": "复制失败"
     }
   },
+  "components.KeyBackupReminder": {
+    "title": {
+      "en": "Your key exists only in this browser.",
+      "zh": "您的密钥仅保存在此浏览器中。"
+    },
+    "body": {
+      "en": "If you clear site data or lose this device, this mailbox's mail can't be recovered. Create a protected backup.",
+      "zh": "如果清除站点数据或丢失此设备，此邮箱的邮件将无法恢复。请创建受保护的备份。"
+    },
+    "createBackup": {
+      "en": "Create backup",
+      "zh": "创建备份"
+    },
+    "savedLink": {
+      "en": "I saved my decryption link",
+      "zh": "我已保存解密链接"
+    },
+    "remindLater": {
+      "en": "Remind me later",
+      "zh": "稍后提醒"
+    }
+  },
+  "components.OpenDeviceQrPanel": {
+    "showQr": {
+      "en": "Show QR",
+      "zh": "显示二维码"
+    },
+    "hideQr": {
+      "en": "Hide QR",
+      "zh": "隐藏二维码"
+    },
+    "qrWarning": {
+      "en": "Anyone who scans this can open your mailbox. Only show it to your own devices.",
+      "zh": "任何扫描此二维码的人都可以打开您的邮箱。仅向您自己的设备展示。"
+    },
+    "copyLink": {
+      "en": "Copy link",
+      "zh": "复制链接"
+    },
+    "linkCopied": {
+      "en": "Link copied",
+      "zh": "链接已复制"
+    },
+    "copyFailed": {
+      "en": "Copy failed",
+      "zh": "复制失败"
+    },
+    "qrUnavailable": {
+      "en": "Could not generate the QR code.",
+      "zh": "无法生成二维码。"
+    },
+    "keyBackupMissing": {
+      "en": "This mailbox is encrypted but has no protected backup, so the QR code only carries the login credential — the decryption key must be restored separately. Create a protected backup to include the key in the link.",
+      "zh": "此邮箱已加密但尚无受保护的备份，因此二维码仅包含登录凭证——解密密钥需要单独恢复。创建受保护的备份后，链接才会一并携带密钥。"
+    },
+    "createBackup": {
+      "en": "Create backup",
+      "zh": "创建备份"
+    }
+  },
   "components.KeyBackupHost": {
     "createdTitle": {
       "en": "End-to-End Encryption Enabled",
@@ -1545,6 +1605,34 @@ export const MESSAGE_REGISTRY = {
     "deleteMailbox": {
       "en": "Delete Mailbox",
       "zh": "删除邮箱"
+    },
+    "burnMailbox": {
+      "en": "Burn mailbox",
+      "zh": "销毁邮箱"
+    },
+    "burnMailboxTip": {
+      "en": "Permanently delete this address and all of its mail on the server, and remove this browser's keys and saved login for it.",
+      "zh": "在服务器上永久删除此地址及其全部邮件，并移除此浏览器中保存的密钥和登录信息。"
+    },
+    "burnMailboxConfirm": {
+      "en": "This permanently deletes the address and all of its mail on the server, and removes this browser's decryption keys. It cannot be undone.",
+      "zh": "这将永久删除服务器上的此地址及其全部邮件，并移除此浏览器中的解密密钥，且无法撤销。"
+    },
+    "burnMailboxTypeAddress": {
+      "en": "Type the full address to confirm",
+      "zh": "输入完整邮箱地址以确认"
+    },
+    "burnMailboxDone": {
+      "en": "Mailbox burned: the address and its mail are gone, and this browser's keys were removed",
+      "zh": "邮箱已销毁：地址及其邮件已删除，此浏览器中的密钥已移除"
+    },
+    "openDevice": {
+      "en": "Open on another device",
+      "zh": "在其他设备上打开"
+    },
+    "openDeviceTip": {
+      "en": "Show a QR code or copy a link that signs in to this mailbox on another device.",
+      "zh": "显示二维码或复制链接，在您的其他设备上登录此邮箱。"
     },
     "deleteAccountConfirm": {
       "en": "Are you sure you want to delete this email address and all of its emails? This does not delete your user account.",

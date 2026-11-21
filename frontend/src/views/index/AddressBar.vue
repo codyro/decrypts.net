@@ -14,6 +14,7 @@ import AddressManagement from '../user/AddressManagement.vue'
 import { getRouterPathWithLang } from '../../utils'
 import AddressSelect from '../../components/AddressSelect.vue'
 import AddressCredentialModal from '../../components/AddressCredentialModal.vue'
+import KeyBackupReminder from '../../components/KeyBackupReminder.vue'
 
 const router = useRouter()
 const isMobile = useIsMobile()
@@ -53,24 +54,27 @@ onMounted(async () => {
         <div v-if="!settings.fetched" class="panel loading-panel">
             <n-skeleton style="height: 200px" />
         </div>
-        <section v-else-if="settings.address" class="address-bar">
-            <div class="caption">{{ t('yourAddress') }}</div>
-            <AddressSelect>
-                <template #actions>
-                    <n-button class="address-manage" secondary :circle="isMobile"
-                        :aria-label="isMobile ? t('addressManage') : undefined"
-                        :title="isMobile ? t('addressManage') : undefined" @click="showAddressManage = true">
-                        <template #icon><n-icon :component="SwapHorizRound" /></template>
-                        <span v-if="!isMobile">{{ t('addressManage') }}</span>
-                    </n-button>
-                    <n-dropdown trigger="click" :options="mailboxOptions" @select="onMailboxOption">
-                        <n-button quaternary circle :aria-label="t('mailboxOptions')" :title="t('mailboxOptions')">
-                            <template #icon><n-icon :component="MoreVertRound" /></template>
+        <template v-else-if="settings.address">
+            <section class="address-bar">
+                <div class="caption">{{ t('yourAddress') }}</div>
+                <AddressSelect>
+                    <template #actions>
+                        <n-button class="address-manage" secondary :circle="isMobile"
+                            :aria-label="isMobile ? t('addressManage') : undefined"
+                            :title="isMobile ? t('addressManage') : undefined" @click="showAddressManage = true">
+                            <template #icon><n-icon :component="SwapHorizRound" /></template>
+                            <span v-if="!isMobile">{{ t('addressManage') }}</span>
                         </n-button>
-                    </n-dropdown>
-                </template>
-            </AddressSelect>
-        </section>
+                        <n-dropdown trigger="click" :options="mailboxOptions" @select="onMailboxOption">
+                            <n-button quaternary circle :aria-label="t('mailboxOptions')" :title="t('mailboxOptions')">
+                                <template #icon><n-icon :component="MoreVertRound" /></template>
+                            </n-button>
+                        </n-dropdown>
+                    </template>
+                </AddressSelect>
+            </section>
+            <KeyBackupReminder />
+        </template>
         <div v-else-if="isTelegram" class="panel address-management-panel">
             <TelegramAddress />
         </div>

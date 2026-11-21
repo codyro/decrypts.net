@@ -6,6 +6,10 @@
  *   `#k=<base64url PKCS8 private key>&a=<mail address>` (plaintext import)
  *   `#kp=<wrapped backup blob>&a=<mail address>` (passphrase-protected,
  *     queued for the UI to prompt for the passphrase)
+ *   `#jwt=<credential>[&kp=<wrapped backup blob>&a=<mail address>]`
+ *     ("open on another device": the credential — and for encrypted
+ *     mailboxes the protected backup — carried in the fragment so nothing
+ *     reaches the server or logs, unlike the legacy `?jwt=` query param)
  * Combined with auto-login: `/?jwt=...#k=...&a=...` (the router preserves the
  * hash through its jwt/locale redirects, and main.js ingests the fragment
  * before the router even runs).
@@ -75,6 +79,54 @@ export const importPrivateKeyForAddress = async (address, privateKey) => {
     return (await addPrivateKey(address, privateKey)) !== null
 }
 
+// ---- credential (`#jwt=`) import -------------------------------------------
+
+/**
+ * Reactive queue of credentials found in fragments awaiting login: entries
+ * { jwt }. main.js drains this queue into the store before mounting, so the
+ * app boots already logged in (same outcome as the `?jwt=` query flow, but
+ * without the credential ever leaving the browser).
+ */
+export const pendingCredentialLogins = shallowRef([])
+
+/** Test helper: reset the queued credential logins. */
+export const clearPendingCredentialLogins = () => {
+    pendingCredentialLogins.value = []
+}
+
+/**
+ * Parse a hash string (with or without leading '#') or a full URL containing
+ * a `#jwt=<credential>[&kp=<blob>&a=<address>]` fragment. Returns
+ * { jwt, blob, address } or null. `blob`/`address` are '' when the fragment
+ * carries the credential only. A `#kp=` without `#jwt=` is NOT returned here
+ * (see parseWrappedFragment).
+ */
+export const parseCredentialFragment = (input) => {
+    if (typeof input !== 'string' || input.length === 0) return null
+    let hash = input
+    try {
+        if (!input.startsWith('#') && input.includes('#')) {
+            hash = input.slice(input.indexOf('#'))
+        }
+    } catch {
+        return null
+    }
+    if (!hash.startsWith('#')) return null
+    let params
+    try {
+        params = new URLSearchParams(hash.slice(1))
+    } catch {
+        return null
+    }
+    const jwt = params.get('jwt')
+    if (!jwt) return null
+    const blob = params.get('kp') || ''
+    const address = params.get('a') || ''
+    // A protected backup without its address is unusable (AAD binding).
+    if (blob && !address) return null
+    return { jwt, blob, address }
+}
+
 // ---- wrapped-backup (`#kp=`) import ----------------------------------------
 
 /**
@@ -137,19 +189,21 @@ export const importKeyOrLink = async (text, fallbackAddress = '') => {
 }
 
 /**
- * Remove a `#k=...&a=...` or `#kp=...&a=...` decryption fragment from a hash
- * string or a full path/URL, returning the input unchanged when it carries
- * no decryption fragment. The router uses this so its jwt/locale redirects
- * never re-add the secret key to the address bar: vue-router snapshots the
- * location (hash included) when the history is created, which can be before
- * main.js ingested and stripped the fragment.
+ * Remove a `#k=...&a=...`, `#kp=...&a=...` or `#jwt=...` fragment from a
+ * hash string or a full path/URL, returning the input unchanged when it
+ * carries none of them. The router uses this so its jwt/locale redirects
+ * never re-add the credential or the secret key to the address bar:
+ * vue-router snapshots the location (hash included) when the history is
+ * created, which can be before main.js ingested and stripped the fragment.
  */
 export const stripDecryptionFragment = (input) => {
     if (typeof input !== 'string' || input.length === 0) return input
     const hashIndex = input.indexOf('#')
     if (hashIndex === -1) return input
     const hash = input.slice(hashIndex)
-    if (!parseDecryptionFragment(hash) && !parseWrappedFragment(hash)) return input
+    if (!parseDecryptionFragment(hash)
+        && !parseWrappedFragment(hash)
+        && !parseCredentialFragment(hash)) return input
     return input.slice(0, hashIndex)
 }
 
@@ -178,6 +232,10 @@ const stripFragmentFromAddressBar = () => {
 
 /**
  * Read the current location hash and ingest it:
+ * - `#jwt=...[&kp=...&a=...]` queues { jwt } in `pendingCredentialLogins`
+ *   (main.js logs in with it before mounting) and, when a protected backup
+ *   is bundled, queues it in `pendingWrappedImports` for the UI to prompt
+ *   for the passphrase.
  * - `#k=...&a=...` imports the raw key (see importPrivateKeyForAddress) and
  *   exposes it transiently to the raw-import offer handler, if any.
  * - `#kp=...&a=...` queues { address, blob } in `pendingWrappedImports` for
@@ -190,6 +248,16 @@ const stripFragmentFromAddressBar = () => {
 export const ingestDecryptionFragmentFromLocation = async () => {
     if (typeof window === 'undefined' || !window.location) return null
     const hash = window.location.hash || ''
+
+    const credential = parseCredentialFragment(hash)
+    if (credential) {
+        pendingCredentialLogins.value = [...pendingCredentialLogins.value, { jwt: credential.jwt }]
+        if (credential.blob) {
+            pendingWrappedImports.value = [...pendingWrappedImports.value, { address: credential.address, blob: credential.blob }]
+        }
+        stripFragmentFromAddressBar()
+        return null
+    }
 
     const wrapped = parseWrappedFragment(hash)
     if (wrapped) {

@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { useScopedI18n } from '@/i18n/app'
 import { useRouter } from 'vue-router'
 
@@ -14,7 +15,7 @@ import {
 } from '../../utils/passkey-wrap'
 import {
     addPrivateKey, getKeyRecords, getWrappedBackup, hasWrappedBackup, keyStoreMode,
-    legacyMigrationPending, legacyPlaintextKeysRetained,
+    legacyMigrationPending, legacyPlaintextKeysRetained, removePrivateKeys,
 } from '../../utils/mail-key-store'
 import { importKeyOrLink, pendingWrappedImports } from '../../utils/mail-fragment'
 import {
@@ -28,8 +29,11 @@ import {
 import { requestLegacyBackupPrompt, notifyMailKeysImported } from '../../utils/key-backup-prompts'
 import { copyToClipboard } from '../../utils/clipboard'
 import { encryptExistingMail, EncryptExistingKeyMismatchError } from '../../utils/encrypt-existing'
+import { keyBackupSectionFocusRequests } from '../../utils/key-backup-reminder'
+import { burnMailbox, filterAddressTokens } from '../../utils/burn-mailbox'
 import KeyBackupPanel from '../../components/KeyBackupPanel.vue'
 import PasskeyWrapControls from '../../components/PasskeyWrapControls.vue'
+import OpenDeviceQrPanel from '../../components/OpenDeviceQrPanel.vue'
 
 const {
     jwt, settings, showAddressCredential, loading, openSettings,
@@ -566,6 +570,74 @@ const changePassword = async () => {
         message.error(error.message || "error");
     }
 };
+
+// ---- "Open on another device" (QR / link) ----------------------------------
+
+const showOpenDevice = ref(false)
+
+// ---- "Burn mailbox" ---------------------------------------------------------
+
+const showBurnMailbox = ref(false)
+const burnConfirmInput = ref('')
+const burnBusy = ref(false)
+// Same localStorage key as AddressSelect: the saved local addresses are the
+// JWTs of mailboxes used on this browser.
+const localAddressCache = useLocalStorage("LocalAddressCache", [])
+
+const burnMailboxNow = async () => {
+    if (burnBusy.value) return
+    burnBusy.value = true
+    const address = settings.value.address
+    try {
+        // Server-side delete first: on failure the flow aborts and this
+        // browser's keys are kept (the mailbox still exists).
+        await burnMailbox({
+            address,
+            deleteAddressApi: () => api.fetch('/api/delete_address', { method: 'DELETE' }),
+            removeKeys: removePrivateKeys,
+            removeFromSavedAddresses: (addr) => {
+                localAddressCache.value = filterAddressTokens(localAddressCache.value, addr)
+            },
+        })
+        message.success(t('burnMailboxDone'))
+        burnConfirmInput.value = ''
+        showBurnMailbox.value = false
+        // Log out and land on the front page without a reload so the success
+        // toast is visible; dropping the cached address hides the mailbox UI.
+        jwt.value = ''
+        settings.value.address = ''
+        await router.push(getRouterPathWithLang("/", locale.value))
+    } catch (error) {
+        message.error(error.message || "error")
+    } finally {
+        burnBusy.value = false
+    }
+}
+
+// ---- scroll-to-backup signal -------------------------------------------------
+// The reminder banner and the QR panel ask for the backup section; consumed
+// here both live (watch) and on mount (the tab pane may mount only now).
+// The <div> below wraps the backup controls.
+
+const backupSectionEl = ref(null)
+let seenFocusRequests = 0
+
+const scrollToBackupSection = async () => {
+    await nextTick()
+    backupSectionEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+watch(keyBackupSectionFocusRequests, () => {
+    seenFocusRequests = keyBackupSectionFocusRequests.value
+    scrollToBackupSection()
+})
+
+onMounted(() => {
+    if (keyBackupSectionFocusRequests.value !== seenFocusRequests) {
+        seenFocusRequests = keyBackupSectionFocusRequests.value
+        scrollToBackupSection()
+    }
+})
 </script>
 
 <template>
@@ -587,6 +659,17 @@ const changePassword = async () => {
                 </div>
             </div>
             <div class="settings-row">
+                <span class="settings-row__text">{{ t('openDeviceTip') }}</span>
+                <div class="settings-row__action">
+                    <n-button size="small" secondary data-testid="open-device-toggle"
+                        @click="showOpenDevice = !showOpenDevice">
+                        {{ t('openDevice') }}
+                    </n-button>
+                </div>
+            </div>
+            <OpenDeviceQrPanel v-if="showOpenDevice" :address="settings.address" :jwt="jwt"
+                data-testid="open-device" />
+            <div class="settings-row">
                 <span class="settings-row__text">{{ t('logoutTip') }}</span>
                 <div class="settings-row__action">
                     <n-button @click="showLogout = true" secondary>{{ t('logout') }}</n-button>
@@ -607,6 +690,12 @@ const changePassword = async () => {
                 <span class="settings-row__text">{{ t('clearSentItemsTip') }}</span>
                 <div class="settings-row__action">
                     <n-button @click="showClearSentItems = true" secondary type="error">{{ t('clearSentItems') }}</n-button>
+                </div>
+            </div>
+            <div class="settings-row">
+                <span class="settings-row__text">{{ t('burnMailboxTip') }}</span>
+                <div class="settings-row__action">
+                    <n-button @click="showBurnMailbox = true" secondary type="error">{{ t('burnMailbox') }}</n-button>
                 </div>
             </div>
             <div class="settings-row">
@@ -697,7 +786,7 @@ const changePassword = async () => {
                 </div>
             </template>
             <template v-if="encHasLocalKey || encHasBackup">
-                <div class="toolbar enc-backup">
+                <div ref="backupSectionEl" id="key-backup-section" class="toolbar enc-backup">
                     <n-button size="small" secondary :disabled="!encHasBackup"
                         data-testid="copy-protected-backup-link" @click="copyProtectedBackupLink">
                         {{ t('copyProtectedBackupLink') }}
@@ -782,6 +871,24 @@ const changePassword = async () => {
                 </n-button>
             </template>
         </n-modal>
+        <n-modal v-model:show="showBurnMailbox" preset="dialog" :title="t('burnMailbox')"
+            data-testid="burn-mailbox-dialog">
+            <p>{{ t('burnMailboxConfirm') }}</p>
+            <p class="muted mono burn-mailbox__address">{{ settings.address }}</p>
+            <n-input v-model:value="burnConfirmInput" class="burn-mailbox__input"
+                :placeholder="t('burnMailboxTypeAddress')" data-testid="burn-mailbox-input"
+                @keyup.enter="burnMailboxNow" />
+            <template #action>
+                <n-button size="small" tertiary @click="showBurnMailbox = false">
+                    {{ t('cancel') }}
+                </n-button>
+                <n-button size="small" type="error" :disabled="burnConfirmInput !== settings.address"
+                    :loading="burnBusy" data-testid="burn-mailbox-submit" @click="burnMailboxNow">
+                    {{ t('burnMailbox') }}
+                </n-button>
+            </template>
+        </n-modal>
+
         <n-modal v-model:show="showClearInbox" preset="dialog" :title="t('clearInbox')">
             <p>{{ t('clearInboxConfirm') }}</p>
             <template #action>
@@ -930,4 +1037,6 @@ const changePassword = async () => {
 .enc-passkey-backups__name { font-weight: 600; }
 .enc-existing { margin-top: var(--space-3); }
 .enc-existing__line { margin: var(--space-2) 0 0; }
+.burn-mailbox__address { margin: var(--space-2) 0; }
+.burn-mailbox__input { margin-top: var(--space-2); }
 </style>
