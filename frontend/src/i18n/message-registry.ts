@@ -4259,7 +4259,7 @@ export const MESSAGE_REGISTRY = {
       "zh": "请输入你想要使用的邮箱地址, 只允许: "
     },
     "getNewEmailTip2": {
-      "en": "Levaing it blank will generate a random email address.",
+      "en": "Leaving it blank will generate a random email address.",
       "zh": "留空将会生成一个随机的邮箱地址。"
     },
     "getNewEmailTip3": {
