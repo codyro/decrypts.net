@@ -60,6 +60,7 @@ type Bindings = {
     ENABLE_USER_CREATE_EMAIL: string | boolean | undefined
     DISABLE_ANONYMOUS_USER_CREATE_EMAIL: string | boolean | undefined
     ENABLE_USER_DELETE_EMAIL: string | boolean | undefined
+    ENABLE_USER_BURN_ACCOUNT: string | boolean | undefined
     ENABLE_ADDRESS_PASSWORD: string | boolean | undefined
     ADDRESS_PASSWORD_LOGIN_ONLY: string | boolean | undefined
     ENABLE_AGENT_EMAIL_INFO: string | boolean | undefined

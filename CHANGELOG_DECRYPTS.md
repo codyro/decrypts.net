@@ -16,6 +16,14 @@ release notes the upstream release tag it is based on.
 
 ### Fixes
 
+- Admin user deletion (`DELETE /admin/users/:user_id`) no longer leaves orphaned rows: it now removes the user's passkeys and role bindings (plus key backups and address bindings) through the same shared helper as burn account, and accepts an explicit optional `"burn_addresses": true` body flag to also delete the bound mailboxes with their data instead of only unlinking them.
+
+### Features
+
+- **Burn account.** With the new `ENABLE_USER_BURN_ACCOUNT` worker var, the user center settings gain a "Burn account" danger zone: after typing a confirmation phrase and re-authenticating with the account password or a passkey (new `POST /user_api/burn_account/challenge` + `/user_api/burn_account`, rate limited like register), the account and every mailbox bound to it are permanently deleted with all of their mail, passkeys, roles and key backups, and the browser removes its local private keys and saved logins for those mailboxes. New endpoints are documented in the en/zh API docs and worker vars reference.
+
+### Fixes
+
 - The mail Security panel now reads Cloudflare's `ARC-Authentication-Results` (RFC 8617 instance tag `i=1;` stripped before the authserv-id, highest trusted `i=` preferred, authserv-id versions tolerated), so DKIM/DMARC are no longer "not reported" for routed mail, and TLS detection now unfolds folded `Received` headers, looks at hops added by the trusted receiver (scanning an internal Cloudflare hop), and recognises `TLS1_3`/`tls=`/bare-version/OpenSSL-cipher/`UTF8SMTPS` notations.
 - The mailbox card (and the "Create or Bind" modal, which embeds it) now opens on the Login tab when this browser already has saved mailboxes (`LocalAddressCache` non-empty), covering returning visitors and expired or cleared sessions; new visitors with nothing saved still get the Create tab when creation is allowed. A tab the user already clicked is never overridden.
 - Stopped calling the mailbox encryption "end-to-end" in UI copy, translations and docs: mail is encrypted before storage (encryption at rest), so strings now say "Encrypt stored mail" / "Mail encryption" and the same claim was removed from de/es/ja/ptBR translations and the docs. The About page and FAQ honest caveats are unchanged.

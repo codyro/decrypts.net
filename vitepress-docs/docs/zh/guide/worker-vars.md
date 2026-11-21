@@ -19,6 +19,7 @@
 | `DISABLE_USER_SYSTEM`      | 文本/JSON   | 否       | 拦截用户系统接口，隐藏前端用户界面         | `false`         | `true` |
 | `ENABLE_USER_CREATE_EMAIL` | 文本/JSON   | 否       | 是否允许用户创建邮箱                       | `false`         | `true` |
 | `ENABLE_USER_DELETE_EMAIL` | 文本/JSON   | 否       | 是否允许用户删除邮件                       | `false`         | `true` |
+| `ENABLE_USER_BURN_ACCOUNT` | 文本/JSON   | 否       | 允许登录用户在用户中心的危险操作区永久注销账户及其绑定的所有邮箱（含全部数据），注销前需重新验证身份，浏览器同时会移除这些邮箱在本地的密钥和登录信息。见 [注销账户](./feature/mail-api.md#burn-account) | `false`         | `true` |
 | `ENABLE_MAIL_READ_STATUS`  | 文本/JSON   | 否       | 启用邮件已读/未读状态。启用前需要升级数据库 Schema | `false` | `true` |
 | `ENABLE_REDEEM_CODE`       | 文本/JSON   | 否       | 启用兑换码页面、用户兑换 API 和管理端兑换码功能 | `false` | `true` |
 | `REDEEM_CODE_URL`          | 文本        | 否       | 获取兑换码的外部平台链接                   | 空，不展示入口  | `https://example.com/redeem-codes` |

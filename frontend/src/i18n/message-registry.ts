@@ -1276,6 +1276,60 @@ export const MESSAGE_REGISTRY = {
       "zh": "更新时间"
     }
   },
+  "views.user.BurnAccount": {
+    "dangerSection": {
+      "en": "Danger Zone",
+      "zh": "危险操作"
+    },
+    "burnAccount": {
+      "en": "Burn account",
+      "zh": "注销账户"
+    },
+    "burnTip": {
+      "en": "Burn account permanently deletes your account, its passkeys and backups, and every mailbox linked to it, with all their mail. This can't be undone.",
+      "zh": "注销账户会永久删除你的账户、其中的通行密钥和备份，以及与之绑定的所有邮箱及其全部邮件，且无法撤销。"
+    },
+    "burnRowTip": {
+      "en": "Permanently delete this account and every mailbox linked to it, with all their data, and remove this browser's keys and logins for those mailboxes.",
+      "zh": "永久删除此账户及与之绑定的所有邮箱及其全部数据，并移除此浏览器中这些邮箱的密钥和登录信息。"
+    },
+    "burnConfirm": {
+      "en": "This permanently deletes your account and the following linked mailboxes, with all their mail on the server, and removes this browser's decryption keys for them. It cannot be undone.",
+      "zh": "这将永久删除你的账户和以下绑定的邮箱及服务器上的全部邮件，并移除此浏览器中对应的解密密钥，且无法撤销。"
+    },
+    "burnNoAddresses": {
+      "en": "No mailboxes are linked to this account.",
+      "zh": "此账户没有绑定的邮箱。"
+    },
+    "burnReauthTip": {
+      "en": "Type the confirmation phrase below, then re-authenticate to continue.",
+      "zh": "请在下方输入确认短语，然后重新验证身份以继续。"
+    },
+    "confirmPhrase": {
+      "en": "burn my account",
+      "zh": "销毁我的账户"
+    },
+    "typePhrase": {
+      "en": "Type “{phrase}” to confirm",
+      "zh": "输入“{phrase}”以确认"
+    },
+    "passwordPlaceholder": {
+      "en": "Enter your account password",
+      "zh": "输入你的账户密码"
+    },
+    "confirmWithPasskey": {
+      "en": "Confirm with passkey",
+      "zh": "使用通行密钥确认"
+    },
+    "burnDone": {
+      "en": "Account burned.",
+      "zh": "账户已注销。"
+    },
+    "cancel": {
+      "en": "Cancel",
+      "zh": "取消"
+    }
+  },
   "views.Header": {
     "admin": {
       "en": "Admin Console",

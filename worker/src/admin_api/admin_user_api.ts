@@ -3,7 +3,7 @@ import { Context } from 'hono';
 import { CONSTANTS } from '../constants';
 import { getJsonSetting, saveSetting, checkUserPassword, getDomains, getUserRoles, getMailDomain, includesDomain } from '../utils';
 import { UserSettings, GeoData, UserInfo, RoleAddressConfig } from "../models";
-import { handleListQuery } from '../common'
+import { handleListQuery, deleteUserWithData } from '../common'
 import UserBindAddressModule from '../user_api/bind_address';
 import i18n from '../i18n';
 
@@ -100,17 +100,19 @@ export default {
         const { user_id } = c.req.param();
         const msgs = i18n.getMessagesbyContext(c);
         if (!user_id) return c.text(msgs.UserNotFoundMsg, 400);
-        const { success } = await c.env.DB.prepare(
-            `DELETE FROM users WHERE id = ?`
-        ).bind(user_id).run();
-        const { success: addressSuccess } = await c.env.DB.prepare(
-            `DELETE FROM users_address WHERE user_id = ?`
-        ).bind(user_id).run();
-        const { success: keyBackupSuccess } = await c.env.DB.prepare(
-            `DELETE FROM user_key_backups WHERE user_id = ?`
-        ).bind(user_id).run();
-        if (!success || !addressSuccess || !keyBackupSuccess) {
-            return c.text(msgs.FailedDeleteUserMsg, 500)
+        // Optional explicit opt-in to also delete the bound mailboxes with
+        // their data; the historical default only unlinks them.
+        let burnAddresses = false;
+        try {
+            const body = await c.req.json<{ burn_addresses?: boolean }>();
+            burnAddresses = body?.burn_addresses === true;
+        } catch {
+            // no request body: keep the historical unlink-only behaviour
+        }
+        try {
+            await deleteUserWithData(c, user_id, { burnAddresses });
+        } catch (e) {
+            return c.text(`${msgs.FailedDeleteUserMsg}: ${(e as Error).message}`, 500)
         }
         return c.json({ success: true })
     },

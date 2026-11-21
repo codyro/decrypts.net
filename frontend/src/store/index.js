@@ -117,6 +117,7 @@ export const useGlobalState = createGlobalState(
             enable: false,
             enableMailVerify: false,
             enablePasskeySignup: false,
+            enableBurnAccount: false,
             /** @type {{ clientID: string, name: string, icon?: string }[]} */
             oauth2ClientIDs: [],
         });

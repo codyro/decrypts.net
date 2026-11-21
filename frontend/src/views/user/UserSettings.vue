@@ -8,6 +8,7 @@ import { useStorage } from '@vueuse/core'
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { isPasskeyPseudoEmail } from '../../utils/passkey-account'
+import BurnAccount from './BurnAccount.vue'
 
 const { userJwt, userSettings, jwt } = useGlobalState()
 const message = useMessage()
@@ -248,6 +249,7 @@ const renamePasskey = async () => {
                 <div class="settings-row__action"><n-button @click="showLogout = true" secondary>{{ t('logout') }}</n-button></div>
             </div>
         </section>
+        <BurnAccount />
         <n-modal v-model:show="showCreatePasskey" preset="dialog" :title="t('createPasskey')">
             <n-input v-model:value="passkeyName" :placeholder="t('passkeyNamePlaceholder')" />
             <template #action>

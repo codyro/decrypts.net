@@ -103,6 +103,7 @@ app.use('/*', async (c, next) => {
 		|| (c.req.path.startsWith("/user_api/address/") && c.req.path.endsWith("/send_mail"))
 		|| c.req.path.startsWith("/user_api/register")
 		|| c.req.path.startsWith("/user_api/verify_code")
+		|| c.req.path.startsWith("/user_api/burn_account")
 		|| c.req.path.startsWith("/user_api/passkey/signup_")
 		|| c.req.path.startsWith("/redeem_api/")
 	) {

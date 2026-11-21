@@ -89,6 +89,9 @@ ENABLE_USER_CREATE_EMAIL = true
 # DISABLE_ANONYMOUS_USER_CREATE_EMAIL = true
 # Allow users to delete messages
 ENABLE_USER_DELETE_EMAIL = true
+# Allow signed-in users to permanently delete their account and every mailbox
+# bound to it (with all of their data) from the user center danger zone
+# ENABLE_USER_BURN_ACCOUNT = true
 # Enable the redemption code page and APIs
 # ENABLE_REDEEM_CODE = true
 # Optional external link for obtaining redemption codes

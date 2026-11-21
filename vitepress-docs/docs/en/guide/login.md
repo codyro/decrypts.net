@@ -16,3 +16,7 @@ When the deployer enables **Allow Passkey Sign-up** in Admin → User Settings, 
 
 - The account has no usable email/password; the user center and admin console label it **Passkey account** (internally it uses a `pk-<random>@passkey.invalid` pseudo-email, and password login, verification codes and OAuth2 reject any `.invalid` email).
 - If every passkey is lost the account cannot be recovered — the UI nudges the user to add a second passkey, and deleting the last passkey is refused. An administrator can still reset the password of such an account to grant access again.
+
+## Burn Account
+
+When the deployer enables `ENABLE_USER_BURN_ACCOUNT`, the user center settings show a **Burn account** danger zone: after typing a confirmation phrase and re-authenticating with the account password or a passkey, the account and every mailbox linked to it — with all of their mail, passkeys and key backups — are permanently deleted, and the browser removes its local keys and saved logins for those mailboxes. This cannot be undone. See [Burn account](./feature/mail-api.md#burn-account) for the API.

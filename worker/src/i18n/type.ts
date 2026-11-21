@@ -121,6 +121,8 @@ export type LocaleMessages = {
     RegistrationFailedMsg: string
     PasskeySignupDisabledMsg: string
     CannotDeleteLastPasskeyMsg: string
+    BurnAccountDisabledMsg: string
+    InvalidBurnConfirmMsg: string
 
     // Reserved pseudo-email (.invalid TLD) related
     ReservedEmailDomainMsg: string

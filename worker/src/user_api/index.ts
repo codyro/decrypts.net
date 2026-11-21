@@ -8,6 +8,7 @@ import oauth2 from './oauth2';
 import user_mail_api from './user_mail_api';
 import user_send_mail_api from './user_send_mail_api';
 import key_backups from './key_backups';
+import burn_account from './burn_account';
 
 export const api = new Hono<HonoCustomType>();
 
@@ -57,3 +58,7 @@ api.post('/user_api/passkey/authenticate_response', passkey.authenticateResponse
 api.get('/user_api/key_backups', key_backups.getKeyBackups);
 api.put('/user_api/key_backups', key_backups.putKeyBackup);
 api.delete('/user_api/key_backups/:id', key_backups.deleteKeyBackup);
+
+// burn account api (permanent self-delete, ENABLE_USER_BURN_ACCOUNT only)
+api.post('/user_api/burn_account/challenge', burn_account.challenge);
+api.post('/user_api/burn_account', burn_account.burn);

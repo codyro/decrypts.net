@@ -299,6 +299,49 @@ response = requests.post(
 print(response.json())  # {"success": True}
 ```
 
+### Burn account
+
+::: danger Permanent deletion
+Burning permanently deletes the signed-in user account **and every mailbox bound to it, with all of their mail**, plus the account's passkeys, roles and key backups. It cannot be undone.
+:::
+
+Available only when the administrator sets `ENABLE_USER_BURN_ACCOUNT = true` (both endpoints return 403 otherwise). Requires the User JWT (`x-user-token`), is rate limited like `/user_api/register`, and always requires fresh re-authentication: the account password (SHA-256 hex, same as login) or a passkey assertion, plus an exact confirmation phrase (`burn my account`).
+
+```
+POST /user_api/burn_account/challenge
+     # body: { "domain": "<rpID, e.g. example.com>" }
+     # -> WebAuthn authentication options whose allowCredentials are limited
+     #    to this user's registered passkeys. The challenge is a signed JWT
+     #    (purpose "burn_account", bound to this user, 5 min validity).
+
+POST /user_api/burn_account
+     # body: { "confirm": "burn my account",
+     #         "password": "<sha256 hex>",            # password accounts
+     #         "credential": <webauthn assertion>,    # passkey instead
+     #         "origin": "<origin>", "domain": "<rpID>" }  # with credential
+     # -> { "success": true, "deleted_addresses": ["a@x.com", ...] }
+```
+
+- Passkey-only accounts (see [Passkey Sign-up](#passkey-sign-up)) must confirm with a passkey assertion verified against the burn challenge; the credential must belong to the current user (another user's passkey returns 401). Password accounts may use either their password or a passkey assertion.
+- A wrong confirmation phrase returns 400; a wrong password or a bad/missing assertion returns 401.
+- `deleted_addresses` lists every mailbox that was deleted, so the browser can remove its local private keys and saved logins for them. After the burn, the old User JWT and the Address JWTs of the deleted mailboxes no longer work.
+- Admin deletion (`DELETE /admin/users/:user_id`) removes the same per-user rows (`users_address`, `user_key_backups`, `user_passkeys`, `user_roles`, `users`); it keeps the historical behaviour of unlinking bound mailboxes unless the request body sets `"burn_addresses": true`, which deletes the bound mailboxes with their data as well.
+
+```python
+import requests
+
+response = requests.post(
+    "https://<your-worker-address>/user_api/burn_account",
+    headers={"x-user-token": "<your-user-JWT-token>"},
+    json={
+        "confirm": "burn my account",
+        "password": "<sha256 hex of the account password>",
+        "origin": "https://<your-frontend-address>",
+    },
+)
+print(response.json())  # {"success": True, "deleted_addresses": [...]}
+```
+
 ### Passkey Sign-up
 
 Public endpoints (no User JWT) that create an account with only a passkey — no email and no password. Both require the administrator to enable **Allow User Register** and **Allow Passkey Sign-up** in Admin → User Settings (otherwise they return 403), and they are rate limited like `/user_api/register`.

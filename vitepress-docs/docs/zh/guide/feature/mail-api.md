@@ -299,6 +299,49 @@ response = requests.post(
 print(response.json())  # {"success": True}
 ```
 
+### 注销账户
+
+::: danger 永久删除
+注销会永久删除当前登录的用户账户**及其绑定的所有邮箱和全部邮件**，以及账户的通行密钥、角色和密钥备份，且无法撤销。
+:::
+
+仅当管理员设置 `ENABLE_USER_BURN_ACCOUNT = true` 时可用（未启用时两个接口均返回 403）。需要用户 JWT（`x-user-token`），并与 `/user_api/register` 一样受速率限制，且必须重新验证身份：账户密码（SHA-256 哈希，与登录一致）或通行密钥断言，外加输入精确的确认短语（`burn my account`，中文界面为“销毁我的账户”）。
+
+```
+POST /user_api/burn_account/challenge
+     # body: { "domain": "<rpID, 例如 example.com>" }
+     # -> WebAuthn 认证选项，allowCredentials 仅限该用户注册过的通行密钥。
+     #    challenge 为服务器签发的 JWT（purpose 为 "burn_account"，绑定该
+     #    用户，5 分钟有效）。
+
+POST /user_api/burn_account
+     # body: { "confirm": "burn my account",
+     #         "password": "<sha256 哈希>",          # 密码账户
+     #         "credential": <webauthn assertion>,  # 或用通行密钥
+     #         "origin": "<origin>", "domain": "<rpID>" }  # 使用断言时必填
+     # -> { "success": true, "deleted_addresses": ["a@x.com", ...] }
+```
+
+- 仅通行密钥账户（见[通行密钥注册](#通行密钥注册)）必须使用针对注销 challenge 验证通过的通行密钥断言确认，且凭据必须属于当前用户（使用其他用户的通行密钥返回 401）。密码账户可以使用密码或通行密钥断言。
+- 确认短语错误返回 400；密码错误或断言无效/缺失返回 401。
+- `deleted_addresses` 列出了被删除的全部邮箱，浏览器据此移除这些邮箱在本地的私钥和已保存的登录信息。注销后，旧的用户 JWT 与被删邮箱的地址 JWT 均不再有效。
+- 管理端删除（`DELETE /admin/users/:user_id`）会清理同样的每用户数据（`users_address`、`user_key_backups`、`user_passkeys`、`user_roles`、`users`）；默认保持原有的“仅解绑邮箱”行为，仅当请求体设置 `"burn_addresses": true` 时才会连同绑定的邮箱及其数据一并删除。
+
+```python
+import requests
+
+response = requests.post(
+    "https://<你的worker地址>/user_api/burn_account",
+    headers={"x-user-token": "<你的用户JWT Token>"},
+    json={
+        "confirm": "burn my account",
+        "password": "<账户密码的 sha256 哈希>",
+        "origin": "https://<你的前端地址>",
+    },
+)
+print(response.json())  # {"success": True, "deleted_addresses": [...]}
+```
+
 ### 通行密钥注册
 
 公开接口（无需用户 JWT），仅使用通行密钥创建账户——无需邮箱和密码。两个接口都需要管理员在 管理后台 → 用户设置 中同时开启**允许用户注册**与**允许通行密钥注册**（否则返回 403），并与 `/user_api/register` 一样受速率限制。

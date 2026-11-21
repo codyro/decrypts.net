@@ -19,6 +19,7 @@ Unless an entry or its notes describe a different fallback, a `Text/JSON` boolea
 | `DISABLE_USER_SYSTEM`      | Text/JSON   | No       | Block user system APIs and hide user interfaces                        | `false`              | `true` |
 | `ENABLE_USER_CREATE_EMAIL` | Text/JSON   | No       | Whether to allow users to create mailboxes                             | `false`              | `true` |
 | `ENABLE_USER_DELETE_EMAIL` | Text/JSON   | No       | Whether to allow users to delete emails                                | `false`              | `true` |
+| `ENABLE_USER_BURN_ACCOUNT` | Text/JSON   | No       | Allow signed-in users to permanently delete their account and every mailbox bound to it (with all of their data) from the user center danger zone, after re-authentication. The browser also removes its local keys and logins for those mailboxes. See [Burn account](./feature/mail-api.md#burn-account) | `false`              | `true` |
 | `ENABLE_MAIL_READ_STATUS`  | Text/JSON   | No       | Enables read/unread mail state. Upgrade the database schema before enabling | `false` | `true` |
 | `ENABLE_REDEEM_CODE`       | Text/JSON   | No       | Enables the redemption page, public redemption APIs, and Admin redemption management | `false` | `true` |
 | `REDEEM_CODE_URL`          | Text        | No       | External URL for obtaining redemption codes                           | Empty; link hidden   | `https://example.com/redeem-codes` |

@@ -693,6 +693,64 @@ export const deleteAddressWithData = async (
     return true;
 }
 
+/**
+ * Permanently delete a user account and, optionally, every mailbox bound to
+ * it with all of their data.
+ *
+ * With `burnAddresses` the bound addresses are deleted through the same
+ * batch logic as cleanup/single-address deletion (inbox, sendbox, send
+ * access, auto-reply, key backups, bindings, address rows), after unbinding
+ * any Telegram links. Remaining per-user rows (bindings, key backups,
+ * passkeys, roles, the user itself) are then removed in one D1 batch.
+ *
+ * `redeem_codes` rows are intentionally untouched: the table has no
+ * user_id column — redemptions are recorded on the code itself, which is
+ * audit-relevant and shared, so there is nothing per-user to delete.
+ *
+ * Returns the names of the bound addresses that were deleted (empty when
+ * `burnAddresses` is false), so callers can clean up local credentials.
+ */
+export const deleteUserWithData = async (
+    c: Context<HonoCustomType>,
+    userId: number | string,
+    { burnAddresses = false }: { burnAddresses?: boolean } = {}
+): Promise<string[]> => {
+    const msgs = i18n.getMessagesbyContext(c);
+    const uid = Number(userId);
+    if (!Number.isSafeInteger(uid) || uid <= 0) {
+        throw new Error(msgs.UserNotFoundMsg);
+    }
+    const { results: bound } = await c.env.DB.prepare(
+        `SELECT a.id AS id, a.name AS name FROM address a`
+        + ` JOIN users_address ua ON ua.address_id = a.id`
+        + ` WHERE ua.user_id = ?`
+    ).bind(uid).all<{ id: number, name: string }>();
+    if (burnAddresses) {
+        for (const row of bound) {
+            await unbindTelegramByAddress(c, row.name);
+        }
+        const ids = bound
+            .map((row) => Number(row.id))
+            .filter((id) => Number.isSafeInteger(id) && id > 0);
+        // ids come from our own query and are validated integers above, so
+        // interpolating them is safe.
+        if (ids.length > 0) {
+            await batchDeleteAddressWithData(c, `id IN (${ids.join(",")})`);
+        }
+    }
+    const results = await c.env.DB.batch([
+        c.env.DB.prepare(`DELETE FROM users_address WHERE user_id = ?`).bind(uid),
+        c.env.DB.prepare(`DELETE FROM user_key_backups WHERE user_id = ?`).bind(uid),
+        c.env.DB.prepare(`DELETE FROM user_passkeys WHERE user_id = ?`).bind(uid),
+        c.env.DB.prepare(`DELETE FROM user_roles WHERE user_id = ?`).bind(uid),
+        c.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(uid),
+    ]);
+    if (results.some((result) => !result.success)) {
+        throw new Error(msgs.FailedDeleteUserMsg);
+    }
+    return bound.map((row) => row.name);
+}
+
 export const handleListQuery = async (
     c: Context<HonoCustomType>,
     query: string, countQuery: string, params: string[],

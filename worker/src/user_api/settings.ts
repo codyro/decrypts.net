@@ -2,7 +2,7 @@ import { Context } from "hono";
 
 import i18n from "../i18n";
 import { UserOauth2Settings, UserSettings } from "../models";
-import { getJsonSetting, getUserRoles } from "../utils"
+import { getJsonSetting, getUserRoles, getBooleanValue } from "../utils"
 import { CONSTANTS } from "../constants";
 import { commonGetUserRole, updateUserAddressesUpdatedAt } from "../common";
 import { Jwt } from "hono/utils/jwt";
@@ -28,6 +28,7 @@ export default {
             enable: settings.enable,
             enableMailVerify: settings.enableMailVerify,
             enablePasskeySignup: settings.enablePasskeySignup === true,
+            enableBurnAccount: getBooleanValue(c.env.ENABLE_USER_BURN_ACCOUNT),
             oauth2ClientIDs: oauth2ClientIDs,
         })
     },
