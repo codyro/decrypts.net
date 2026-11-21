@@ -10,3 +10,11 @@ db/
 **/test-results/
 **/playwright-report/
 .DS_Store
+# Local env/config files must not leak into the e2e images: frontend/.env is
+# the production config (VITE_DEFAULT_LANG=en flips the locale default the
+# browser tests assume), and the worker files hold production values.
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+worker/wrangler.toml
+worker/.dev.vars
