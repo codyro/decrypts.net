@@ -8,7 +8,7 @@ import i18n from '@/i18n'
 import About from '../About.vue'
 
 const stubs = vi.hoisted(() => ({
-    openSettings: { enableMailEncryption: false, title: '' },
+    openSettings: { enableMailEncryption: false, title: '', retention: undefined as unknown },
     announcement: '',
 }))
 
@@ -67,6 +67,17 @@ describe('About.vue', () => {
         expect(html).not.toContain('Github')
         expect(html).not.toContain('Discord')
         expect(html).not.toContain('Telegram')
+    })
+
+    it('renders the day counts in the retention sentences', async () => {
+        stubs.openSettings.retention = { mailsDays: 7, inactiveAddressDays: 30 }
+        const html = await renderAbout()
+        expect(html).toContain('Mail is deleted automatically after 7 days.')
+        expect(html).toContain('Addresses unused for 30 days are removed.')
+        i18n.global.locale.value = 'zh'
+        const zhHtml = await renderAbout()
+        expect(zhHtml).toContain('邮件会在 7 天后被自动删除。')
+        stubs.openSettings.retention = undefined
     })
 
     it('falls back to the app title when nothing else is shown', async () => {

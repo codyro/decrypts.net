@@ -47,6 +47,7 @@
 
 ### Bug Fixes
 
+- fix: |UI| Fix missing day counts in the retention sentences shown in the About dialog and the login "How it works" tab: vue-i18n's `t(key, count, options)` overload never interpolates named values, so it now calls `t(key, { days }, count)` to both interpolate `{days}` and select the plural form; unit tests now run against a real vue-i18n instance
 - fix: |UI| Fix theme CSS variable generation: digit-suffixed tokens (`text1`/`text2`/`text3`) now produce dashed names like `--app-text-1`, matching the `var(--app-text-N)` references in the stylesheets, so muted/secondary text no longer silently inherits the default colour
 - fix: |DB Migration| Fix the v0.0.12 -> v0.0.13 migration creating `user_key_backups`: D1's `DB.exec()` splits statements on newlines, so the multi-line CREATE TABLE failed; it now runs as a single-line statement
 - fix: |Mailbox Encryption| The browser "encrypt existing mail" flow now refuses to run and uploads nothing when the server-returned public key matches none of the keys this device stores for the address (restore or import the current private key first, so the re-encrypted mail stays decryptable on this device)

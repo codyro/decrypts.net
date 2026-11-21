@@ -1,17 +1,25 @@
 import { describe, expect, it } from 'vitest'
+import { createI18n } from 'vue-i18n'
 
 import { buildRetentionSentences } from '../retention-text'
-import { getMessageSource } from '../../i18n/message-registry'
+import { I18N_MESSAGES } from '../../i18n/messages'
 
-// Minimal stand-in for the vue-i18n `t(key, count, values)` overload used by
-// buildRetentionSentences: picks the plural form exactly like vue-i18n's
-// default rule (choice === 1 -> first form), then interpolates {placeholders}.
-const makeT = (locale) => (key, count, values) => {
-    const message = getMessageSource('utils.retentionText', key, locale)
-    if (message === undefined) throw new Error(`missing message: ${key}`)
-    const forms = message.split('|').map((form) => form.trim())
-    const form = count === 1 ? forms[0] : (forms[1] ?? forms[0])
-    return form.replace(/\{(\w+)\}/g, (_, name) => String(values[name]))
+// Real vue-i18n instance, built the same way as the app (`frontend/src/i18n`),
+// so the `t(key, { days }, days)` call in buildRetentionSentences is exercised
+// against the actual named-interpolation + plural handling of vue-i18n.
+const makeT = (locale) => {
+    const t = createI18n({
+        legacy: false,
+        locale,
+        messages: {
+            en: { utils: I18N_MESSAGES.en.utils },
+            zh: { utils: I18N_MESSAGES.zh.utils },
+        },
+        missingWarn: false,
+        fallbackWarn: false,
+    }).global.t
+    // mirror useScopedI18n: keys arrive un-namespaced
+    return (key, ...args) => t(`utils.retentionText.${key}`, ...args)
 }
 
 describe('buildRetentionSentences', () => {

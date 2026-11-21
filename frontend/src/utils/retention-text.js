@@ -3,7 +3,7 @@
 // auto-cleanup settings). Pure function: the caller injects the translator
 // (bound to the 'utils.retentionText' namespace) so this can be unit-tested
 // without vue-i18n. The translator must support vue-i18n interpolation and
-// pluralization: t(key, count, { values }).
+// pluralization: t(key, { values }, count) (named values + plural count).
 //
 // Rules users never notice (mails to non-existent addresses) are skipped.
 export const buildRetentionSentences = (retention, t) => {
@@ -11,7 +11,7 @@ export const buildRetentionSentences = (retention, t) => {
     const sentences = [];
     const append = (key, days) => {
         if (typeof days === 'number' && Number.isFinite(days) && days > 0) {
-            sentences.push(t(key, days, { days }));
+            sentences.push(t(key, { days }, days));
         }
     };
     append('mails', retention.mailsDays);
