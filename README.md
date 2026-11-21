@@ -1,203 +1,133 @@
-<!-- markdownlint-disable-file MD033 MD045 -->
-# Cloudflare 临时邮箱 - 免费搭建临时邮件服务
+<!-- markdownlint-disable-file MD033 -->
+# decrypts — your ghost address 👻
 
 <p align="center">
-  <a href="https://temp-mail-docs.awsl.uk" target="_blank">
-    <img alt="docs" src="https://img.shields.io/badge/docs-grey?logo=vitepress">
-  </a>
-  <a href="https://github.com/dreamhunter2333/cloudflare_temp_email/releases/latest" target="_blank">
-    <img src="https://img.shields.io/github/v/release/dreamhunter2333/cloudflare_temp_email">
-  </a>
-  <a href="https://github.com/dreamhunter2333/cloudflare_temp_email/blob/main/LICENSE" target="_blank">
-    <img alt="MIT License" src="https://img.shields.io/github/license/dreamhunter2333/cloudflare_temp_email">
-  </a>
-  <a href="https://github.com/dreamhunter2333/cloudflare_temp_email/graphs/contributors" target="_blank">
-   <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/dreamhunter2333/cloudflare_temp_email">
-  </a>
-  <a href="">
-    <img alt="GitHub top language" src="https://img.shields.io/github/languages/top/dreamhunter2333/cloudflare_temp_email">
-  </a>
-  <a href="">
-    <img src="https://img.shields.io/github/last-commit/dreamhunter2333/cloudflare_temp_email">
-  </a>
+  <a href="https://decrypts.net"><img alt="live site" src="https://img.shields.io/badge/live-decrypts.net-FFB000?labelColor=0B0B0C"></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-grey"></a>
+  <a href="https://github.com/dreamhunter2333/cloudflare_temp_email"><img alt="based on cloudflare_temp_email" src="https://img.shields.io/badge/based%20on-cloudflare__temp__email-grey?logo=github"></a>
 </p>
 
-<p align="center">
-  <a href="https://hellogithub.com/repository/2ccc64bb1ba346b480625f584aa19eb1" target="_blank">
-    <img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=2ccc64bb1ba346b480625f584aa19eb1&claim_uid=FxNypXK7UQ9OECT" alt="Featured｜HelloGitHub" height="30"/>
-  </a>
-</p>
+**decrypts** is disposable email that runs entirely on Cloudflare (Workers, D1 and Email Routing), with optional **per-mailbox encryption**. Mail is stored encrypted and decrypted only in your browser. It has a retro "Phosphor" terminal look.
 
-<p align="center">
-  <a href="README.md">中文文档</a> |
-  <a href="README_EN.md">English Document</a> |
-  <a href="README_JA.md">日本語ドキュメント</a>
-</p>
+Try it at **[decrypts.net](https://decrypts.net)**, or host your own.
 
-> 本项目仅供学习和个人用途，请勿将其用于任何违法行为，否则后果自负。
+> decrypts is a fork of [cloudflare_temp_email](https://github.com/dreamhunter2333/cloudflare_temp_email) by [Dream Hunter](https://github.com/dreamhunter2333) and its contributors. Almost everything that makes it a working mail service comes from that project. See [Credits](#credits).
+>
+> For learning and personal use. Don't use it for anything illegal.
 
-**一个功能完整的临时邮箱服务！**
+## What this fork adds
 
-- **完全免费** - 基于 Cloudflare 免费服务构建，零成本运行
-- **高性能** - Rust WASM 邮件解析，响应速度极快
-- **现代化界面** - 响应式设计，支持多语言，操作简便
-- **地址密码** - 支持为邮箱地址设置独立密码，增强安全性
-- **Agent 友好** - 内置邮箱 [`skill`](skills/cf-temp-mail-agent-mail/SKILL.md)，方便 AI agent 使用邮箱
-- **移动端管理** - 社区客户端 [CloudMail](https://github.com/Lur1N77777/CloudMail)，支持 Android 管理后台和邮箱管理
+**Encrypted mailboxes**
+- **Encryption per mailbox, on by default.** Your browser makes a P-256 key pair. The worker gets only the public key and encrypts each incoming mail (the whole MIME message: sender, subject, body and attachments) with AES-256-GCM before storing it. Sent mail is stored encrypted too.
+- **Keys stay in the browser.** Private keys are non-extractable WebCrypto keys in IndexedDB. The raw key is shown once, at creation.
+- **Backups:** a passphrase-protected link or file (PBKDF2, 600k rounds), or a passkey backup for account holders (WebAuthn PRF). The server never sees the passphrase or the passkey secret.
+- **Open on another device:** a QR code that carries the login and the *protected* backup in the URL fragment, which never reaches the server.
+- **Encrypt existing mail** after turning encryption on, and a **burn mailbox** button that deletes the address, its mail and this browser's keys.
+- **Notifications with no content:** Telegram and webhooks say only "new encrypted mail". Forwarding and AI extraction are switched off for encrypted mailboxes.
 
-## 部署文档 - 快速开始
+**Quality of life**
+- **Verification codes and links** are found in the browser after decryption, with one-click copy from the inbox list. Nothing leaves the browser.
+- **New-mail alerts:** an unread count in the tab title and optional notifications, which never include the sender or subject.
+- **Keyboard shortcuts:** `c` copy address, `r` refresh, `j`/`k` move, `/` search, `?` help.
+- **Retention shown on the site**, generated from the real auto-cleanup settings so it can't drift.
+- A **"back up your key" reminder**, and an About page that explains what encryption does and doesn't protect.
 
-[部署文档](https://temp-mail-docs.awsl.uk) | [Github Action 部署文档](https://temp-mail-docs.awsl.uk/zh/guide/actions/github-action.html)
+**Look and hardening**
+- The **Phosphor theme:** amber on near-black in dark mode, soft graphite on warm-grey paper in light mode, self-hosted IBM Plex fonts, and WCAG AA contrast enforced by tests.
+- A **strict Content-Security-Policy:** same-origin scripts only (plus Turnstile), no CDNs and no remote fonts.
 
-<a href="https://temp-mail-docs.awsl.uk/zh/guide/actions/github-action.html">
-  <img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare Workers" height="32">
-</a>
+**Tooling:** [`mise`](https://mise.jdx.dev) tasks for install, dev, test, deploy, logs, migrations and upstream release merges.
 
-## 更新日志
+## What the encryption does *not* do
 
-查看 [CHANGELOG](CHANGELOG.md) 了解最新更新内容。
+Please read this before relying on it:
 
-## 在线体验
+- **It's not end-to-end from the sender.** Email arrives over the normal email system. The sender's provider and Cloudflare Email Routing handle it unencrypted, and the worker sees each message briefly before encrypting it. It protects mail **at rest**: a leaked or seized database is useless without your key.
+- **You're trusting the code the site serves.** A compromised or dishonest server could read new mail as it arrives, or ship code that steals keys.
+- **Some metadata stays visible:** your address, when mail arrived, its size and whether it's been read. Mail you *send* leaves as normal, unencrypted email.
+- **If you lose your key, the mail is gone.** There's no recovery and no backdoor.
+- It uses standard browser cryptography, but **it has not been independently audited**.
 
-立即体验 → [https://mail.awsl.uk/](https://mail.awsl.uk/)
+Details: [mail encryption docs](vitepress-docs/docs/en/guide/feature/mail-encryption.md).
 
-<details>
-<summary>服务状态监控（点击收缩/展开）</summary>
+## Everything from upstream
 
-|                                            |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Backend](https://temp-email-api.awsl.uk/) | [![Deploy Backend Production](https://github.com/dreamhunter2333/cloudflare_temp_email/actions/workflows/backend_deploy.yaml/badge.svg)](https://github.com/dreamhunter2333/cloudflare_temp_email/actions/workflows/backend_deploy.yaml) ![](https://uptime.aks.awsl.icu/api/badge/10/status) ![](https://uptime.aks.awsl.icu/api/badge/10/uptime) ![](https://uptime.aks.awsl.icu/api/badge/10/ping) ![](https://uptime.aks.awsl.icu/api/badge/10/avg-response) ![](https://uptime.aks.awsl.icu/api/badge/10/cert-exp) ![](https://uptime.aks.awsl.icu/api/badge/10/response) |
-| [Frontend](https://mail.awsl.uk/)          | [![Deploy Frontend](https://github.com/dreamhunter2333/cloudflare_temp_email/actions/workflows/frontend_deploy.yaml/badge.svg)](https://github.com/dreamhunter2333/cloudflare_temp_email/actions/workflows/frontend_deploy.yaml) ![](https://uptime.aks.awsl.icu/api/badge/12/status) ![](https://uptime.aks.awsl.icu/api/badge/12/uptime) ![](https://uptime.aks.awsl.icu/api/badge/12/ping) ![](https://uptime.aks.awsl.icu/api/badge/12/avg-response) ![](https://uptime.aks.awsl.icu/api/badge/12/cert-exp) ![](https://uptime.aks.awsl.icu/api/badge/12/response)         |
+All of cloudflare_temp_email still works. That includes:
+- Rust WASM mail parsing.
+- Sending through the Cloudflare `send_email` binding, Resend or SMTP.
+- User accounts with OAuth2 and passkey login, and roles.
+- A full admin console, attachments (with optional S3), spam and blocklist rules, and forwarding.
+- The Telegram bot and mini app, the SMTP/IMAP proxy, webhooks and Turnstile.
+- Scheduled cleanup and the agent mail skill.
 
-</details>
+See the [upstream docs](https://temp-mail-docs.awsl.uk) for the full list and configuration reference.
 
-<details>
-<summary>Star History（点击收缩/展开）</summary>
+## Self-hosting
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=dreamhunter2333/cloudflare_temp_email&type=Date&theme=dark" />
-  <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=dreamhunter2333/cloudflare_temp_email&type=Date" />
-  <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=dreamhunter2333/cloudflare_temp_email&type=Date" />
-</picture>
+You need a Cloudflare account, a domain on Cloudflare with **Email Routing**, and [`mise`](https://mise.jdx.dev). mise installs Node and pnpm at the pinned versions. Sending to arbitrary recipients needs Workers Paid.
 
-</details>
+```sh
+git clone https://github.com/codyro/decrypts.net.git && cd decrypts.net
+mise install && mise run install
 
-<details open>
-<summary>目录（点击收缩/展开）</summary>
+# Worker config (gitignored): bindings, domains, secrets
+cp worker/wrangler.toml.template worker/wrangler.toml
 
-- [Cloudflare 临时邮箱 - 免费搭建临时邮件服务](#cloudflare-临时邮箱---免费搭建临时邮件服务)
-  - [部署文档 - 快速开始](#部署文档---快速开始)
-  - [更新日志](#更新日志)
-  - [在线体验](#在线体验)
-  - [核心功能](#核心功能)
-    - [邮件处理](#邮件处理)
-    - [用户管理](#用户管理)
-    - [管理功能](#管理功能)
-    - [多语言与界面](#多语言与界面)
-    - [集成与扩展](#集成与扩展)
-  - [技术架构](#技术架构)
-    - [系统架构](#系统架构)
-    - [技术栈](#技术栈)
-    - [主要组件](#主要组件)
-  - [加入社区](#加入社区)
+# Create the database and load the schema
+cd worker
+pnpm exec wrangler d1 create temp-email-db       # put the id into wrangler.toml
+pnpm exec wrangler d1 execute temp-email-db --remote --file=../db/schema.sql
+cd ..
 
-</details>
-
-## 核心功能
-
-<details open>
-<summary>核心功能详情（点击收缩/展开）</summary>
-
-### 邮件处理
-
-- [x] 使用 `rust wasm` 解析邮件，解析速度快，几乎所有邮件都能解析，node 的解析模块解析邮件失败的邮件，rust wasm 也能解析成功
-- [x] **AI 邮件识别** - 使用 Cloudflare Workers AI 自动提取邮件中的验证码、认证链接、服务链接等重要信息
-- [x] 支持为指定基础域名创建随机二级域名邮箱地址，更适合收件隔离场景
-- [x] 支持发送邮件，支持 `DKIM` 验证
-- [x] 支持 `SMTP` 和 `Resend` 等多种发送方式 
-- [x] 增加查看 `附件` 功能，支持附件图片显示
-- [x] 支持 S3 附件存储和删除功能
-- [x] 垃圾邮件检测和黑白名单配置
-- [x] 邮件转发功能，支持全局转发地址
-
-### 用户管理
-
-- [x] 使用 `凭证` 重新登录之前的邮箱
-- [x] 添加完整的用户注册登录功能，可绑定邮箱地址，绑定后可自动获取邮箱JWT凭证切换不同邮箱
-- [x] 支持 `OAuth2` 第三方登录（Github、Authentik 等）
-- [x] 支持 `Passkey` 无密码登录
-- [x] 用户角色管理，支持多角色域名和前缀配置
-- [x] 用户收件箱查看，支持地址和关键词过滤
-
-### 管理功能
-
-- [x] 完整的 admin 控制台
-- [x] `admin` 后台创建无前缀邮箱
-- [x] admin 用户管理页面，增加用户地址查看功能
-- [x] 定时清理功能，支持多种清理策略
-- [x] 获取自定义名字的邮箱，`admin` 可配置黑名单
-- [x] 增加访问密码，可作为私人站点
-
-### 多语言与界面
-
-- [x] 前后台均支持多语言
-- [x] 现代化 UI 设计，支持响应式布局
-- [x] 支持 Google Ads 集成
-- [x] 使用 shadow DOM 防止样式污染
-- [x] 支持 URL JWT 参数自动登录
-
-### 集成与扩展
-
-- [x] 完整的 `Telegram Bot` 支持，以及 `Telegram` 推送，Telegram Bot 小程序
-- [x] 添加 `SMTP proxy server`，支持 `SMTP` 发送邮件，`IMAP` 查看邮件
-- [x] Webhook 支持，消息推送集成
-- [x] 支持 `CF Turnstile` 人机验证
-- [x] 限流配置，防止滥用
-- [x] **Agent 友好**：内置 [`cf-temp-mail-agent-mail`](skills/cf-temp-mail-agent-mail/SKILL.md) skill，AI agent 可直接消费邮箱，详见 [文档](vitepress-docs/docs/zh/guide/feature/agent-email.md)
-- [x] 社区移动端管理客户端：[CloudMail](https://github.com/Lur1N77777/CloudMail) 基于 Expo / React Native，面向本项目兼容 API，提供 Android 管理员后台、地址管理、收件/发件/未知邮件、验证码快捷复制、OLED 黑主题和本地分组。
-
-</details>
-
-## 技术架构
-
-<details>
-<summary>技术架构详情（点击收缩/展开）</summary>
-
-### 系统架构
-
-- **数据库**: Cloudflare D1 作为主数据库
-- **前端部署**: 使用 Cloudflare Pages 部署前端
-- **后端部署**: 使用 Cloudflare Workers 部署后端
-- **邮件转发**: 使用 Cloudflare Email Routing
-
-### 技术栈
-
-- **前端**: Vue 3 + Vite + TypeScript
-- **后端**: TypeScript + Cloudflare Workers
-- **邮件解析**: Rust WASM (mail-parser-wasm)
-- **数据库**: Cloudflare D1 (SQLite)
-- **存储**: Cloudflare KV + R2 (可选 S3)
-- **代理服务**: Python SMTP/IMAP Proxy Server
-
-### 主要组件
-
-- **Worker**: 核心后端服务
-- **Frontend**: Vue 3 用户界面
-- **Mail Parser WASM**: Rust 邮件解析模块
-- **SMTP Proxy Server**: Python 邮件代理服务
-- **Pages Functions**: Cloudflare Pages 中间件
-- **Documentation**: VitePress 文档站点
-
-</details>
-
-### 提醒
-
-- 在Resend添加域名记录时，如果您域名解析服务商正在托管您的3级域名a.b.com，请删除Resend生成的默认name中二级域名前缀b，否则将会添加a.b.b.com，导致验证失败。添加记录后，可通过
-```bash
-nslookup -qt="mx" a.b.com 1.1.1.1
+mise run deploy   # tests, then the frontend build, then the worker deploy (it serves the frontend)
 ```
-进行验证。 
 
-## 加入社区
+Then route your domain's email to the worker (**Email Routing → catch-all → Send to Worker**), and open `/admin` to finish setup. The upstream [CLI guide](https://temp-mail-docs.awsl.uk/en/guide/cli/pre-requisite.html) covers each step in detail.
 
-- [Telegram](https://t.me/cloudflare_temp_email)
+Settings this fork adds, in `wrangler.toml` `[vars]`:
+
+| Variable | Effect |
+|---|---|
+| `ENABLE_MAIL_ENCRYPTION = true` | Turns on per-mailbox encryption |
+| `DEFAULT_MAIL_ENCRYPTION = true` | The "encrypt received mail" box starts ticked |
+| `ENABLE_INDEX_ABOUT = true` | Shows the About link, with the encryption and retention explainer |
+
+To make cleanup run, add `[triggers] crons = ["15 * * * *"]` and set the rules under Admin → auto cleanup.
+
+**Upgrading an existing install:** deploy, then run the database migration from Admin → Database → Migrate, or with `ADMIN_AUTH=… mise run db:migrate`.
+
+### mise tasks
+
+| Task | What it does |
+|---|---|
+| `mise run dev` / `dev:frontend` | Local worker on :8787 / Vite dev server |
+| `mise run test` | Worker lint and frontend unit tests |
+| `mise run build` | Production frontend build and a worker dry-run |
+| `mise run deploy` | Test, build and deploy to Cloudflare |
+| `mise run db:migrate` | Run the database migration on production (needs `ADMIN_AUTH`) |
+| `mise run logs` | Live worker logs |
+| `mise run test:e2e` | Full Docker end-to-end suite |
+| `mise run upstream:check` / `upstream:merge` | Check for, or merge, a new upstream **release tag** |
+| `mise run push` | Test, then push `main` |
+
+## Staying in sync with upstream
+
+This fork tracks upstream **release tags**, not upstream's `main`. Merges never rebase, so the history stays stable for deploys.
+
+```sh
+mise run upstream:check            # is there a newer vX.Y.Z?
+mise run upstream:merge            # merge the newest tag (or TAG=v1.15.0)
+mise run test
+```
+
+Bugs specific to decrypts belong in [this repo's issues](https://github.com/codyro/decrypts.net/issues). Anything that reproduces on stock cloudflare_temp_email belongs [upstream](https://github.com/dreamhunter2333/cloudflare_temp_email/issues).
+
+## Credits
+
+decrypts stands on [cloudflare_temp_email](https://github.com/dreamhunter2333/cloudflare_temp_email) by **[Dream Hunter](https://github.com/dreamhunter2333)** and [its contributors](https://github.com/dreamhunter2333/cloudflare_temp_email/graphs/contributors). That project does the mail parsing, storage, accounts, admin, Telegram, the proxy and most of the rest. If you find decrypts useful, please star the upstream project too.
+
+Upstream's own READMEs (中文 / English / 日本語) are in the [original repository](https://github.com/dreamhunter2333/cloudflare_temp_email#readme), and its community is on [Telegram](https://t.me/cloudflare_temp_email).
+
+## License
+
+[MIT](LICENSE). Copyright (c) 2023 Dream Hunter, plus the fork's changes under the same license.
