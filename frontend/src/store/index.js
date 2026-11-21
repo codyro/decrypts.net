@@ -116,6 +116,7 @@ export const useGlobalState = createGlobalState(
             fetched: false,
             enable: false,
             enableMailVerify: false,
+            enablePasskeySignup: false,
             /** @type {{ clientID: string, name: string, icon?: string }[]} */
             oauth2ClientIDs: [],
         });

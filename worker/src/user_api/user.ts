@@ -2,7 +2,7 @@ import { Context } from 'hono';
 import { Jwt } from 'hono/utils/jwt'
 
 import i18n from '../i18n';
-import utils, { checkCfTurnstile, getJsonSetting, checkUserPassword, getUserRoles, getStringValue, getMailDomain, includesDomain } from "../utils"
+import utils, { checkCfTurnstile, getJsonSetting, checkUserPassword, getUserRoles, getStringValue, getMailDomain, includesDomain, isReservedPseudoEmail } from "../utils"
 import { CONSTANTS } from "../constants";
 import { GeoData, UserInfo, UserSettings } from "../models";
 import { sendMail } from "../mails_api/send_mail_api";
@@ -11,6 +11,11 @@ export default {
     verifyCode: async (c: Context<HonoCustomType>) => {
         const { email, cf_token } = await c.req.json();
         const msgs = i18n.getMessagesbyContext(c);
+        // reserved .invalid pseudo-emails (passkey-only accounts) can never
+        // receive a verify code
+        if (isReservedPseudoEmail(email)) {
+            return c.text(msgs.ReservedEmailDomainMsg, 400)
+        }
         // check cf turnstile
         try {
             await checkCfTurnstile(c, cf_token);
@@ -80,6 +85,11 @@ export default {
         const { email, password, code, cf_token } = await c.req.json();
         if (!email || !password) {
             return c.text(msgs.InvalidEmailOrPasswordMsg, 400)
+        }
+        // reserved .invalid pseudo-emails (passkey-only accounts) can never
+        // register with a password
+        if (isReservedPseudoEmail(email)) {
+            return c.text(msgs.ReservedEmailDomainMsg, 400)
         }
         checkUserPassword(password);
         // check cf turnstile only when mail verify is disabled
@@ -185,6 +195,11 @@ export default {
         const { email, password, cf_token } = await c.req.json();
         const msgs = i18n.getMessagesbyContext(c);
         if (!email || !password) return c.text(msgs.InvalidEmailOrPasswordMsg, 400);
+        // reserved .invalid pseudo-emails (passkey-only accounts) can never
+        // log in with a password
+        if (isReservedPseudoEmail(email)) {
+            return c.text(msgs.ReservedEmailDomainMsg, 400);
+        }
         // check cf turnstile if global turnstile is enabled
         if (utils.isGlobalTurnstileEnabled(c)) {
             try {

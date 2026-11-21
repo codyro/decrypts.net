@@ -7,6 +7,7 @@ import { MenuFilled } from '@vicons/material'
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { hashPassword, utcToLocalDate } from '../../utils';
+import { isPasskeyPseudoEmail } from '../../utils/passkey-account';
 
 import UserAddressManagement from './UserAddressManagement.vue'
 
@@ -151,7 +152,20 @@ const columns = [
     },
     {
         title: t('user_email'),
-        key: "user_email"
+        key: "user_email",
+        render(row) {
+            // Passkey-only accounts have a pk-*@passkey.invalid pseudo-email;
+            // label them instead of presenting the address as a real email.
+            if (isPasskeyPseudoEmail(row.user_email)) {
+                return h(NTag, {
+                    bordered: false,
+                    type: "warning"
+                }, {
+                    default: () => t('passkeyAccount')
+                })
+            }
+            return row.user_email;
+        }
     },
     {
         title: t('role'),

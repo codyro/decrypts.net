@@ -48,6 +48,8 @@ api.post('/user_api/passkey/rename', passkey.renamePassKey);
 api.delete('/user_api/passkey/:passkey_id', passkey.deletePassKey);
 api.post('/user_api/passkey/register_request', passkey.registerRequest);
 api.post('/user_api/passkey/register_response', passkey.registerResponse);
+api.post('/user_api/passkey/signup_request', passkey.signupRequest);
+api.post('/user_api/passkey/signup_response', passkey.signupResponse);
 api.post('/user_api/passkey/authenticate_request', passkey.authenticateRequest);
 api.post('/user_api/passkey/authenticate_response', passkey.authenticateResponse);
 

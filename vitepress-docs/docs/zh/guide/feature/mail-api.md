@@ -299,6 +299,28 @@ response = requests.post(
 print(response.json())  # {"success": True}
 ```
 
+### 通行密钥注册
+
+公开接口（无需用户 JWT），仅使用通行密钥创建账户——无需邮箱和密码。两个接口都需要管理员在 管理后台 → 用户设置 中同时开启**允许用户注册**与**允许通行密钥注册**（否则返回 403），并与 `/user_api/register` 一样受速率限制。
+
+```
+POST /user_api/passkey/signup_request
+     # body: { "domain": "<rpID, 例如 example.com>", "cf_token": "<turnstile token>" }
+     # -> WebAuthn 注册选项：residentKey "required"、userVerification "preferred"，
+     #    user.name/displayName 为“<站点标题> account <随机后缀>”，请求 prf 扩展。
+     #    challenge 为服务器 JWT，绑定新账户的 pk-<随机>@passkey.invalid 伪邮箱
+     #    （5 分钟有效）。
+
+POST /user_api/passkey/signup_response
+     # body: { "origin": "<origin>", "credential": <WebAuthn attestation> }
+     # -> { "jwt": "<user JWT>" } — 一个批次内创建用户、通行密钥与默认角色，
+     #    并立即登录。
+```
+
+- 伪邮箱使用保留的 `.invalid` 顶级域，永远无法收信；密码登录、验证码与 OAuth2 登录均拒绝以 `.invalid` 结尾的邮箱。
+- 存储的密码为占位值 `!passkey-only`，任何密码登录都无法匹配；通行密钥是唯一的登录方式。删除此类账户的最后一个通行密钥会被拒绝（400）。
+- 设置了 `USER_DEFAULT_ROLE` 时自动分配默认角色。之后登录使用常规通行密钥认证接口（凭据可发现，因此 `allowCredentials` 仍为空）。
+
 ### 通行密钥备份存储
 
 `/user_api/key_backups` 存储**通行密钥（WebAuthn PRF）保护备份**（邮箱加密私钥被 PRF 派生密钥包裹后的不透明 blob），用于登录用户账号在新设备上恢复解密密钥。仅当启用 `ENABLE_MAIL_ENCRYPTION` 时可用（未启用时返回 400）；需要用户 JWT（`x-user-token`），且地址必须已绑定到当前账号。

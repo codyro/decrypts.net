@@ -27,6 +27,7 @@ export default {
         return c.json({
             enable: settings.enable,
             enableMailVerify: settings.enableMailVerify,
+            enablePasskeySignup: settings.enablePasskeySignup === true,
             oauth2ClientIDs: oauth2ClientIDs,
         })
     },

@@ -1,13 +1,14 @@
 <script setup>
 import { useMessage } from 'naive-ui'
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useScopedI18n } from '@/i18n/app'
 import { KeyFilled } from '@vicons/material'
 
 import { api } from '../../api';
 import { useGlobalState } from '../../store'
 import { hashPassword } from '../../utils';
-import { startAuthentication } from '@simplewebauthn/browser';
+import { isWebAuthnSupported } from '../../utils/passkey-account';
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 
 import Turnstile from '../../components/Turnstile.vue';
 
@@ -33,6 +34,15 @@ const loginCfToken = ref("")
 const signupTurnstileRef = ref(null)
 const resetTurnstileRef = ref(null)
 const loginTurnstileRef = ref(null)
+
+const webAuthnSupported = isWebAuthnSupported();
+// Passkey sign-up is the prominent option only when the admin enabled it,
+// the browser supports WebAuthn, and registration itself is enabled.
+const showPasskeySignup = computed(() =>
+    webAuthnSupported
+    && userOpenSettings.value.enable
+    && userOpenSettings.value.enablePasskeySignup === true
+);
 
 const emailLogin = async () => {
     if (!user.value.email || !user.value.password) {
@@ -162,6 +172,40 @@ const passkeyLogin = async () => {
     }
 };
 
+const passkeySignup = async () => {
+    if (openSettings.value.cfTurnstileSiteKey && !signupCfToken.value) {
+        message.error(t('pleaseCompleteTurnstile'));
+        return;
+    }
+    try {
+        const options = await api.fetch(`/user_api/passkey/signup_request`, {
+            method: 'POST',
+            body: JSON.stringify({
+                domain: location.hostname,
+                cf_token: signupCfToken.value,
+            })
+        })
+        const credential = await startRegistration({ optionsJSON: options })
+
+        // Send the result to the server and return the promise.
+        const res = await api.fetch(`/user_api/passkey/signup_response`, {
+            method: 'POST',
+            body: JSON.stringify({
+                origin: location.origin,
+                credential
+            })
+        })
+        userJwt.value = res.jwt;
+        // Let the user center show the one-time "add a second passkey" nudge.
+        sessionStorage.setItem('passkeySignupFresh', '1');
+        location.reload();
+    } catch (e) {
+        console.error(e)
+        message.error(e.message)
+        signupTurnstileRef.value?.refresh?.();
+    }
+};
+
 const oauth2Login = async (clientID) => {
     try {
         userOauth2SessionClientID.value = clientID;
@@ -214,6 +258,18 @@ onMounted(async () => {
             </n-tab-pane>
             <n-tab-pane v-if="userOpenSettings.enable" name="signup" :tab="t('register')">
                 <n-form class="user-login-form">
+                    <template v-if="showPasskeySignup">
+                        <p class="muted passkey-signup-helper">{{ t('passkeySignupHelper') }}</p>
+                        <Turnstile ref="signupTurnstileRef" v-model:value="signupCfToken" />
+                        <n-button @click="passkeySignup" type="primary" block size="large">
+                            <template #icon><n-icon :component="KeyFilled" /></template>
+                            {{ t('signupWithPasskey') }}
+                        </n-button>
+                        <n-alert type="warning" :show-icon="false" :bordered="false" class="passkey-signup-warning">
+                            <span>{{ t('passkeySignupWarning') }}</span>
+                        </n-alert>
+                        <n-divider title-placement="center"><span class="muted">{{ loginCommonT('or') }}</span></n-divider>
+                    </template>
                     <n-form-item-row :label="t('email')" required>
                         <n-input v-model:value="user.email" />
                     </n-form-item-row>
@@ -221,7 +277,7 @@ onMounted(async () => {
                         <n-input v-model:value="user.password" type="password" show-password-on="click"
                             @keyup.enter="emailSignup" />
                     </n-form-item-row>
-                    <Turnstile ref="signupTurnstileRef" v-if="userOpenSettings.enableMailVerify" v-model:value="signupCfToken" />
+                    <Turnstile ref="signupTurnstileRef" v-if="!showPasskeySignup" v-model:value="signupCfToken" />
                     <n-form-item-row v-if="userOpenSettings.enableMailVerify" :label="t('verifyCode')" required>
                         <n-input-group>
                             <n-input v-model:value="user.code" />
@@ -232,8 +288,8 @@ onMounted(async () => {
                             </n-button>
                         </n-input-group>
                     </n-form-item-row>
-                    <Turnstile ref="signupTurnstileRef" v-if="!userOpenSettings.enableMailVerify" v-model:value="signupCfToken" />
-                    <n-button @click="emailSignup" type="primary" block size="large">
+                    <n-button @click="emailSignup" :type="showPasskeySignup ? 'secondary' : 'primary'" block
+                        :size="showPasskeySignup ? 'medium' : 'large'">
                         {{ t('register') }}
                     </n-button>
                 </n-form>
@@ -278,6 +334,8 @@ onMounted(async () => {
 .user-login-form :deep(.n-form-item-row) { margin-bottom: 0; }
 .user-login-form :deep(.n-divider) { margin: var(--space-1) 0; }
 .forgot-password-action { display: flex; justify-content: flex-end; }
+.passkey-signup-helper { margin: 0; }
+.passkey-signup-warning { text-align: left; }
 .oauth2-icon {
     display: inline-flex;
     align-items: center;

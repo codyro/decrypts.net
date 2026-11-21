@@ -121,6 +121,11 @@ const messages: LocaleMessages = {
     PasskeyNotFoundMsg: "Passkey not found",
     AuthenticationFailedMsg: "Authentication failed",
     RegistrationFailedMsg: "Registration failed",
+    PasskeySignupDisabledMsg: "Passkey sign-up is disabled, please contact the administrator",
+    CannotDeleteLastPasskeyMsg: "This is the only sign-in method of this passkey-only account; add another passkey before deleting it",
+
+    // Reserved pseudo-email (.invalid TLD) related
+    ReservedEmailDomainMsg: "Email addresses ending in .invalid cannot be used",
 
     // Auto reply related
     AutoReplyDisabledMsg: "Auto reply is disabled",

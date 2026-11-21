@@ -299,6 +299,28 @@ response = requests.post(
 print(response.json())  # {"success": True}
 ```
 
+### Passkey Sign-up
+
+Public endpoints (no User JWT) that create an account with only a passkey — no email and no password. Both require the administrator to enable **Allow User Register** and **Allow Passkey Sign-up** in Admin → User Settings (otherwise they return 403), and they are rate limited like `/user_api/register`.
+
+```
+POST /user_api/passkey/signup_request
+     # body: { "domain": "<rpID, e.g. example.com>", "cf_token": "<turnstile token>" }
+     # -> WebAuthn registration options: residentKey "required", userVerification "preferred",
+     #    user.name/displayName "<site title> account <suffix>", prf extension requested.
+     #    The challenge is a server JWT binding the new account's
+     #    pk-<random>@passkey.invalid pseudo-email (5 min validity).
+
+POST /user_api/passkey/signup_response
+     # body: { "origin": "<origin>", "credential": <WebAuthn attestation> }
+     # -> { "jwt": "<user JWT>" } — the account is created (user, passkey and
+     #    default role in one batch) and logged in immediately.
+```
+
+- The pseudo-email uses the reserved `.invalid` TLD and can never receive mail; password login, verification codes and OAuth2 login reject any email ending in `.invalid`.
+- The stored password is the sentinel `!passkey-only`, which no password login can match; the passkey is the only sign-in method. Deleting the last passkey of such an account is refused (400).
+- `USER_DEFAULT_ROLE` is assigned when set. Subsequent logins use the regular passkey authenticate endpoints (the credential is discoverable, so `allowCredentials` stays empty).
+
 ### Passkey backup storage
 
 `/user_api/key_backups` stores **passkey (WebAuthn PRF) protected backups** — opaque blobs of the mailbox encryption private key wrapped by a PRF-derived key — so a logged-in user account can restore the decryption key on a new device. Available only when `ENABLE_MAIL_ENCRYPTION` is enabled (returns 400 otherwise); requires the User JWT (`x-user-token`) and the address must be bound to the current account.

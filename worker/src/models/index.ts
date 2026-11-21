@@ -107,12 +107,13 @@ export class UserSettings {
     maxAddressCount: number;
     enableEmailCheckRegex: boolean | undefined;
     emailCheckRegex: string | undefined;
+    enablePasskeySignup: boolean | undefined;
 
     constructor(data: UserSettings | undefined | null) {
         const {
             enable, enableMailVerify, verifyMailSender,
             enableMailAllowList, mailAllowList, maxAddressCount,
-            enableEmailCheckRegex, emailCheckRegex
+            enableEmailCheckRegex, emailCheckRegex, enablePasskeySignup
         } = data || {};
         this.enable = enable;
         this.enableMailVerify = enableMailVerify;
@@ -122,6 +123,7 @@ export class UserSettings {
         this.maxAddressCount = (typeof maxAddressCount === "number" && maxAddressCount >= 0) ? maxAddressCount : 5;
         this.enableEmailCheckRegex = enableEmailCheckRegex;
         this.emailCheckRegex = emailCheckRegex;
+        this.enablePasskeySignup = enablePasskeySignup;
     }
 }
 

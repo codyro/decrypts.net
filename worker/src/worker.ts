@@ -103,6 +103,7 @@ app.use('/*', async (c, next) => {
 		|| (c.req.path.startsWith("/user_api/address/") && c.req.path.endsWith("/send_mail"))
 		|| c.req.path.startsWith("/user_api/register")
 		|| c.req.path.startsWith("/user_api/verify_code")
+		|| c.req.path.startsWith("/user_api/passkey/signup_")
 		|| c.req.path.startsWith("/redeem_api/")
 	) {
 		const reqIp = c.req.raw.headers.get("cf-connecting-ip")
@@ -221,6 +222,7 @@ app.use('/user_api/*', async (c, next) => {
 		|| c.req.path.startsWith("/user_api/login")
 		|| c.req.path.startsWith("/user_api/verify_code")
 		|| c.req.path.startsWith("/user_api/passkey/authenticate_")
+		|| c.req.path.startsWith("/user_api/passkey/signup_")
 		|| c.req.path.startsWith("/user_api/oauth2")
 	) {
 		await next();

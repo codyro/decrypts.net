@@ -2,7 +2,7 @@ import { Context } from 'hono';
 import { Jwt } from 'hono/utils/jwt'
 
 import i18n from '../i18n';
-import { getJsonSetting, getMailDomain, getStringValue, getUserRoles, includesDomain } from '../utils';
+import { getJsonSetting, getMailDomain, getStringValue, getUserRoles, includesDomain, isReservedPseudoEmail } from '../utils';
 import { UserOauth2Settings } from '../models';
 import { CONSTANTS } from '../constants';
 
@@ -105,6 +105,12 @@ export default {
 
         if (!email) {
             return c.text(msgs.Oauth2FailedGetUserEmailMsg, 400);
+        }
+        // reserved .invalid pseudo-emails (passkey-only accounts) must never
+        // collide with an OAuth2 identity, including after the email-format
+        // transformation
+        if (isReservedPseudoEmail(email)) {
+            return c.text(msgs.ReservedEmailDomainMsg, 400)
         }
         // check email in mail allow list
         const mailDomain = getMailDomain(email);

@@ -999,6 +999,22 @@ export const MESSAGE_REGISTRY = {
       "en": "Passkey created successfully",
       "zh": "Passkey 创建成功"
     },
+    "passkeyOnlyNudge": {
+      "en": "This account is protected by a single passkey. If you lose it, the account can't be recovered — add a second passkey now.",
+      "zh": "此账户仅由一个通行密钥保护。如果丢失它，账户将无法恢复——请立即添加第二个通行密钥。"
+    },
+    "bindCurrentMailbox": {
+      "en": "Bind current mailbox",
+      "zh": "绑定当前邮箱"
+    },
+    "bindCurrentMailboxDone": {
+      "en": "Mailbox bound to this account",
+      "zh": "邮箱已绑定到该账户"
+    },
+    "bindCurrentMailboxTip": {
+      "en": "You are logged into a mailbox on this browser. Bind it to this account to keep access from the User Center; for an encrypted mailbox you can then back up its key with this passkey in the mailbox's Account Settings.",
+      "zh": "你在此浏览器上登录了一个邮箱。将其绑定到该账户后，可在用户中心继续访问；加密邮箱随后可以在邮箱的账号设置中用此通行密钥备份密钥。"
+    },
     "passkeyNamePlaceholder": {
       "en": "Please enter the passkey name or leave it empty to generate a random one",
       "zh": "请输入 Passkey 名称或者留空自动生成"
@@ -1485,6 +1501,14 @@ export const MESSAGE_REGISTRY = {
       "en": "Password",
       "zh": "密码"
     },
+    "passkeySignupHelper": {
+      "en": "No email or password. Your passkey is your login.",
+      "zh": "无需邮箱和密码，通行密钥即登录方式。"
+    },
+    "passkeySignupWarning": {
+      "en": "If you lose every passkey on this account, it can't be recovered. Add a second passkey in your account settings.",
+      "zh": "如果丢失该账户的所有通行密钥，将无法恢复。请在账户设置中添加第二个通行密钥。"
+    },
     "pleaseCompleteTurnstile": {
       "en": "Please complete turnstile",
       "zh": "请完成人机验证"
@@ -1517,6 +1541,10 @@ export const MESSAGE_REGISTRY = {
       "en": "Send Verification Code",
       "zh": "发送验证码"
     },
+    "signupWithPasskey": {
+      "en": "Create account with a passkey",
+      "zh": "使用通行密钥创建账户"
+    },
     "verifyCode": {
       "en": "Verification Code",
       "zh": "验证码"
@@ -1534,6 +1562,10 @@ export const MESSAGE_REGISTRY = {
     "currentUser": {
       "en": "Current User",
       "zh": "当前用户"
+    },
+    "passkeyAccount": {
+      "en": "Passkey account",
+      "zh": "通行密钥账户"
     },
     "fetchUserSettingsError": {
       "en": "Login password is invalid or account not exist, it may be network connection issue, please try again later.",
@@ -3123,6 +3155,10 @@ export const MESSAGE_REGISTRY = {
       "en": "Password",
       "zh": "密码"
     },
+    "passkeyAccount": {
+      "en": "Passkey account",
+      "zh": "通行密钥账户"
+    },
     "pleaseInput": {
       "en": "Please input complete information",
       "zh": "请输入完整信息"
@@ -3393,6 +3429,14 @@ export const MESSAGE_REGISTRY = {
     "enableUserRegister": {
       "en": "Allow User Register",
       "zh": "允许用户注册"
+    },
+    "enablePasskeySignup": {
+      "en": "Allow Passkey Sign-up",
+      "zh": "允许通行密钥注册"
+    },
+    "enablePasskeySignupTip": {
+      "en": "Create accounts with a passkey only — no email and no password. If every passkey is lost the account can't be recovered, and the last passkey can't be deleted.",
+      "zh": "仅使用通行密钥创建账户——无需邮箱和密码。丢失所有通行密钥后账户将无法恢复，且最后一个通行密钥不可删除。"
     },
     "mailAllowList": {
       "en": "Mail Address Allow List",

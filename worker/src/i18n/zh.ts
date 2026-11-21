@@ -121,6 +121,11 @@ const messages: LocaleMessages = {
     PasskeyNotFoundMsg: "Passkey 不存在",
     AuthenticationFailedMsg: "认证失败",
     RegistrationFailedMsg: "注册失败",
+    PasskeySignupDisabledMsg: "Passkey 注册已禁用, 请联系管理员",
+    CannotDeleteLastPasskeyMsg: "这是该仅通行密钥账户唯一的登录方式, 删除前请先添加另一个通行密钥",
+
+    // Reserved pseudo-email (.invalid TLD) related
+    ReservedEmailDomainMsg: "以 .invalid 结尾的邮箱地址无法使用",
 
     // Auto reply related
     AutoReplyDisabledMsg: "自动回复已禁用",

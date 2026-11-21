@@ -28,6 +28,7 @@ const userSettings = ref({
     maxAddressCount: 5,
     enableEmailCheckRegex: false,
     emailCheckRegex: "",
+    enablePasskeySignup: false,
 });
 
 const fetchData = async () => {
@@ -68,6 +69,12 @@ onMounted(async () => {
             <n-form :model="userSettings">
                 <n-form-item-row :label="t('enableUserRegister')">
                     <n-switch v-model:value="userSettings.enable" :round="false" />
+                </n-form-item-row>
+                <n-form-item-row :label="t('enablePasskeySignup')">
+                    <n-flex vertical :wrap="false" style="width: 100%;">
+                        <n-switch v-model:value="userSettings.enablePasskeySignup" :round="false" />
+                        <span class="muted admin-tip">{{ t('enablePasskeySignupTip') }}</span>
+                    </n-flex>
                 </n-form-item-row>
                 <n-form-item-row :label="t('enableMailVerify')">
                     <n-input-group>
@@ -122,4 +129,5 @@ onMounted(async () => {
     place-items: center;
     justify-content: center;
 }
+.admin-tip { font-size: 12px; line-height: 1.5; }
 </style>

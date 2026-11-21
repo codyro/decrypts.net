@@ -389,6 +389,15 @@ export const checkUserPassword = (password: string) => {
     return true;
 }
 
+/**
+ * Emails under the reserved `.invalid` TLD (RFC 2606) can never receive
+ * mail. Passkey-only accounts use `pk-<hex>@passkey.invalid` pseudo-emails,
+ * which must never be usable with the email/password or OAuth2 flows.
+ */
+export const isReservedPseudoEmail = (email: string | undefined | null): boolean => {
+    return !!email && email.trim().toLowerCase().endsWith(".invalid");
+}
+
 export const hashPassword = async (password: string): Promise<string> => {
     // use crypto to hash password
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
@@ -499,6 +508,7 @@ export default {
     isGlobalTurnstileEnabled,
     checkCfTurnstile,
     checkUserPassword,
+    isReservedPseudoEmail,
     getJsonSetting,
     getJsonValue: getJsonObjectValue,
     getStringList: getStringArray,

@@ -1,13 +1,15 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useScopedI18n } from '@/i18n/app'
 import { startRegistration } from '@simplewebauthn/browser';
 import { NButton, NPopconfirm } from 'naive-ui'
+import { useStorage } from '@vueuse/core'
 
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
+import { isPasskeyPseudoEmail } from '../../utils/passkey-account'
 
-const { userJwt, userSettings, } = useGlobalState()
+const { userJwt, userSettings, jwt } = useGlobalState()
 const message = useMessage()
 
 const showLogout = ref(false)
@@ -19,6 +21,43 @@ const currentPasskeyId = ref(null)
 const currentPasskeyName = ref('')
 
 const { t } = useScopedI18n('views.user.UserSettings')
+
+// ---- passkey-only account nudges -------------------------------------------
+// Passkey-only accounts have a pk-*@passkey.invalid pseudo-email. While the
+// account has a single passkey, nudge to add a second one (losing the only
+// passkey locks the account out forever); the dismiss is persisted per user.
+const isPasskeyOnly = computed(() => isPasskeyPseudoEmail(userSettings.value.user_email))
+const passkeyCount = ref(-1) // -1: unknown
+const nudgeDismissed = useStorage(`passkeySecondNudgeDismissed:${userSettings.value.user_id || 0}`, '')
+const showSecondPasskeyNudge = computed(() =>
+    isPasskeyOnly.value
+    && passkeyCount.value === 1
+    && !nudgeDismissed.value
+)
+const dismissSecondPasskeyNudge = () => {
+    nudgeDismissed.value = String(userSettings.value.user_id)
+}
+
+// If the browser is still logged into a mailbox, offer to bind it to the new
+// account with the existing bind-address flow.
+const mailboxBound = ref(false)
+const bindOfferDismissed = ref(false)
+const showBindMailboxOffer = computed(() =>
+    isPasskeyOnly.value
+    && !!jwt.value
+    && !mailboxBound.value
+    && !bindOfferDismissed.value
+)
+const bindCurrentMailbox = async () => {
+    try {
+        await api.bindUserAddress()
+        mailboxBound.value = true
+        message.success(t('bindCurrentMailboxDone'));
+    } catch (e) {
+        console.error(e)
+        message.error(e.message)
+    }
+}
 
 
 const logout = async () => {
@@ -49,6 +88,7 @@ const createPasskey = async () => {
             })
         })
         message.success(t('passkeyCreated'));
+        await refreshPasskeyCount();
     } catch (e) {
         console.error(e)
         message.error(e.message)
@@ -135,6 +175,20 @@ const fetchPasskeyList = async () => {
     }
 }
 
+const refreshPasskeyCount = async () => {
+    try {
+        const data = await api.fetch(`/user_api/passkey`)
+        passkeyCount.value = (data || []).length
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+onMounted(async () => {
+    if (!isPasskeyOnly.value) return;
+    await refreshPasskeyCount();
+})
+
 const renamePasskey = async () => {
     try {
         await api.fetch(`/user_api/passkey/rename`, {
@@ -159,6 +213,24 @@ const renamePasskey = async () => {
     <div class="user-settings stack" v-if="userSettings.user_email">
         <section class="panel settings-section">
             <h3 class="panel-title settings-section__header">{{ t('passkeySection') }}</h3>
+            <n-alert v-if="showSecondPasskeyNudge" type="warning" :show-icon="false" :bordered="false" closable
+                class="passkey-nudge" @close="dismissSecondPasskeyNudge">
+                <div class="passkey-nudge__body">
+                    <span>{{ t('passkeyOnlyNudge') }}</span>
+                    <n-button size="small" tertiary type="primary" @click="showCreatePasskey = true">
+                        {{ t('createPasskey') }}
+                    </n-button>
+                </div>
+            </n-alert>
+            <n-alert v-if="showBindMailboxOffer" type="info" :show-icon="false" :bordered="false" closable
+                class="passkey-nudge" @close="bindOfferDismissed = true">
+                <div class="passkey-nudge__body">
+                    <span>{{ t('bindCurrentMailboxTip') }}</span>
+                    <n-button size="small" tertiary type="primary" @click="bindCurrentMailbox">
+                        {{ t('bindCurrentMailbox') }}
+                    </n-button>
+                </div>
+            </n-alert>
             <div class="settings-row">
                 <span class="settings-row__text">{{ t('passkeyTip') }}</span>
                 <div class="settings-row__action toolbar">
@@ -210,6 +282,8 @@ const renamePasskey = async () => {
 .user-settings > .settings-section + .settings-section { margin-top: 0; }
 .account-tip { margin: 0; }
 .settings-row__action.toolbar { flex-wrap: nowrap; }
+.passkey-nudge { margin-bottom: var(--space-3); }
+.passkey-nudge__body { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 @media (max-width: 767.98px) {
     .settings-row__action.toolbar { flex-direction: column; align-items: stretch; }
 }

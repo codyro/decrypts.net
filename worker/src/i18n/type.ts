@@ -119,6 +119,11 @@ export type LocaleMessages = {
     PasskeyNotFoundMsg: string
     AuthenticationFailedMsg: string
     RegistrationFailedMsg: string
+    PasskeySignupDisabledMsg: string
+    CannotDeleteLastPasskeyMsg: string
+
+    // Reserved pseudo-email (.invalid TLD) related
+    ReservedEmailDomainMsg: string
 
     // Auto reply related
     AutoReplyDisabledMsg: string
