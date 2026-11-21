@@ -1,6 +1,6 @@
 # Backlog
 
-1. Deploy `main` with `mise run deploy`, then review it in a browser (light and dark, phone and desktop). Nothing since the encryption hardening has been checked visually: the Phosphor theme, About/help, code chips, alerts, shortcuts, backup reminder, QR and burn.
+1. Ship the accumulated `main` (7 commits ahead of origin, nothing deployed since the encryption hardening): cut a release (`VERSION=X.Y.Z mise run release`, a minor — burn account, passkey clarity, mailbox passkey login), then `mise run deploy`, then review in a browser (light and dark, phone and desktop) including the passkey login/setup flows, the Phosphor theme, About/help, code chips, alerts, shortcuts, backup reminder, QR and burn.
 2. Done 2026-11-20: auto cleanup on production is mail 7 days, unknown-address mail 1, sent mail 7, inactive addresses 30 (the unbound-address rule is off). The hourly cron is in the local `wrangler.toml`.
 3. Sending: onboard `decrypts.net` in Cloudflare Email Service (Workers Paid), check the DMARC record, and set the Admin send limits (suggested 50/day, 1,000/month). The `send_email` binding and `SEND_MAIL_DOMAINS` are already in the local `wrangler.toml`.
 4. GitHub OAuth2: set User Info URL `https://api.github.com/user/emails` and User Email Key `$[?(@.primary==true && @.verified==true)].email` in Admin → User → Oauth2 Settings.
