@@ -31,6 +31,7 @@ release notes the upstream release tag it is based on.
 
 ### Fixes
 
+- Trust a `Received-SPF` header in the mail details Security panel only when it is attributable to the receiving server (its comment names a trusted authserv-id, or it sits above a topmost `Received` from a trusted host), so a forged sender-side `Received-SPF: pass` no longer shows a "✓ SPF" badge.
 - Left-align the "Allow Passkey Sign-up" switch in Admin → User → User Settings so it matches the other switches on the page.
 
 - Run the `user_key_backups` migration as a single-line D1 statement, because `DB.exec()` splits on newlines.

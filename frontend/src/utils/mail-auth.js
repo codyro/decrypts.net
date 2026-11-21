@@ -140,11 +140,32 @@ export const analyzeMailSecurity = (headers, options = {}) => {
         }
     }
 
-    // Received-SPF has no authserv-id; it is added by the receiving MTA, so
-    // it is trusted. Only used when the trusted header did not report SPF.
+    // Received-SPF has no authserv-id of its own, so the frontend is stricter
+    // than the worker's junk-mail policy (which accepts any receiver's header):
+    // the sender can forge it, so accept one only when attributable to the
+    // trusted receiver — either its comment names a trusted authserv-id
+    // ("Received-SPF: pass (mx.cloudflare.net: ...)"), or it sits above the
+    // topmost Received header that the final hop prepended and that header was
+    // "by" a trusted host. Only used when the trusted header did not report SPF.
     if (checks.spf.status === AUTH_RESULT_NOT_REPORTED) {
-        for (const header of normalized) {
+        const trustedIds = trustedAuthservIds.map((id) => id.toLowerCase());
+        const firstReceivedIndex = normalized.findIndex(
+            (header) => headerKey(header) === 'received',
+        );
+        const topReceivedByTrusted = firstReceivedIndex >= 0
+            && (normalized[firstReceivedIndex].value.match(/\bby[ \t]+([^\s(]+)/i)?.[1] || '')
+                .toLowerCase();
+        const receiverIsTrusted = topReceivedByTrusted.length > 0
+            && trustedIds.some((id) => topReceivedByTrusted === id
+                || topReceivedByTrusted.endsWith(`.${id}`));
+        for (const [index, header] of normalized.entries()) {
             if (headerKey(header) !== 'received-spf') continue;
+            const commentAuthservId = header.value
+                .match(/\([ \t]*([^\s:()]+)[ \t]*:/i)?.[1]?.toLowerCase() ?? null;
+            const fromTrustedComment = commentAuthservId !== null
+                && trustedIds.includes(commentAuthservId);
+            const fromTrustedReceiver = receiverIsTrusted && index < firstReceivedIndex;
+            if (!fromTrustedComment && !fromTrustedReceiver) continue;
             const result = header.value.match(/^[ \t]*([a-z][a-z0-9_-]*)/i)?.[1]?.toLowerCase();
             if (!result || !receivedSpfResults.has(result)) continue;
             const status = normalizeCheckResult('spf', result);

@@ -126,6 +126,39 @@ describe('analyzeMailSecurity', () => {
         expect(security.checks.spf.status).toBe('not reported');
     });
 
+    it('ignores a forged foreign Received-SPF pass below the trusted headers', () => {
+        const security = analyzeMailSecurity([
+            header('Authentication-Results', 'mx.cloudflare.net; dkim=pass header.d=example.com'),
+            header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10]) by mx.cloudflare.net with ESMTPS id abc123; Mon, 01 Jan 2024 00:00:00 +0000'),
+            header('Received-SPF', 'Pass (evil.example: domain of evil.example designates 192.0.2.66 as permitted sender) client-ip=192.0.2.66'),
+        ]);
+        expect(security.checks.spf.status).toBe('not reported');
+    });
+
+    it('ignores a Received-SPF below the topmost Received without a trusted comment', () => {
+        const security = analyzeMailSecurity([
+            header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10]) by mx.cloudflare.net with ESMTPS id abc123; Mon, 01 Jan 2024 00:00:00 +0000'),
+            header('Received-SPF', 'Pass client-ip=192.0.2.10'),
+        ]);
+        expect(security.checks.spf.status).toBe('not reported');
+    });
+
+    it('accepts a Received-SPF above a topmost Received by a trusted host', () => {
+        const security = analyzeMailSecurity([
+            header('Received-SPF', 'Pass client-ip=192.0.2.10'),
+            header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10]) by mx.cloudflare.net with ESMTPS id abc123; Mon, 01 Jan 2024 00:00:00 +0000'),
+        ]);
+        expect(security.checks.spf.status).toBe('pass');
+    });
+
+    it('ignores a Received-SPF above a topmost Received by an untrusted host', () => {
+        const security = analyzeMailSecurity([
+            header('Received-SPF', 'Pass client-ip=192.0.2.10'),
+            header('Received', 'from sender-mail.example (sender-mail.example [192.0.2.10]) by relay.evil.example with ESMTPS id abc123; Mon, 01 Jan 2024 00:00:00 +0000'),
+        ]);
+        expect(security.checks.spf.status).toBe('not reported');
+    });
+
     it('reads arc and iprev only from the trusted header', () => {
         const withIp = analyzeMailSecurity(cloudflareTrusted);
         expect(withIp.checks.arc.status).toBe('pass');
