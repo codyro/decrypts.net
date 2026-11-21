@@ -238,6 +238,7 @@ const renamePasskey = async () => {
                     <n-button @click="showCreatePasskey = true" type="primary">{{ t('createPasskey') }}</n-button>
                 </div>
             </div>
+            <p class="muted passkey-backup-tip" data-testid="passkey-backup-tip">{{ t('passkeyBackupTip') }}</p>
         </section>
         <section class="panel settings-section">
             <h3 class="panel-title settings-section__header">{{ t('accountSection') }}</h3>
@@ -284,6 +285,7 @@ const renamePasskey = async () => {
 .settings-row__action.toolbar { flex-wrap: nowrap; }
 .passkey-nudge { margin-bottom: var(--space-3); }
 .passkey-nudge__body { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.passkey-backup-tip { margin: var(--space-2) 0 0; }
 @media (max-width: 767.98px) {
     .settings-row__action.toolbar { flex-direction: column; align-items: stretch; }
 }

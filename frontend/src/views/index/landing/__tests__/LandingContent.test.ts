@@ -76,6 +76,7 @@ describe('LandingContent.vue', () => {
         expect(html).not.toContain('Is this end-to-end encrypted?')
         expect(html).not.toContain('Can you read my mail?')
         expect(html).not.toContain('What if I lose my key?')
+        expect(html).not.toContain('Does my passkey decrypt my mail?')
     })
 
     it('shows the encryption-only items and copy when encryption is on', async () => {
@@ -88,8 +89,12 @@ describe('LandingContent.vue', () => {
         expect(html).toContain('Key backups')
         expect(html).toContain('Is this end-to-end encrypted?')
         expect(html).toContain('Can you read my mail?')
+        expect(html).toContain('Does my passkey decrypt my mail?')
         // The first item starts expanded, so its answer is in the DOM.
         expect(html).toContain('It protects mail while it')
+        i18n.global.locale.value = 'zh'
+        const zhHtml = await renderLanding()
+        expect(zhHtml).toContain('我的通行密钥能解密邮件吗？')
     })
 
     it('shows the retention FAQ with correct plurals when retention.mailsDays = 7', async () => {

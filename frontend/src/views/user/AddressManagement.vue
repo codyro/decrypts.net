@@ -7,6 +7,7 @@ import { NBadge, NPopconfirm, NButton } from 'naive-ui'
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
 import { getRouterPathWithLang } from '../../utils'
+import { requestKeyBackupSectionFocusForNextLoad } from '../../utils/key-backup-reminder'
 import AddressCredentialModal from '../../components/AddressCredentialModal.vue'
 
 import Login from '../common/Login.vue';
@@ -14,6 +15,11 @@ import Login from '../common/Login.vue';
 const { jwt, openSettings, loading } = useGlobalState()
 const message = useMessage()
 const router = useRouter()
+
+// Per-address passkey-backup presence for the badge below. Each address is
+// asked once per page load (cached here, including failures, so paging and
+// re-querying don't spam the API).
+const passkeyBackupStatus = ref({}) // address -> true | false | 'error'
 
 const { locale, t } = useScopedI18n('views.user.AddressManagement')
 const { t: credentialT } = useScopedI18n('components.AddressCredentialModal')
@@ -124,6 +130,51 @@ const fetchData = async () => {
         if (page.value === 1) {
             count.value = addressCount;
         }
+        loadPasskeyBackupStates(results);
+    } catch (error) {
+        console.log(error)
+        message.error(error.message || "error");
+    }
+}
+
+// Fetch the passkey-backup badge state for encrypted mailboxes only, once per
+// address. Fire-and-forget: a failed lookup marks the address as 'error' and
+// the badge simply doesn't render for it.
+const loadPasskeyBackupStates = async (rows) => {
+    if (!openSettings.value?.enableMailEncryption) return
+    const targets = (rows || []).filter(
+        (row) => row.encryption_public_key && !(row.name in passkeyBackupStatus.value)
+    )
+    if (targets.length === 0) return
+    await Promise.all(targets.map(async (row) => {
+        try {
+            const backups = await api.listKeyBackups(row.name)
+            passkeyBackupStatus.value = {
+                ...passkeyBackupStatus.value,
+                [row.name]: (backups || []).length > 0,
+            }
+        } catch (error) {
+            console.log(error)
+            passkeyBackupStatus.value = { ...passkeyBackupStatus.value, [row.name]: 'error' }
+        }
+    }))
+    // Nudge the table into re-rendering the action cells with badge state.
+    data.value = [...data.value]
+}
+
+// Badge click: open the mailbox exactly like "Open Mailbox", then land on its
+// Account Settings backup section (survives the reload via a session flag).
+const openMailboxBackupSection = async (row) => {
+    try {
+        const res = await api.fetch(`/user_api/bind_address_jwt/${row.id}`);
+        if (!res.jwt) {
+            message.error("jwt not found");
+            return;
+        }
+        jwt.value = res.jwt;
+        requestKeyBackupSectionFocusForNextLoad()
+        await router.push(getRouterPathWithLang("/", locale.value))
+        location.reload();
     } catch (error) {
         console.log(error)
         message.error(error.message || "error");
@@ -178,7 +229,21 @@ const columns = [
         title: t('actions'),
         key: 'actions',
         render(row) {
+            const badgeStatus = passkeyBackupStatus.value[row.name]
+            const badge = row.encryption_public_key && typeof badgeStatus === 'boolean'
+                ? h(NButton,
+                    {
+                        size: 'tiny',
+                        quaternary: true,
+                        type: badgeStatus ? 'success' : 'warning',
+                        'data-testid': 'passkey-backup-badge',
+                        onClick: () => openMailboxBackupSection(row)
+                    },
+                    { default: () => t(badgeStatus ? 'passkeyBackupBadgeYes' : 'passkeyBackupBadgeNo') }
+                )
+                : null
             return h('div', [
+                badge,
                 h(NButton,
                     {
                         tertiary: true,

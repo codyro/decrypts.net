@@ -336,8 +336,8 @@ export const MESSAGE_REGISTRY = {
       "zh": "您的密钥仅保存在此浏览器中。"
     },
     "body": {
-      "en": "If you clear site data or lose this device, this mailbox's mail can't be recovered. Create a protected backup.",
-      "zh": "如果清除站点数据或丢失此设备，此邮箱的邮件将无法恢复。请创建受保护的备份。"
+      "en": "If you clear site data or lose this device, this mailbox's mail can't be recovered. Create a passphrase backup, or a passkey backup if you're signed in.",
+      "zh": "如果清除站点数据或丢失此设备，此邮箱的邮件将无法恢复。请创建密码短语备份；已登录的话也可以创建通行密钥备份。"
     },
     "createBackup": {
       "en": "Create backup",
@@ -350,6 +350,56 @@ export const MESSAGE_REGISTRY = {
     "remindLater": {
       "en": "Remind me later",
       "zh": "稍后提醒"
+    }
+  },
+  "components.KeyStatusCard": {
+    "title": {
+      "en": "Key status",
+      "zh": "密钥状态"
+    },
+    "rowKey": {
+      "en": "Key on this device",
+      "zh": "此设备上的密钥"
+    },
+    "rowPassphrase": {
+      "en": "Passphrase backup",
+      "zh": "密码短语备份"
+    },
+    "rowPasskey": {
+      "en": "Passkey backup",
+      "zh": "通行密钥备份"
+    },
+    "actionImportKey": {
+      "en": "Import key backup",
+      "zh": "导入密钥备份"
+    },
+    "actionCreateBackup": {
+      "en": "Create backup",
+      "zh": "创建备份"
+    },
+    "actionAddPasskeyBackup": {
+      "en": "Add passkey backup",
+      "zh": "添加通行密钥备份"
+    },
+    "actionSignIn": {
+      "en": "Sign in",
+      "zh": "登录"
+    },
+    "actionLinkMailbox": {
+      "en": "Link mailbox",
+      "zh": "绑定邮箱"
+    },
+    "passkeyNotLoggedIn": {
+      "en": "sign in to use passkey backups",
+      "zh": "登录后可使用通行密钥备份"
+    },
+    "passkeyNotBound": {
+      "en": "link this mailbox to your account first",
+      "zh": "请先将此邮箱绑定到你的账号"
+    },
+    "explainer": {
+      "en": "Your passkey signs you in. It can only unlock this mailbox after you add a passkey backup here.",
+      "zh": "通行密钥用于登录。只有在此邮箱添加通行密钥备份后，它才能解锁此邮箱。"
     }
   },
   "components.OpenDeviceQrPanel": {
@@ -398,6 +448,22 @@ export const MESSAGE_REGISTRY = {
     "createdTip": {
       "en": "Save the decryption link below somewhere safe. Opening it on another device imports the decryption key there. Anyone with this link can read your encrypted mail.",
       "zh": "请妥善保存下面的解密链接，在其他设备上打开该链接即可导入解密密钥。任何获得此链接的人都可以阅读你的加密邮件。"
+    },
+    "createdStep1": {
+      "en": "Save the decryption link. It's the only way to add backups later.",
+      "zh": "保存解密链接。这是日后添加备份的唯一方式。"
+    },
+    "createdStep2": {
+      "en": "Protect it with a passkey (when signed in with PRF support) or a passphrase.",
+      "zh": "使用通行密钥（需已登录且浏览器支持 PRF）或密码短语保护它。"
+    },
+    "createdSignInHint": {
+      "en": "Want to recover this mailbox with a passkey? Sign in (or create a passkey account) before creating mailboxes, or keep the link and add a passkey backup later.",
+      "zh": "想用通行密钥恢复此邮箱？请在创建邮箱前登录（或创建通行密钥账号），或者保存好链接，之后再添加通行密钥备份。"
+    },
+    "openAccount": {
+      "en": "Sign in or create an account",
+      "zh": "登录或创建账号"
     },
     "keyStoreMemoryWarning": {
       "en": "Browser protected storage (IndexedDB) is unavailable: decryption keys are kept only for this session and will be lost when this tab closes. Save your backup or decryption link now.",
@@ -1125,6 +1191,10 @@ export const MESSAGE_REGISTRY = {
       "en": "Sign in with your device instead of a password.",
       "zh": "使用设备验证代替密码登录。"
     },
+    "passkeyBackupTip": {
+      "en": "Passkeys sign you in. To use one for an encrypted mailbox, add a passkey backup in that mailbox's settings.",
+      "zh": "通行密钥用于登录。要在加密邮箱中使用它，请在该邮箱的设置中添加通行密钥备份。"
+    },
     "accountSection": {
       "en": "Account",
       "zh": "账户"
@@ -1755,6 +1825,14 @@ export const MESSAGE_REGISTRY = {
       "en": "Open Mailbox",
       "zh": "进入邮箱"
     },
+    "passkeyBackupBadgeYes": {
+      "en": "Passkey backup ✓",
+      "zh": "通行密钥备份 ✓"
+    },
+    "passkeyBackupBadgeNo": {
+      "en": "No passkey backup",
+      "zh": "无通行密钥备份"
+    },
     "query": {
       "en": "Query",
       "zh": "查询"
@@ -2109,9 +2187,13 @@ export const MESSAGE_REGISTRY = {
       "en": "Create Protected Backup From My Key",
       "zh": "使用我的密钥创建受保护的备份"
     },
-    "createBackupTip": {
-      "en": "Paste the raw decryption link or private key for this address (it must match a key already stored on this device), then choose a backup passphrase. The pasted key is dropped after the backup is created.",
-      "zh": "粘贴此地址的原始解密链接或私钥（必须与此设备上已存储的密钥匹配），然后设置备份密码。备份创建后粘贴的密钥将被丢弃。"
+    "createBackupWhyPaste": {
+      "en": "For security, this browser can't export the key it stores. Paste the decryption link you saved when you created the mailbox to make a backup.",
+      "zh": "出于安全考虑，此浏览器无法导出其存储的密钥。请粘贴创建邮箱时保存的解密链接以创建备份。"
+    },
+    "createBackupNoLink": {
+      "en": "No saved link? Existing mail can't be backed up; new mailboxes can be backed up at creation.",
+      "zh": "没有保存的链接？现有邮件将无法备份；新邮箱可以在创建时进行备份。"
     },
     "createBackupInputLabel": {
       "en": "Raw decryption link or private key",
@@ -2172,10 +2254,6 @@ export const MESSAGE_REGISTRY = {
     "passkeyBackupEmpty": {
       "en": "No passkey backups for this address yet.",
       "zh": "此地址还没有通行密钥备份。"
-    },
-    "passkeyBackupBindHint": {
-      "en": "Bind this address to your account to manage passkey backups here.",
-      "zh": "将此地址绑定到你的账号后，可在此管理通行密钥备份。"
     },
     "passkeyBackupCreatedAt": {
       "en": "Created",
@@ -2652,6 +2730,14 @@ export const MESSAGE_REGISTRY = {
     "faqLoseKeyText": {
       "en": "The mail can't be recovered. Save the decryption link or make a passphrase or passkey backup when you create the mailbox.",
       "zh": "邮件将无法恢复。请在创建邮箱时保存解密链接，或制作密码短语/通行密钥备份。"
+    },
+    "faqPasskeyTitle": {
+      "en": "Does my passkey decrypt my mail?",
+      "zh": "我的通行密钥能解密邮件吗？"
+    },
+    "faqPasskeyText": {
+      "en": "Not by itself. A passkey signs you in. It can unlock a mailbox's key only after you add a passkey backup for that mailbox, which needs the key at creation or your saved decryption link. The server stores only the wrapped key and can't open it.",
+      "zh": "不能。通行密钥只用于登录。只有在你为该邮箱添加通行密钥备份后，它才能解锁邮箱密钥；添加备份需要在创建邮箱时进行，或使用你保存的解密链接。服务器只保存加密后的密钥，无法解开。"
     },
     "faqRetentionTitle": {
       "en": "How long is mail kept?",
@@ -4683,6 +4769,14 @@ export const MESSAGE_REGISTRY = {
     "key4": {
       "en": "Turning on encryption, or using \"encrypt existing mail\", can't be undone for that mail.",
       "zh": "开启加密或使用“加密现有邮件”后，对应邮件的加密无法撤销。"
+    },
+    "key5Lead": {
+      "en": "Passkeys don't unlock mail on their own.",
+      "zh": "通行密钥无法单独解锁邮件。"
+    },
+    "key5": {
+      "en": "A passkey signs you in. It unlocks a mailbox's key only after you add a passkey backup for that mailbox, which needs the key at creation or your saved decryption link.",
+      "zh": "通行密钥只用于登录。只有为该邮箱添加通行密钥备份后才能解锁邮箱密钥，而添加备份需要在创建邮箱时进行，或使用你保存的解密链接。"
     },
     "encryptionFinePrint": {
       "en": "Uses standard browser cryptography (P-256 ECDH, AES-256-GCM). It has not been independently audited. Mailboxes without encryption work exactly as before.",

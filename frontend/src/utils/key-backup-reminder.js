@@ -94,3 +94,30 @@ export const keyBackupSectionFocusRequests = shallowRef(0)
 export const requestKeyBackupSectionFocus = () => {
     keyBackupSectionFocusRequests.value++
 }
+
+// ---- deep link across a full-page reload ------------------------------------
+// The user-center mailbox list links into this mailbox's Account Settings
+// backup section by navigating like "Open Mailbox" (which reloads the page),
+// so the request survives the reload as a session flag.
+
+export const KEY_BACKUP_FOCUS_SESSION_KEY = 'keyBackupSectionFocus'
+
+export const requestKeyBackupSectionFocusForNextLoad = () => {
+    try {
+        if (typeof sessionStorage === 'undefined') return
+        sessionStorage.setItem(KEY_BACKUP_FOCUS_SESSION_KEY, '1')
+    } catch {
+        // ignore: the section simply won't be focused
+    }
+}
+
+export const consumeKeyBackupSectionFocusForNextLoad = () => {
+    try {
+        if (typeof sessionStorage === 'undefined') return false
+        if (sessionStorage.getItem(KEY_BACKUP_FOCUS_SESSION_KEY) !== '1') return false
+        sessionStorage.removeItem(KEY_BACKUP_FOCUS_SESSION_KEY)
+        return true
+    } catch {
+        return false
+    }
+}

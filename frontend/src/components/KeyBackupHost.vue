@@ -2,8 +2,11 @@
 import {
     ref, computed, watch,
 } from 'vue'
+import { useRouter } from 'vue-router'
 import { useScopedI18n } from '@/i18n/app'
 
+import { getRouterPathWithLang } from '../utils'
+import { useGlobalState } from '../store'
 import {
     pendingWrappedImports, importWrappedBackup,
 } from '../utils/mail-fragment'
@@ -27,8 +30,16 @@ import PasskeyWrapControls from './PasskeyWrapControls.vue'
 // Global host for passphrase-protected key backup prompts. Mounted once in
 // App.vue inside the message provider. Exactly one prompt is active at a
 // time; raw key material is dropped on submit/skip/close.
-const { t } = useScopedI18n('components.KeyBackupHost')
+const { t, locale } = useScopedI18n('components.KeyBackupHost')
 const message = useMessage()
+const router = useRouter()
+const { userJwt, showUserSystem } = useGlobalState()
+
+const accountLoggedIn = computed(() => showUserSystem.value && !!userJwt.value)
+
+const goToAccountPage = async () => {
+    await router.push(getRouterPathWithLang('/user', locale.value))
+}
 
 // ---- prompt arbitration: one at a time -----------------------------------
 
@@ -230,6 +241,10 @@ const skipAndDeleteLegacy = () => {
     <n-modal :show="createdShow" @update:show="createdShow = $event" preset="dialog"
         :title="t('createdTitle')" data-testid="key-backup-created">
         <p>{{ t('createdTip') }}</p>
+        <ol class="key-backup-host__steps">
+            <li>{{ t('createdStep1') }}</li>
+            <li>{{ t('createdStep2') }}</li>
+        </ol>
         <KeyBackupPanel v-if="keyBackupOffer" :address="keyBackupOffer.address"
             :raw-key="keyBackupOffer.rawKey" :public-key="keyBackupOffer.publicKey" />
         <n-alert v-if="keyStoreMode === 'memory'" type="warning" :show-icon="false" :bordered="false"
@@ -237,6 +252,14 @@ const skipAndDeleteLegacy = () => {
             {{ t('keyStoreMemoryWarning') }}
         </n-alert>
         <p style="margin-top: 8px;">{{ t('encryptMailKeyLostWarning') }}</p>
+        <p v-if="!accountLoggedIn" class="muted key-backup-host__signin-hint"
+            data-testid="key-backup-created-signin-hint">
+            {{ t('createdSignInHint') }}
+            <n-button text size="tiny" type="primary" data-testid="key-backup-created-open-account"
+                @click="goToAccountPage">
+                {{ t('openAccount') }}
+            </n-button>
+        </p>
     </n-modal>
 
     <!-- (a) Passphrase prompt for queued `#kp=` wrapped backups -->
@@ -342,3 +365,18 @@ const skipAndDeleteLegacy = () => {
         </template>
     </n-modal>
 </template>
+
+<style scoped>
+.key-backup-host__steps {
+    margin: 8px 0 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 4px;
+    color: var(--app-text-2);
+    font-size: var(--font-sm);
+    line-height: 20px;
+}
+.key-backup-host__signin-hint {
+    margin: 8px 0 0;
+}
+</style>

@@ -23,6 +23,7 @@ const faqItems = computed(() => {
             { name: 'e2e', title: t('faqE2eTitle'), text: t('faqE2eText') },
             { name: 'read', title: t('faqReadTitle'), text: t('faqReadText') },
             { name: 'loseKey', title: t('faqLoseKeyTitle'), text: t('faqLoseKeyText') },
+            { name: 'passkey', title: t('faqPasskeyTitle'), text: t('faqPasskeyText') },
         )
     }
     const retention = buildRetentionSentences(openSettings.value?.retention, retentionT)

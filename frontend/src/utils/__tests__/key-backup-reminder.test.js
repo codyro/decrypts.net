@@ -90,3 +90,32 @@ describe('per-address dismissal persistence', () => {
         expect(reminderHiddenForSession.value).toBe(false);
     });
 });
+
+describe('deep-link focus session flag', () => {
+    beforeEach(() => {
+        vi.stubGlobal('sessionStorage', localStorageStub);
+    });
+
+    it('is consumed exactly once', async () => {
+        const {
+            requestKeyBackupSectionFocusForNextLoad,
+            consumeKeyBackupSectionFocusForNextLoad,
+            KEY_BACKUP_FOCUS_SESSION_KEY,
+        } = await import('../key-backup-reminder');
+        expect(consumeKeyBackupSectionFocusForNextLoad()).toBe(false);
+        requestKeyBackupSectionFocusForNextLoad();
+        expect(storageMap.get(KEY_BACKUP_FOCUS_SESSION_KEY)).toBe('1');
+        expect(consumeKeyBackupSectionFocusForNextLoad()).toBe(true);
+        expect(consumeKeyBackupSectionFocusForNextLoad()).toBe(false);
+    });
+
+    it('does not throw when session storage is unavailable', async () => {
+        vi.stubGlobal('sessionStorage', undefined);
+        const {
+            requestKeyBackupSectionFocusForNextLoad,
+            consumeKeyBackupSectionFocusForNextLoad,
+        } = await import('../key-backup-reminder');
+        expect(() => requestKeyBackupSectionFocusForNextLoad()).not.toThrow();
+        expect(consumeKeyBackupSectionFocusForNextLoad()).toBe(false);
+    });
+});

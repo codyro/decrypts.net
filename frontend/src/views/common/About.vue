@@ -23,7 +23,7 @@ const retentionSentences = computed(() =>
 
 const doesItems = ['does1', 'does2', 'does3']
 const doesntItems = ['doesnt1', 'doesnt2', 'doesnt3', 'doesnt4']
-const keyItems = ['key1', 'key2', 'key3', 'key4']
+const keyItems = ['key1', 'key2', 'key3', 'key4', 'key5']
 </script>
 
 <template>

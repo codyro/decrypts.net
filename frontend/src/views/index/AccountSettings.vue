@@ -29,15 +29,19 @@ import {
 import { requestLegacyBackupPrompt, notifyMailKeysImported } from '../../utils/key-backup-prompts'
 import { copyToClipboard } from '../../utils/clipboard'
 import { encryptExistingMail, EncryptExistingKeyMismatchError } from '../../utils/encrypt-existing'
-import { keyBackupSectionFocusRequests } from '../../utils/key-backup-reminder'
+import {
+    keyBackupSectionFocusRequests, consumeKeyBackupSectionFocusForNextLoad,
+    requestKeyBackupSectionFocus,
+} from '../../utils/key-backup-reminder'
 import { burnMailbox, filterAddressTokens } from '../../utils/burn-mailbox'
 import KeyBackupPanel from '../../components/KeyBackupPanel.vue'
 import PasskeyWrapControls from '../../components/PasskeyWrapControls.vue'
+import KeyStatusCard from '../../components/KeyStatusCard.vue'
 import OpenDeviceQrPanel from '../../components/OpenDeviceQrPanel.vue'
 
 const {
     jwt, settings, showAddressCredential, loading, openSettings,
-    userJwt, showUserSystem,
+    userJwt, showUserSystem, indexTab,
 } = useGlobalState()
 const router = useRouter()
 const message = useMessage()
@@ -315,6 +319,18 @@ const passkeyBackups = ref([])
 const passkeyList = ref([])
 const passkeyBusyId = ref(null)
 const passkeyRestoreError = ref('')
+
+// Row state for the key status card: does a server-side passkey backup exist
+// for this address — and are the prerequisites (account, binding) met?
+const keyStatusPasskeyState = computed(() => {
+    if (!accountLoggedIn.value) return 'not-logged-in'
+    if (addressBound.value !== true) return 'not-bound'
+    return passkeyBackups.value.length > 0 ? 'yes' : 'no'
+})
+
+const goToUserCenter = async () => {
+    await router.push(getRouterPathWithLang('/user', locale.value))
+}
 
 const passkeyNameFor = (backup) => {
     const passkey = passkeyList.value.find((item) => item.passkey_id === backup.passkey_id)
@@ -633,6 +649,12 @@ watch(keyBackupSectionFocusRequests, () => {
 })
 
 onMounted(() => {
+    // Deep link from the user-center mailbox list: open this mailbox's
+    // Account Settings tab and scroll to the backup controls.
+    if (consumeKeyBackupSectionFocusForNextLoad()) {
+        indexTab.value = 'accountSettings'
+        requestKeyBackupSectionFocus()
+    }
     if (keyBackupSectionFocusRequests.value !== seenFocusRequests) {
         seenFocusRequests = keyBackupSectionFocusRequests.value
         scrollToBackupSection()
@@ -736,6 +758,11 @@ onMounted(() => {
                     <p v-if="encFingerprint" class="muted enc-fingerprint">
                         {{ t('keyFingerprint') }}: <code class="mono">{{ encFingerprint }}</code>
                     </p>
+                    <KeyStatusCard v-if="encServerPublicKey" :has-key="encHasLocalKey"
+                        :has-passphrase-backup="encHasBackup" :passkey-backup-state="keyStatusPasskeyState"
+                        @import-key="showImportBackup = true" @create-backup="showCreateBackup = true"
+                        @add-passkey-backup="showCreateBackup = true" @sign-in="goToUserCenter"
+                        @link-mailbox="goToUserCenter" />
                 </template>
                 <div class="toolbar enc-actions">
                     <n-button v-if="!encServerPublicKey" size="small" type="primary" :loading="encBusy"
@@ -844,10 +871,6 @@ onMounted(() => {
                         {{ passkeyRestoreError }}
                     </n-alert>
                 </div>
-                <n-alert v-else-if="addressBound === false" type="info" :show-icon="false" :bordered="false"
-                    data-testid="passkey-backup-bind-hint">
-                    {{ t('passkeyBackupBindHint') }}
-                </n-alert>
             </template>
             <n-alert v-if="!encEnabled" type="info" :show-icon="false" :bordered="false">
                 {{ t('encryptionUnavailable') }}
@@ -958,7 +981,8 @@ onMounted(() => {
 
         <n-modal :show="showCreateBackup" @update:show="showCreateBackup = $event" preset="dialog"
             :title="t('createBackupTitle')" data-testid="create-backup-dialog">
-            <p>{{ t('createBackupTip') }}</p>
+            <p>{{ t('createBackupWhyPaste') }}</p>
+            <p class="muted">{{ t('createBackupNoLink') }}</p>
             <n-form label-placement="top">
                 <n-form-item :label="t('createBackupInputLabel')">
                     <n-input v-model:value="createBackupInput" type="textarea" :autosize="{ minRows: 2 }"
