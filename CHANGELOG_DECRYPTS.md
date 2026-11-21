@@ -33,6 +33,7 @@ release notes the upstream release tag it is based on.
 
 ### Fixes
 
+- Landing page fixes: the mailbox card tabs are now ordered create → login → help (create stays the default); the hero/card row is top-aligned on desktop with a stable, measured tab-content height so switching tabs no longer re-centres the card or shoves the sections below; at phone widths the tab labels wrap onto centred lines instead of being clipped by the tab nav, so all three tabs stay reachable; and the scroll reveal now also observes feature cards that render after the open settings load, so the encryption-only cards no longer stay invisible.
 - Trust a `Received-SPF` header in the mail details Security panel only when it is attributable to the receiving server (its comment names a trusted authserv-id, or it sits above a topmost `Received` from a trusted host), so a forged sender-side `Received-SPF: pass` no longer shows a "✓ SPF" badge.
 - Left-align the "Allow Passkey Sign-up" switch in Admin → User → User Settings so it matches the other switches on the page.
 

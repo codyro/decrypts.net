@@ -23,7 +23,7 @@ export const defaultNewAddressPath = async (
 </script>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { useScopedI18n } from '@/i18n/app'
 import { useRouter } from 'vue-router'
 import { NewLabelOutlined, EmailOutlined, RedeemOutlined } from '@vicons/material'
@@ -328,17 +328,75 @@ watch(showNewAddressTab, (allowed) => {
     applyingDefaultTab = false
 }, { immediate: true });
 
+// Desktop: keep the card's tab-content area at least as tall as the initially
+// shown (create) tab. naive-ui re-centres nothing — the landing grid top-aligns
+// the card — but a shorter tab would still move the sections below. The
+// min-height absorbs the difference; it only ever grows (re-measured when the
+// pane grows, e.g. Turnstile arriving), never shrinks below the first
+// measurement, so switching tabs never jumps. Measured, not hard-coded, so it
+// adapts to locale and operator settings. Only ≥1024px, where the card sits
+// beside the hero; on narrow screens it spans full width and a min-height
+// would only add dead space.
+const loginRoot = ref(null)
+let paneObserver = null
+
+const stabilizePaneHeight = async () => {
+    await nextTick()
+    const root = loginRoot.value
+    if (!root) return
+    // `justify-content` puts naive-ui tabs into flex mode, which renders the
+    // panes without the pane wrapper — the tab bar + panes live directly on
+    // the .n-tabs root, so that is what keeps the stable height.
+    const tabsEl = root.querySelector('.n-tabs')
+    if (!tabsEl) return
+    paneObserver?.disconnect()
+    paneObserver = null
+    if (!window.matchMedia?.('(min-width: 1024px)').matches) {
+        tabsEl.style.minHeight = ''
+        return
+    }
+    // jsdom (vitest) only has naive-ui's ResizeObserver polyfill, whose
+    // scheduler throws on DOM mutations; layout measuring is meaningless
+    // there anyway.
+    if (import.meta.env.MODE === 'test') return
+    const pane = [...root.querySelectorAll('.n-tab-pane')].find((p) => p.offsetHeight > 0)
+    if (!pane || typeof ResizeObserver === 'undefined') return
+    const apply = () => {
+        const nav = tabsEl.querySelector('.n-tabs-nav')
+        const height = (nav?.offsetHeight || 0) + pane.offsetHeight
+        if (height > parseFloat(tabsEl.style.minHeight || '0')) {
+            tabsEl.style.minHeight = `${height}px`
+        }
+    }
+    apply()
+    paneObserver = new ResizeObserver(apply)
+    paneObserver.observe(pane)
+}
+
 onMounted(async () => {
     if (!openSettings.value.domains || openSettings.value.domains.length === 0) {
         await api.getOpenSettings(message, notification);
     }
     emailDomain.value = domainsOptions.value ? domainsOptions.value[0]?.value : "";
     initLoginMethod();
+    window.addEventListener('resize', stabilizePaneHeight);
 });
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', stabilizePaneHeight);
+    paneObserver?.disconnect();
+});
+
+// The tabs render once the open settings load; measure then, and again when a
+// new tab becomes active (its pane may be taller than the first measurement).
+watch(() => openSettings.value?.fetched, (fetched) => {
+    if (fetched) stabilizePaneHeight()
+}, { immediate: true })
+watch(tabValue, () => stabilizePaneHeight())
 </script>
 
 <template>
-    <div>
+    <div ref="loginRoot">
         <n-modal v-model:show="showHelpAbout" preset="card" :title="indexT('about')">
             <About />
         </n-modal>
@@ -346,60 +404,6 @@ onMounted(async () => {
             <span>{{ t('bindUserInfo') }}</span>
         </n-alert>
         <n-tabs v-if="openSettings.fetched" v-model:value="tabValue" size="medium" justify-content="space-evenly">
-            <n-tab-pane name="signin" :tab="loginAndBindTag">
-                <n-form class="login-form">
-                    <div v-if="loginMethod === 'password'">
-                        <n-form-item-row :label="t('email')" required>
-                            <n-input v-model:value="loginAddress" />
-                        </n-form-item-row>
-                        <n-form-item-row :label="t('password')" required>
-                            <n-input v-model:value="loginPassword" type="password" show-password-on="click"
-                                @keyup.enter="login" />
-                        </n-form-item-row>
-                    </div>
-
-                    <div v-else>
-                        <n-form-item-row :label="t('credential')" required>
-                            <n-input v-model:value="credential" type="textarea" :autosize="{ minRows: 3 }" />
-                        </n-form-item-row>
-                    </div>
-
-                    <Turnstile ref="loginTurnstileRef" v-if="openSettings.enableGlobalTurnstileCheck"
-                        v-model:value="loginCfToken" />
-
-                    <n-button @click="login" :loading="loading" type="primary" block size="large" strong>
-                        <template #icon>
-                            <n-icon :component="EmailOutlined" />
-                        </template>
-                        {{ loginAndBindTag }}
-                    </n-button>
-                    <div class="switch-login-button">
-                        <n-button v-if="openSettings?.enableAddressPassword && !openSettings.addressPasswordLoginOnly"
-                            @click="loginMethod === 'password' ? loginMethod = 'credential' : loginMethod = 'password'"
-                            type="info" quaternary size="tiny">
-                            {{ loginMethod === 'password' ? t('credentialLogin') : t('passwordLogin') }}
-                        </n-button>
-                    </div>
-                    <n-divider v-if="showNewAddressTab" title-placement="center">
-                        <span class="muted">{{ t('or') }}</span>
-                    </n-divider>
-                    <n-button v-if="showNewAddressTab" @click="tabValue = 'register'" block secondary>
-                        <template #icon>
-                            <n-icon :component="NewLabelOutlined" />
-                        </template>
-                        {{ t('getNewEmail') }}
-                    </n-button>
-                    <div v-if="openSettings.enableRedeemCode" class="redeem-entry-section">
-                        <n-text class="muted">{{ t('redeemEntryTip') }}</n-text>
-                        <n-button data-testid="redeem-entry" secondary size="small" @click="openRedeemPage">
-                            <template #icon>
-                                <n-icon :component="RedeemOutlined" />
-                            </template>
-                            {{ t('useRedeemCode') }}
-                        </n-button>
-                    </div>
-                </n-form>
-            </n-tab-pane>
             <n-tab-pane v-if="showNewAddressTab" name="register" :tab="t('getNewEmail')">
                 <n-spin :show="generateNameLoading">
                     <n-form class="login-form">
@@ -472,6 +476,60 @@ onMounted(async () => {
                     </n-form>
                 </n-spin>
             </n-tab-pane>
+            <n-tab-pane name="signin" :tab="loginAndBindTag">
+                <n-form class="login-form">
+                    <div v-if="loginMethod === 'password'">
+                        <n-form-item-row :label="t('email')" required>
+                            <n-input v-model:value="loginAddress" />
+                        </n-form-item-row>
+                        <n-form-item-row :label="t('password')" required>
+                            <n-input v-model:value="loginPassword" type="password" show-password-on="click"
+                                @keyup.enter="login" />
+                        </n-form-item-row>
+                    </div>
+
+                    <div v-else>
+                        <n-form-item-row :label="t('credential')" required>
+                            <n-input v-model:value="credential" type="textarea" :autosize="{ minRows: 3 }" />
+                        </n-form-item-row>
+                    </div>
+
+                    <Turnstile ref="loginTurnstileRef" v-if="openSettings.enableGlobalTurnstileCheck"
+                        v-model:value="loginCfToken" />
+
+                    <n-button @click="login" :loading="loading" type="primary" block size="large" strong>
+                        <template #icon>
+                            <n-icon :component="EmailOutlined" />
+                        </template>
+                        {{ loginAndBindTag }}
+                    </n-button>
+                    <div class="switch-login-button">
+                        <n-button v-if="openSettings?.enableAddressPassword && !openSettings.addressPasswordLoginOnly"
+                            @click="loginMethod === 'password' ? loginMethod = 'credential' : loginMethod = 'password'"
+                            type="info" quaternary size="tiny">
+                            {{ loginMethod === 'password' ? t('credentialLogin') : t('passwordLogin') }}
+                        </n-button>
+                    </div>
+                    <n-divider v-if="showNewAddressTab" title-placement="center">
+                        <span class="muted">{{ t('or') }}</span>
+                    </n-divider>
+                    <n-button v-if="showNewAddressTab" @click="tabValue = 'register'" block secondary>
+                        <template #icon>
+                            <n-icon :component="NewLabelOutlined" />
+                        </template>
+                        {{ t('getNewEmail') }}
+                    </n-button>
+                    <div v-if="openSettings.enableRedeemCode" class="redeem-entry-section">
+                        <n-text class="muted">{{ t('redeemEntryTip') }}</n-text>
+                        <n-button data-testid="redeem-entry" secondary size="small" @click="openRedeemPage">
+                            <template #icon>
+                                <n-icon :component="RedeemOutlined" />
+                            </template>
+                            {{ t('useRedeemCode') }}
+                        </n-button>
+                    </div>
+                </n-form>
+            </n-tab-pane>
             <n-tab-pane name="help" :tab="t('help')">
                 <div class="panel help-panel">
                     <h2 class="panel-title">{{ t('helpTitle') }}</h2>
@@ -517,6 +575,15 @@ onMounted(async () => {
 .redeem-entry-section .n-button { flex: 0 0 auto; }
 .switch-login-button { display: flex; justify-content: center; }
 
+/* Smooth the desktop min-height adjustments (Login.vue grows it when a taller
+   pane appears) so the sections below shift instead of jumping. */
+.n-tabs {
+    transition:
+        min-height 250ms ease,
+        background-color .3s var(--n-bezier, ease),
+        border-color .3s var(--n-bezier, ease);
+}
+
 /* Help tab quick-start */
 .help-panel { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
 .help-step__text { margin: 0; font-size: var(--font-sm); line-height: 20px; color: var(--app-text-3); }
@@ -537,5 +604,28 @@ onMounted(async () => {
 @media (max-width: 767.98px) {
     .redeem-entry-section { flex-direction: column; align-items: stretch; }
     .redeem-entry-section .n-button { width: 100%; }
+}
+
+/* Narrow phones: naive-ui tabs never scroll — overflowing labels are clipped
+   by the nav's overflow:hidden. Let long labels wrap onto two centred lines
+   and share the row evenly instead, so every tab stays visible and tappable
+   at 360px and up. */
+@media (max-width: 480px) {
+    .n-tabs :deep(.n-tabs-tab-wrapper) {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .n-tabs :deep(.n-tabs-tab) {
+        width: 100%;
+        justify-content: center;
+        white-space: normal;
+        padding-left: var(--space-1);
+        padding-right: var(--space-1);
+    }
+    .n-tabs :deep(.n-tabs-tab__label) {
+        display: block;
+        text-align: center;
+        line-height: 1.3;
+    }
 }
 </style>

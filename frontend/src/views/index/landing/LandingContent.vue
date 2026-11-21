@@ -60,9 +60,12 @@ const showLanding = computed(() => !jwt.value && !isTelegram.value)
 }
 
 @media (min-width: 1024px) {
+    /* Top-align so switching create/login/help tabs never re-centres the card:
+       the tab bar and the card's top edge stay put while the height changes. */
     .landing-content__top {
         grid-template-columns: minmax(0, 1fr) minmax(400px, var(--content-auth));
         gap: var(--space-12);
+        align-items: start;
     }
 
     .landing-content__card {

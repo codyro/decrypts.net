@@ -27,6 +27,7 @@ const getObserver = () => {
 export const useReveal = () => {
     const root = ref<HTMLElement | null>(null)
     let observer: IntersectionObserver | null = null
+    let mutationObserver: MutationObserver | null = null
 
     onMounted(() => {
         const el = root.value
@@ -36,10 +37,24 @@ export const useReveal = () => {
         if (targets.length === 0) return
         el.classList.add('reveal')
         observer = getObserver()
-        targets.forEach((target) => observer?.observe(target))
+        // Content can arrive after mount (e.g. feature cards gated on the open
+        // settings loading), so observe new [data-reveal] nodes as they appear
+        // instead of only the ones present on the first tick — otherwise a
+        // late-rendered card would stay at opacity 0 forever.
+        const observeAll = () => {
+            el.querySelectorAll('[data-reveal]').forEach((target) => {
+                if (!target.classList.contains('reveal-visible')) observer?.observe(target)
+            })
+        }
+        observeAll()
+        if (typeof MutationObserver !== 'undefined') {
+            mutationObserver = new MutationObserver(observeAll)
+            mutationObserver.observe(el, { childList: true, subtree: true })
+        }
     })
 
     onBeforeUnmount(() => {
+        mutationObserver?.disconnect()
         if (!observer) return
         const targets = root.value?.querySelectorAll('[data-reveal]') ?? []
         targets.forEach((target) => observer?.unobserve(target))

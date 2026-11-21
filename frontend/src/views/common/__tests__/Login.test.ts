@@ -80,12 +80,13 @@ const mountLogin = async () => {
     return el
 }
 
-// The register tab is the default when creation is available; its pane is
-// already mounted. This helper is a no-op in that case and only switches the
-// tab in tests where the sign-in tab starts active.
+// The register tab is the default when creation is available and the first
+// tab in DOM order; its pane is already mounted. This helper is a no-op in
+// that case and only re-clicks it defensively in tests where another tab
+// starts active.
 const openRegisterTab = async (el: HTMLElement) => {
     const tabs = el.querySelectorAll<HTMLElement>('.n-tabs-tab')
-    tabs[1]?.click()
+    tabs[0]?.click()
     await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
@@ -139,6 +140,14 @@ describe('Login.vue initial tab', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         i18n.global.locale.value = 'en'
+    })
+
+    it('orders the tabs: create first, then login, then help', async () => {
+        stubs.openSettings = makeOpenSettings({ enableUserCreateEmail: true })
+        const el = await mountLogin()
+        const tabs = [...el.querySelectorAll<HTMLElement>('.n-tabs-tab')]
+            .map((tab) => tab.textContent?.trim() || '')
+        expect(tabs).toEqual(['Create Email Address', 'Log In to Mailbox', 'Help'])
     })
 
     it('opens the create tab when address creation is available', async () => {
