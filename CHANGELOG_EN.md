@@ -57,6 +57,7 @@
 ### Improvements
 
 - style: |UI| Remove the community links (GitHub/Discord/Telegram) from the bottom of the About dialog, along with the now-unused `@vicons/fa` icon imports; when there is no announcement and mailbox encryption is off, the app title is shown as a fallback so the dialog is never empty
+- style: |UI| Remove the public logo 5-click easter egg that entered the admin console (counter, toasts and navigation); clicking the logo now returns to the home page, and the admin entry remains only in the nav item visible to signed-in admins
 
 ## v1.14.0
 
