@@ -15,6 +15,7 @@ import { getRouterPathWithLang } from '../../utils'
 import AddressSelect from '../../components/AddressSelect.vue'
 import AddressCredentialModal from '../../components/AddressCredentialModal.vue'
 import KeyBackupReminder from '../../components/KeyBackupReminder.vue'
+import LandingContent from './landing/LandingContent.vue'
 
 const router = useRouter()
 const isMobile = useIsMobile()
@@ -83,14 +84,14 @@ onMounted(async () => {
             <AddressManagement />
         </div>
         <section v-else class="landing">
-            <h1 class="page-title">{{ t('landingTitle') }}</h1>
-            <p class="muted landing__tip">{{ t('landingTip') }}</p>
-            <div class="panel landing__panel">
-                <n-alert v-if="jwt" type="warning" :show-icon="false" :bordered="false" closable>
-                    <span>{{ t('fetchAddressError') }}</span>
-                </n-alert>
-                <Login />
-            </div>
+            <LandingContent>
+                <div class="panel landing__panel">
+                    <n-alert v-if="jwt" type="warning" :show-icon="false" :bordered="false" closable>
+                        <span>{{ t('fetchAddressError') }}</span>
+                    </n-alert>
+                    <Login />
+                </div>
+            </LandingContent>
             <n-button v-if="showUserSystem" text type="primary" @click="onUserLogin">
                 <template #icon><n-icon :component="PersonOutlineRound" /></template>
                 {{ t('userCenter') }} →
@@ -142,12 +143,14 @@ html.dark .landing::before,
 html.dark .address-bar::before {
     opacity: 1;
 }
-.landing__tip { margin: 0; }
+.landing > .landing-content {
+    width: 100%;
+}
+
 .landing__panel { width: min(var(--content-auth), 100%); text-align: left; }
 .landing__panel .n-alert { margin-bottom: var(--space-3); }
 
 @media (max-width: 767.98px) {
     .landing { padding-top: var(--space-4); }
-    .landing .page-title { font-size: 20px; line-height: 28px; }
 }
 </style>

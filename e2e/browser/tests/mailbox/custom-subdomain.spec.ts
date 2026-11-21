@@ -6,7 +6,9 @@ test('create an address with a custom subdomain from the UI', async ({ page, req
 
   try {
     await page.goto(`${FRONTEND_URL}/en/`);
-    await page.getByRole('button', { name: 'Create Email Address' }).click();
+    // The create tab is the landing default; click it explicitly in case a
+    // config change makes the login tab the initial one.
+    await page.locator('.n-tabs-tab').getByText('Create Email Address', { exact: true }).click();
 
     const name = `subui${Date.now()}`;
     const createForm = page.locator('.n-tab-pane:visible form');

@@ -746,8 +746,6 @@ export const esMessages = {
   "views.common.Appearance.sectionList": "Lista de correo",
   "views.common.Appearance.sectionReading": "Lectura",
   "views.common.Appearance.sectionLayout": "Diseño",
-  "views.index.AddressBar.landingTitle": "Tu bandeja de entrada temporal",
-  "views.index.AddressBar.landingTip": "Inicia sesión en un buzón o crea una nueva dirección.",
   "views.index.AddressBar.yourAddress": "Tu dirección",
   "views.index.AddressBar.mailboxOptions": "Opciones del buzón",
   "views.common.Login.or": "o",

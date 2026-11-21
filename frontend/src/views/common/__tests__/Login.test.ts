@@ -80,7 +80,9 @@ const mountLogin = async () => {
     return el
 }
 
-// The register tab is the second tab; its pane only mounts after activation.
+// The register tab is the default when creation is available; its pane is
+// already mounted. This helper is a no-op in that case and only switches the
+// tab in tests where the sign-in tab starts active.
 const openRegisterTab = async (el: HTMLElement) => {
     const tabs = el.querySelectorAll<HTMLElement>('.n-tabs-tab')
     tabs[1]?.click()
@@ -133,13 +135,43 @@ describe('Login.vue mail encryption default', () => {
     })
 })
 
+describe('Login.vue initial tab', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        i18n.global.locale.value = 'en'
+    })
+
+    it('opens the create tab when address creation is available', async () => {
+        stubs.openSettings = makeOpenSettings({ enableUserCreateEmail: true })
+        const el = await mountLogin()
+        const paneText = el.querySelector('.n-tab-pane')?.textContent || ''
+        expect(paneText).toContain('You can choose a domain from the dropdown list.')
+        expect(paneText).not.toContain('Email Address Credential')
+    })
+
+    it('opens the login tab when address creation is unavailable', async () => {
+        stubs.openSettings = makeOpenSettings({ enableUserCreateEmail: false })
+        const el = await mountLogin()
+        const paneText = el.querySelector('.n-tab-pane')?.textContent || ''
+        expect(paneText).toContain('Email Address Credential')
+        expect(paneText).not.toContain('You can choose a domain from the dropdown list.')
+    })
+
+    it('opens the login tab when anonymous creation is disabled and no user is signed in', async () => {
+        stubs.openSettings = makeOpenSettings({ disableAnonymousUserCreateEmail: true })
+        const el = await mountLogin()
+        const paneText = el.querySelector('.n-tab-pane')?.textContent || ''
+        expect(paneText).toContain('Email Address Credential')
+    })
+})
+
 describe('Login.vue help tab', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         i18n.global.locale.value = 'en'
     })
 
-    it('renders the numbered quick-start with real tab labels', async () => {
+    it('renders the numbered quick-start steps', async () => {
         stubs.openSettings = makeOpenSettings({ enableMailEncryption: false })
         const el = await mountLogin()
         const tabs = el.querySelectorAll<HTMLElement>('.n-tabs-tab')
@@ -150,9 +182,9 @@ describe('Login.vue help tab', () => {
         expect(text).toContain('01')
         expect(text).toContain('02')
         expect(text).toContain('03')
-        // Steps reference the actual tab labels, not hard-coded strings.
-        expect(text).toContain('Open the "Create Email Address" tab')
-        expect(text).toContain('Paste your credential in the "Log In to Mailbox" tab')
+        // Steps come from the shared HowItWorks component.
+        expect(text).toContain('One click, or pick your own name. No account needed.')
+        expect(text).toContain('Verification codes and links are detected for one-click copy.')
         // Encryption block hidden when the feature is off.
         expect(text).not.toContain('Encrypted mail can only be read')
     })

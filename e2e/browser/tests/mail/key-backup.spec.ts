@@ -61,7 +61,8 @@ test.describe('Passphrase-protected key backups', () => {
     let jwt = '';
     try {
       await page.goto(`${FRONTEND_URL}/en/`);
-      await page.getByRole('button', { name: 'Create Email Address', exact: true }).click();
+      // The create tab is the landing default; click it explicitly to be safe.
+      await page.locator('.n-tabs-tab').getByText('Create Email Address', { exact: true }).click();
       const form = page.locator('.n-tab-pane:visible form');
       await form.locator('.n-input-group .n-input input').fill(`backup${Date.now()}`);
       await form.getByText('Encrypt received mail end-to-end', { exact: false }).click();

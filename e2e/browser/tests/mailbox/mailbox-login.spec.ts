@@ -24,7 +24,8 @@ for (const mode of ['default', 'password-only', 'password-disabled']) {
     try {
       await page.setExtraHTTPHeaders(headers);
       await page.goto(`${FRONTEND_URL}/en/`);
-      await page.getByRole('button', { name: 'Create Email Address', exact: true }).click();
+      // The create tab is the default; make sure it is active before driving the form.
+      await page.locator('.n-tabs-tab').getByText('Create Email Address', { exact: true }).click();
       const form = page.locator('.n-tab-pane:visible form');
       await form.locator('.n-input-group .n-input input').fill(`passwordui${Date.now()}`);
       const createdResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/new_address');
@@ -203,6 +204,8 @@ test('renewal updates the current JWT; expired cached sessions require login', a
     await expect(page.getByText('Mail address credential is invalid or account not exist, it may be network connection issue, please try again later.', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('jwt'))).toBe(expiredPasswordToken);
     expect(await readCache()).toEqual([mailbox.jwt, passwordToken, other.jwt, expiredPasswordToken, renewedToken]);
+    // The create tab is the landing default; switch back to the login tab.
+    await page.locator('.n-tabs-tab').getByText('Log In to Mailbox', { exact: true }).click();
     const form = page.locator('.n-form:visible').first();
     await form.locator('input').first().fill(mailbox.address);
     await form.locator('input[type="password"]').fill(password);

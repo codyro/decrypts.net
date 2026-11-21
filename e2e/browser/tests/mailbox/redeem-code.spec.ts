@@ -90,6 +90,9 @@ test('the mailbox entry opens the pure redemption page and completes role redemp
   const code = await createCode(request, 'role', 'case-role');
   try {
     await page.goto(`${FRONTEND_URL}/en/`);
+    // The create tab is the landing default; the redeem entry under test lives
+    // on the login tab.
+    await page.locator('.n-tabs-tab').getByText('Log In to Mailbox', { exact: true }).click();
     await expect(page.getByTestId('redeem-entry')).toBeVisible();
     await page.getByTestId('redeem-entry').click();
     await expect(page).toHaveURL(/\/en\/redeem$/);
@@ -142,6 +145,9 @@ test('sending credits defaults to the current mailbox and keeps the target edita
   const code = await createCode(request, 'send_balance', '3');
   try {
     await page.goto(`${FRONTEND_URL}/en/`);
+    // The create tab is the landing default; the redeem entry under test lives
+    // on the login tab.
+    await page.locator('.n-tabs-tab').getByText('Log In to Mailbox', { exact: true }).click();
     await expect(page.getByTestId('redeem-entry')).toBeVisible();
     await page.getByTestId('redeem-entry').click();
     await expect(page).toHaveURL(/\/en\/redeem$/);

@@ -746,8 +746,6 @@ export const deMessages = {
   "views.common.Appearance.sectionList": "E-Mail-Liste",
   "views.common.Appearance.sectionReading": "Lesen",
   "views.common.Appearance.sectionLayout": "Layout",
-  "views.index.AddressBar.landingTitle": "Dein temporäres Postfach",
-  "views.index.AddressBar.landingTip": "Melde dich bei einem Postfach an oder erstelle eine neue Adresse.",
   "views.index.AddressBar.yourAddress": "Deine Adresse",
   "views.index.AddressBar.mailboxOptions": "Postfachoptionen",
   "views.common.Login.or": "oder",

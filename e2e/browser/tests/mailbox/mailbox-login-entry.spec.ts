@@ -16,6 +16,8 @@ for (const mode of ['default', 'password-only', 'password-disabled']) {
         await page.setExtraHTTPHeaders({ 'x-test-address-password-mode': mode });
       }
       await page.goto(`${FRONTEND_URL}/en/`);
+      // The create tab is the landing default; switch to the login tab first.
+      await page.locator('.n-tabs-tab').getByText('Log In to Mailbox', { exact: true }).click();
       const form = page.locator('.n-form:visible').first();
       await expect(form.getByRole('button', { name: 'Log In to Mailbox', exact: true })).toBeVisible();
       const credentialToggle = page.getByRole('button', { name: 'Credential Login', exact: true });

@@ -1004,6 +1004,52 @@ export const MESSAGE_REGISTRY = {
       "zh": "用户名"
     }
   },
+  "components.HowItWorks": {
+    "title": {
+      "en": "How it works",
+      "zh": "如何使用"
+    },
+    "subline": {
+      "en": "Get a disposable address in three steps.",
+      "zh": "三步即可拥有一个一次性邮箱地址。"
+    },
+    "stepPill": {
+      "en": "Step {n}",
+      "zh": "第 {n} 步"
+    },
+    "step1Title": {
+      "en": "Get an address",
+      "zh": "获取邮箱地址"
+    },
+    "step1Text": {
+      "en": "One click, or pick your own name. No account needed.",
+      "zh": "一键创建，或自定义名称。无需账号。"
+    },
+    "step2TitleEncrypted": {
+      "en": "Mail arrives encrypted",
+      "zh": "邮件加密后到达"
+    },
+    "step2TextEncrypted": {
+      "en": "The server encrypts each message with your mailbox's public key before storing it. Your browser decrypts it.",
+      "zh": "服务器在存储前会用你的邮箱公钥加密每封邮件，再由你的浏览器解密。"
+    },
+    "step2TitlePlain": {
+      "en": "Mail arrives in seconds",
+      "zh": "邮件秒达"
+    },
+    "step2TextPlain": {
+      "en": "Messages show up as soon as they're delivered.",
+      "zh": "邮件一旦投递就会立即显示。"
+    },
+    "step3Title": {
+      "en": "Copy the code, then ghost",
+      "zh": "复制验证码，随即消失"
+    },
+    "step3Text": {
+      "en": "Verification codes and links are detected for one-click copy. Walk away when you're done.",
+      "zh": "验证码和链接会被自动识别，一键复制。用完即可离开。"
+    }
+  },
   "views.user.UserMailBox": {
     "addressQueryTip": {
       "en": "Leave blank to query all addresses",
@@ -2461,14 +2507,6 @@ export const MESSAGE_REGISTRY = {
     }
   },
   "views.index.AddressBar": {
-    "landingTitle": {
-      "en": "Your temporary inbox",
-      "zh": "临时邮箱"
-    },
-    "landingTip": {
-      "en": "Log in to a mailbox or create a new address.",
-      "zh": "登录已有邮箱，或创建新的邮箱地址。"
-    },
     "yourAddress": {
       "en": "Your address",
       "zh": "当前地址"
@@ -2508,6 +2546,128 @@ export const MESSAGE_REGISTRY = {
     "userCenter": {
       "en": "User Center",
       "zh": "用户中心"
+    }
+  },
+  "views.index.Landing": {
+    "heroEyebrowDisposable": {
+      "en": "Disposable",
+      "zh": "一次性"
+    },
+    "heroEyebrowEncrypted": {
+      "en": "Encrypted at rest",
+      "zh": "加密存储"
+    },
+    "heroTitleEncrypted": {
+      "en": "A burner inbox with a key only your browser holds.",
+      "zh": "一次性收件箱，密钥只由你的浏览器持有。"
+    },
+    "heroTitlePlain": {
+      "en": "A burner inbox, ready in one click.",
+      "zh": "一次性收件箱，一点即用。"
+    },
+    "heroSubline": {
+      "en": "Get an address in one click, no sign-up. Copy the code, then ghost.",
+      "zh": "一键获得地址，无需注册。复制验证码，然后悄然离开。"
+    },
+    "featuresTitle": {
+      "en": "Built for privacy",
+      "zh": "为隐私而打造"
+    },
+    "featuresSubline": {
+      "en": "What you get with every address.",
+      "zh": "每个地址都自带这些能力。"
+    },
+    "featureEncryptedTitle": {
+      "en": "Encrypted at rest",
+      "zh": "静态加密"
+    },
+    "featureEncryptedText": {
+      "en": "Stored mail is useless without your key.",
+      "zh": "没有你的密钥，已存储的邮件毫无价值。"
+    },
+    "featureCodesTitle": {
+      "en": "One-click codes",
+      "zh": "一键复制验证码"
+    },
+    "featureCodesText": {
+      "en": "OTPs and sign-in links, found in your browser.",
+      "zh": "验证码和登录链接在浏览器中自动识别。"
+    },
+    "featureBackupsTitle": {
+      "en": "Key backups",
+      "zh": "密钥备份"
+    },
+    "featureBackupsText": {
+      "en": "Passphrase or passkey backups for your key.",
+      "zh": "支持密码短语或通行密钥备份。"
+    },
+    "featureDevicesTitle": {
+      "en": "Open on another device",
+      "zh": "在另一台设备打开"
+    },
+    "featureDevicesText": {
+      "en": "Scan a QR code to move your mailbox.",
+      "zh": "扫描二维码即可迁移邮箱。"
+    },
+    "featureBurnTitle": {
+      "en": "Burn mailbox",
+      "zh": "销毁邮箱"
+    },
+    "featureBurnText": {
+      "en": "Delete the address, its mail and your keys.",
+      "zh": "删除地址、邮件和密钥。"
+    },
+    "featureOpenSourceTitle": {
+      "en": "Open source",
+      "zh": "开源"
+    },
+    "featureOpenSourceText": {
+      "en": "Read the code on GitHub.",
+      "zh": "在 GitHub 上阅读代码。"
+    },
+    "faqTitle": {
+      "en": "FAQ",
+      "zh": "常见问题"
+    },
+    "faqE2eTitle": {
+      "en": "Is this end-to-end encrypted?",
+      "zh": "这是端到端加密吗？"
+    },
+    "faqE2eText": {
+      "en": "No. Email travels over the normal email system, so the sender's provider and Cloudflare see it, and our worker sees it briefly before encrypting it. It protects mail while it's stored.",
+      "zh": "不是。邮件通过普通的电子邮件系统传输，发件人的服务商和 Cloudflare 都能看到，我们的 Worker 会在加密前短暂接触到邮件。它保护的是邮件存储期间的安全。"
+    },
+    "faqReadTitle": {
+      "en": "Can you read my mail?",
+      "zh": "你们能读取我的邮件吗？"
+    },
+    "faqReadText": {
+      "en": "Not mail that's already stored: we only have your public key. A compromised server could read new mail as it arrives, so this protects against a leaked database, not against us.",
+      "zh": "对已存储的邮件不能：我们只持有你的公钥。但如果服务器被入侵，新邮件到达时仍可能被读取，所以它防的是数据库泄露，而不是防我们。"
+    },
+    "faqLoseKeyTitle": {
+      "en": "What if I lose my key?",
+      "zh": "如果丢失密钥怎么办？"
+    },
+    "faqLoseKeyText": {
+      "en": "The mail can't be recovered. Save the decryption link or make a passphrase or passkey backup when you create the mailbox.",
+      "zh": "邮件将无法恢复。请在创建邮箱时保存解密链接，或制作密码短语/通行密钥备份。"
+    },
+    "faqRetentionTitle": {
+      "en": "How long is mail kept?",
+      "zh": "邮件会保留多久？"
+    },
+    "faqAccountTitle": {
+      "en": "Do I need an account?",
+      "zh": "需要注册账号吗？"
+    },
+    "faqAccountText": {
+      "en": "No. An address works on its own with its credential. An account lets you keep several addresses together.",
+      "zh": "不需要。一个地址凭借自己的凭据即可独立使用。账号只是把多个地址放在一起管理。"
+    },
+    "faqMoreInAbout": {
+      "en": "More in About",
+      "zh": "更多信息见「关于」"
     }
   },
   "views.admin.SendBox": {
@@ -4133,30 +4293,6 @@ export const MESSAGE_REGISTRY = {
     "helpTitle": {
       "en": "How it works",
       "zh": "如何使用"
-    },
-    "helpStep1Lead": {
-      "en": "Get an address.",
-      "zh": "获取地址。"
-    },
-    "helpStep1": {
-      "en": "Open the \"{tab}\" tab, pick a name or generate one, and create it. Mail sent to that address shows up here within seconds.",
-      "zh": "打开「{tab}」标签页，输入一个名称或随机生成，然后创建。发送到该地址的邮件会在几秒内显示在这里。"
-    },
-    "helpStep2Lead": {
-      "en": "Save your credential.",
-      "zh": "保存好你的凭据。"
-    },
-    "helpStep2": {
-      "en": "You get a credential when the address is created. It's the only way back into this mailbox from another browser or after clearing site data, so keep it somewhere safe.",
-      "zh": "地址创建成功后会得到一个凭据，它是从其他浏览器或清除网站数据后重新进入该邮箱的唯一途径，请妥善保管。"
-    },
-    "helpStep3Lead": {
-      "en": "Already have one?",
-      "zh": "已有邮箱？"
-    },
-    "helpStep3": {
-      "en": "Paste your credential in the \"{tab}\" tab, or sign in to an account to see all your saved addresses.",
-      "zh": "在「{tab}」标签页粘贴你的凭据，或登录账号查看所有已保存的地址。"
     },
     "helpEncryptedLead": {
       "en": "Encrypted mailboxes.",

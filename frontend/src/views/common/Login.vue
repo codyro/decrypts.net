@@ -30,6 +30,7 @@ import { NewLabelOutlined, EmailOutlined, RedeemOutlined } from '@vicons/materia
 
 import AdminContact from '../common/AdminContact.vue'
 import About from '../common/About.vue'
+import HowItWorks from '../../components/HowItWorks.vue'
 import Turnstile from '../../components/Turnstile.vue'
 
 import { useGlobalState } from '../../store'
@@ -78,6 +79,14 @@ watch(() => openSettings.value?.fetched, (fetched) => {
 }, { immediate: true })
 
 const tabValue = ref('signin')
+// Creating an address is the main action, so make it the initial tab once it
+// is known to be available. Never override a tab the user already clicked;
+// programmatic switches are flagged so they don't count as a user choice.
+const tabValueTouched = ref(false)
+let applyingDefaultTab = false
+watch(tabValue, () => {
+    if (!applyingDefaultTab) tabValueTouched.value = true
+})
 const credential = ref('')
 const emailName = ref("")
 const emailDomain = ref("")
@@ -172,13 +181,8 @@ const loginAndBindTag = computed(() => {
     return t('login')
 })
 
-// Quick-start steps for the help tab. Step copy interpolates the real tab
-// labels so the help stays accurate in every language.
-const helpSteps = computed(() => [
-    { num: '01', lead: t('helpStep1Lead'), text: t('helpStep1', { tab: t('getNewEmail') }) },
-    { num: '02', lead: t('helpStep2Lead'), text: t('helpStep2') },
-    { num: '03', lead: t('helpStep3Lead'), text: t('helpStep3', { tab: loginAndBindTag.value }) },
-])
+// Quick-start steps for the help tab live in the shared HowItWorks component
+// (compact mode), so the landing page and the help tab never drift apart.
 const showHelpAbout = ref(false)
 
 const addressRegex = computed(() => {
@@ -313,7 +317,16 @@ const showNewAddressTab = computed(() => {
         return false;
     }
     return openSettings.value.enableUserCreateEmail;
-});
+})
+
+// Apply the initial tab once creation availability is known; re-check when
+// user settings arrive (they can disable anonymous creation).
+watch(showNewAddressTab, (allowed) => {
+    if (!openSettings.value?.fetched || tabValueTouched.value) return
+    applyingDefaultTab = true
+    tabValue.value = allowed ? 'register' : 'signin'
+    applyingDefaultTab = false
+}, { immediate: true });
 
 onMounted(async () => {
     if (!openSettings.value.domains || openSettings.value.domains.length === 0) {
@@ -462,12 +475,7 @@ onMounted(async () => {
             <n-tab-pane name="help" :tab="t('help')">
                 <div class="panel help-panel">
                     <h2 class="panel-title">{{ t('helpTitle') }}</h2>
-                    <ol class="help-steps">
-                        <li v-for="step in helpSteps" :key="step.num" class="help-step">
-                            <span class="help-step__num mono">{{ step.num }}</span>
-                            <p class="help-step__text"><strong>{{ step.lead }}</strong> {{ step.text }}</p>
-                        </li>
-                    </ol>
+                    <HowItWorks compact />
                     <p v-if="openSettings.enableMailEncryption" class="help-step__text help-enc">
                         <strong>{{ t('helpEncryptedLead') }}</strong> {{ t('helpEncrypted') }}
                     </p>
@@ -511,15 +519,6 @@ onMounted(async () => {
 
 /* Help tab quick-start */
 .help-panel { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
-.help-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
-.help-step { display: flex; align-items: flex-start; gap: var(--space-3); }
-.help-step__num {
-    flex: 0 0 auto;
-    font-size: var(--font-xs);
-    line-height: 20px;
-    letter-spacing: 0.08em;
-    color: var(--app-accent);
-}
 .help-step__text { margin: 0; font-size: var(--font-sm); line-height: 20px; color: var(--app-text-3); }
 .help-step__text strong { color: var(--app-text-1); font-weight: 600; }
 .help-enc { border-left: 2px solid var(--app-warning); padding-left: var(--space-3); }
@@ -538,6 +537,5 @@ onMounted(async () => {
 @media (max-width: 767.98px) {
     .redeem-entry-section { flex-direction: column; align-items: stretch; }
     .redeem-entry-section .n-button { width: 100%; }
-    .help-step { gap: var(--space-2); }
 }
 </style>

@@ -746,8 +746,6 @@ export const jaMessages = {
   "views.common.Appearance.sectionList": "メール一覧",
   "views.common.Appearance.sectionReading": "閲覧",
   "views.common.Appearance.sectionLayout": "レイアウト",
-  "views.index.AddressBar.landingTitle": "一時的な受信箱",
-  "views.index.AddressBar.landingTip": "メールボックスにログインするか、新しいアドレスを作成してください。",
   "views.index.AddressBar.yourAddress": "現在のアドレス",
   "views.index.AddressBar.mailboxOptions": "メールボックスオプション",
   "views.common.Login.or": "または",

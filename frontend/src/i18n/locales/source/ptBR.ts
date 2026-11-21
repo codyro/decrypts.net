@@ -746,8 +746,6 @@ export const ptBRMessages = {
   "views.common.Appearance.sectionList": "Lista de e-mails",
   "views.common.Appearance.sectionReading": "Leitura",
   "views.common.Appearance.sectionLayout": "Layout",
-  "views.index.AddressBar.landingTitle": "Sua caixa de entrada temporária",
-  "views.index.AddressBar.landingTip": "Entre em uma caixa de correio ou crie um novo endereço.",
   "views.index.AddressBar.yourAddress": "Seu endereço",
   "views.index.AddressBar.mailboxOptions": "Opções da caixa de correio",
   "views.common.Login.or": "ou",
