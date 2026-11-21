@@ -22,6 +22,10 @@ To avoid leaking content, addresses with an encryption public key skip every ing
 
 Junk/blacklist/unknown-address checks and auto-reply are unaffected.
 
+## Client-side code and link detection
+
+Encrypted mail gets its verification-code and sign-in-link detection back **in the browser**: after the mail is decrypted and parsed locally, the frontend runs a small client-side extractor over the subject and body and shows the detected codes (one click to copy, also as a compact chip on the mail list row) and verification / activation / sign-in links (opened with `noopener noreferrer`, showing the link host). Nothing is sent to any server, and the analysis never touches the still-locked rows. Detection follows the server `metadata.ai_extract` result when one exists (plaintext mail) and takes over whenever it does not — which is always the case for encrypted mail. A "Detect verification codes" preference in the Preferences drawer (on by default) turns it off.
+
 ## Content-free notifications
 
 These notification paths are no longer skipped entirely, but send content-free notices for encrypted mailboxes:

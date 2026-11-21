@@ -1,13 +1,16 @@
 <script setup>
 import { computed } from 'vue';
-import { useThemeVars } from 'naive-ui';
+import { useMessage, useThemeVars } from 'naive-ui';
 import { LockOutlined } from '@vicons/material';
 import { useGlobalState } from '../store';
 import { utcToLocalDate } from '../utils';
+import { copyToClipboard } from '../utils/clipboard';
+import { extractCodesAndLinks } from '../utils/extract-codes';
 import AiExtractInfo from './AiExtractInfo.vue';
 import { useScopedI18n } from '@/i18n/app';
 
-const { useUTCDate, isDark } = useGlobalState();
+const { useUTCDate, isDark, detectVerificationCodes } = useGlobalState();
+const message = useMessage();
 const themeVars = useThemeVars();
 const mutedTextColor = computed(() => isDark.value
   ? themeVars.value.textColor3
@@ -25,6 +28,37 @@ const receivedAt = computed(() => new Date(`${props.mail.created_at} UTC`));
 const lockHint = computed(() => props.mail.lockReason === 'decrypt_failed'
   ? t('lockedDecryptFailed')
   : t('lockedMissingKey'));
+
+// Client-side verification code detection: fills in for encrypted mail (the
+// server AI extraction is skipped for it) and shows a one-click copy chip.
+const serverExtract = computed(() => {
+  if (!props.mail.metadata) return null;
+  try {
+    return JSON.parse(props.mail.metadata).ai_extract || null;
+  } catch {
+    return null;
+  }
+});
+
+const detectedCode = computed(() => {
+  if (!detectVerificationCodes.value || props.mail.locked) return null;
+  if (!props.mail.encrypted && serverExtract.value) return null;
+  const { codes } = extractCodesAndLinks({
+    subject: props.mail.subject,
+    text: props.mail.text,
+    html: props.mail.message
+  });
+  return codes[0] || null;
+});
+
+const copyDetectedCode = async () => {
+  try {
+    await copyToClipboard(detectedCode.value);
+    message.success(t('codeCopied'));
+  } catch {
+    message.error(t('copyCodeFailed'));
+  }
+};
 </script>
 
 <template>
@@ -58,6 +92,11 @@ const lockHint = computed(() => props.mail.lockReason === 'decrypt_failed'
       <n-ellipsis :line-clamp="previewLineClamp" :tooltip="false"><n-text depth="3" class="mail-summary-muted">{{ mail.text }}</n-text></n-ellipsis>
     </div>
     <AiExtractInfo :metadata="mail.metadata" compact />
+    <button v-if="detectedCode" type="button" class="mail-summary-code" :title="t('copyCode')"
+      @click.stop="copyDetectedCode">
+      <span class="mail-summary-code__value">{{ detectedCode }}</span>
+      <span class="mail-summary-code__glyph" aria-hidden="true">⧉</span>
+    </button>
   </div>
 </template>
 
@@ -140,5 +179,34 @@ const lockHint = computed(() => props.mail.lockReason === 'decrypt_failed'
 
 .mail-summary :deep(.n-tag__content) {
   min-width: 0;
+}
+
+/* Client-side detected code: compact mono chip, one click copies. */
+.mail-summary-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  color: var(--app-accent);
+  background: var(--app-accent-soft);
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.mail-summary-code:hover {
+  border-color: var(--app-accent);
+}
+
+.mail-summary-code__value {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.mail-summary-code__glyph {
+  color: var(--app-text-3);
 }
 </style>

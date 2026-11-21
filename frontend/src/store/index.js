@@ -108,6 +108,8 @@ export const useGlobalState = createGlobalState(
         const useSideMargin = useStorage('useSideMargin', true);
         const useUTCDate = useStorage('useUTCDate', false);
         const autoLoadRemoteImages = useStorage('autoLoadRemoteImages', true);
+        const detectVerificationCodes = useStorage('detectVerificationCodes', true);
+        const browserNotifications = useStorage('browserNotifications', false);
         const autoRefresh = useStorage('autoRefresh', false);
         const configAutoRefreshInterval = useStorage("configAutoRefreshInterval", 60);
         const userOpenSettings = ref({
@@ -191,6 +193,8 @@ export const useGlobalState = createGlobalState(
             useSideMargin,
             useUTCDate,
             autoLoadRemoteImages,
+            detectVerificationCodes,
+            browserNotifications,
             autoRefresh,
             configAutoRefreshInterval,
             telegramApp,

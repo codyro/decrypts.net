@@ -174,6 +174,26 @@ export const MESSAGE_REGISTRY = {
     "unselectAll": {
       "en": "Unselect All",
       "zh": "取消全选"
+    },
+    "shortcuts": {
+      "en": "Keyboard shortcuts",
+      "zh": "键盘快捷键"
+    },
+    "addressCopied": {
+      "en": "Address copied",
+      "zh": "地址已复制"
+    },
+    "copyAddressFailed": {
+      "en": "Copy failed",
+      "zh": "复制失败"
+    },
+    "newMailNotificationTitle": {
+      "en": "New mail",
+      "zh": "新邮件"
+    },
+    "newMailNotificationBody": {
+      "en": "New mail for {address}",
+      "zh": "{address} 收到了新邮件"
     }
   },
   "components.AiExtractInfo": {
@@ -585,10 +605,59 @@ export const MESSAGE_REGISTRY = {
     "unlockNeedsPassphrase": {
       "en": "This is a passphrase-protected key backup. Enter its passphrase in the prompt to import the key.",
       "zh": "这是一个受密码保护的密钥备份，请在弹出的提示中输入密码以导入密钥。"
+    },
+    "copyCode": {
+      "en": "Copy verification code",
+      "zh": "复制验证码"
+    },
+    "codeCopied": {
+      "en": "Verification code copied",
+      "zh": "验证码已复制"
+    },
+    "copyCodeFailed": {
+      "en": "Copy failed",
+      "zh": "复制失败"
     }
   },
-  "components.Turnstile": {
+  "components.ShortcutsOverlay": {
+    "title": {
+      "en": "Keyboard shortcuts",
+      "zh": "键盘快捷键"
+    },
+    "copyAddress": {
+      "en": "Copy current address",
+      "zh": "复制当前地址"
+    },
     "refresh": {
+      "en": "Refresh the inbox",
+      "zh": "刷新收件箱"
+    },
+    "nextPrev": {
+      "en": "Next / previous mail",
+      "zh": "下一封 / 上一封邮件"
+    },
+    "openMail": {
+      "en": "Open selected mail",
+      "zh": "打开选中的邮件"
+    },
+    "closeMail": {
+      "en": "Close the open mail",
+      "zh": "关闭打开的邮件"
+    },
+    "focusFilter": {
+      "en": "Filter the mail list",
+      "zh": "搜索/过滤邮件列表"
+    },
+    "showShortcuts": {
+      "en": "Show this help",
+      "zh": "显示此帮助"
+    },
+    "disabledInInputs": {
+      "en": "Shortcuts are disabled while typing in a field or when a dialog is open.",
+      "zh": "在输入框中打字或对话框打开时，快捷键不可用。"
+    }
+  },
+  "components.Turnstile": {    "refresh": {
       "en": "Refresh",
       "zh": "刷新"
     }
@@ -3392,6 +3461,38 @@ export const MESSAGE_REGISTRY = {
     "autoLoadRemoteImages": {
       "en": "Automatically load external images in mail body",
       "zh": "自动加载邮件正文中的外部图片"
+    },
+    "detectVerificationCodes": {
+      "en": "Detect verification codes and links in the browser (encrypted mail included)",
+      "zh": "在浏览器中识别验证码和链接（含加密邮件）"
+    },
+    "sectionAlerts": {
+      "en": "Alerts & shortcuts",
+      "zh": "提醒与快捷键"
+    },
+    "browserNotifications": {
+      "en": "New-mail browser notifications",
+      "zh": "新邮件浏览器通知"
+    },
+    "browserNotificationsHint": {
+      "en": "Content-free only: the notification never includes sender or subject. Shown only while this tab is hidden.",
+      "zh": "仅提示“有新邮件”，绝不包含发件人或主题；仅在标签页隐藏时显示。"
+    },
+    "browserNotificationsUnsupported": {
+      "en": "This browser does not support notifications.",
+      "zh": "此浏览器不支持通知。"
+    },
+    "browserNotificationsDenied": {
+      "en": "Notification permission was denied. Re-enable it in the browser site settings.",
+      "zh": "通知权限已被拒绝，请在浏览器网站设置中重新允许。"
+    },
+    "shortcuts": {
+      "en": "Keyboard shortcuts",
+      "zh": "键盘快捷键"
+    },
+    "shortcutsHint": {
+      "en": "Press ? in the mailbox to see all shortcuts.",
+      "zh": "在收件箱中按 ? 查看全部快捷键。"
     },
     "autoRefreshInterval": {
       "en": "Auto Refresh Interval(Sec)",

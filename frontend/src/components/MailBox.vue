@@ -8,8 +8,12 @@ import { useIsMobile } from '../utils/composables'
 import { processItem } from '../utils/email-parser'
 import { MAIL_KEYS_IMPORTED_EVENT } from '../utils/key-backup-prompts'
 import { buildReplyModel, buildForwardModel } from '../utils/mail-actions'
+import { copyToClipboard } from '../utils/clipboard'
+import { createSeenTracker, formatUnreadTitle, stripUnreadTitlePrefix } from '../utils/mail-alerts'
+import { resolveShortcutAction, hasOpenOverlay } from '../utils/mail-shortcuts'
 import MailContentRenderer from "./MailContentRenderer.vue";
 import MailSummary from "./MailSummary.vue";
+import ShortcutsOverlay from "./ShortcutsOverlay.vue";
 
 const message = useMessage()
 const themeVars = useThemeVars()
@@ -70,12 +74,63 @@ const localFilterKeyword = ref('')
 
 const {
   isDark, mailboxSplitSize, mailListView, mailListPreviewLineClamp, indexTab, loading,
-  autoRefresh, configAutoRefreshInterval, sendMailModel
+  autoRefresh, configAutoRefreshInterval, sendMailModel, settings, browserNotifications
 } = useGlobalState()
 const autoRefreshInterval = ref(configAutoRefreshInterval.value)
 const rawData = ref([])
 const loaded = ref(false)
 const timer = ref(null)
+
+// New-mail alerts: track which mail ids the user has seen, prefix the tab
+// title with the unseen count, and optionally fire content-free browser
+// notifications (never sender/subject — they may sit on a lock screen).
+const seenTracker = createSeenTracker()
+const newMailCount = ref(0)
+const rootRef = ref(null)
+const showShortcuts = ref(false)
+
+const applyTabTitle = () => {
+  const base = stripUnreadTitlePrefix(document.title)
+  document.title = formatUnreadTitle(newMailCount.value, base)
+}
+
+const notifyNewMail = () => {
+  if (!browserNotifications.value) return
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+  if (!document.hidden) return
+  const address = settings.value.address || rawData.value[0]?.address || ''
+  const notification = new Notification(t('newMailNotificationTitle'), {
+    body: t('newMailNotificationBody', { address })
+  })
+  notification.onclick = () => {
+    window.focus()
+    notification.close()
+  }
+}
+
+const trackSeenMails = () => {
+  const ids = rawData.value.map((mail) => mail.id)
+  const fresh = seenTracker.observe(ids)
+  if (document.hidden) {
+    if (fresh.length === 0) return
+    newMailCount.value += fresh.length
+    applyTabTitle()
+    notifyNewMail()
+  } else {
+    // The user is looking at the list: it counts as seen, no alert.
+    newMailCount.value = 0
+    applyTabTitle()
+  }
+}
+
+const onTabSeen = () => {
+  if (document.hidden) return
+  seenTracker.markAllSeen(rawData.value.map((mail) => mail.id))
+  if (newMailCount.value > 0) {
+    newMailCount.value = 0
+    applyTabTitle()
+  }
+}
 
 const count = ref(0)
 const page = ref(1)
@@ -231,6 +286,7 @@ const refresh = async () => {
     if (!isMobile.value && !mailListView.value && data.value.length > 0) {
       curMail.value = data.value[0];
     }
+    trackSeenMails();
     return true
   } catch (error) {
     message.error(error.message || "error");
@@ -387,19 +443,82 @@ const multiActionDownload = async () => {
   }
 }
 
+const getFilterInput = () => {
+  if (!props.showFilterInput) return null
+  return rootRef.value?.querySelector('.mailbox-filter input, .mobile-mailbox-filter input') || null
+}
+
+const copyCurrentAddress = async () => {
+  const address = settings.value.address || rawData.value[0]?.address
+  if (!address) return
+  try {
+    await copyToClipboard(address)
+    message.success(t('addressCopied'))
+  } catch {
+    message.error(t('copyAddressFailed'))
+  }
+}
+
+const onKeydown = (event) => {
+  const action = resolveShortcutAction(event, {
+    overlayOpen: hasOpenOverlay(),
+    filterInputExists: !!getFilterInput()
+  })
+  if (!action) return
+  if (action === 'close') {
+    // Modals/drawers/popovers handle Escape themselves (the shortcuts overlay
+    // is an n-modal and closes natively); here only close the open mail.
+    if (hasOpenOverlay()) return
+    curMail.value = null
+    return
+  }
+  event.preventDefault()
+  switch (action) {
+    case 'copyAddress':
+      copyCurrentAddress()
+      break
+    case 'refresh':
+      backFirstPageAndRefresh()
+      break
+    case 'nextMail':
+      if (!curMail.value && data.value.length > 0) openMail(data.value[0])
+      else nextMail()
+      break
+    case 'prevMail':
+      if (!curMail.value && data.value.length > 0) openMail(data.value[0])
+      else prevMail()
+      break
+    case 'openMail':
+      if (!curMail.value && data.value.length > 0) openMail(data.value[0])
+      break
+    case 'focusFilter':
+      getFilterInput()?.focus()
+      break
+    case 'showShortcuts':
+      showShortcuts.value = true
+      break
+  }
+}
+
 onMounted(async () => {
   await refresh();
   window.addEventListener(MAIL_KEYS_IMPORTED_EVENT, reprocessLockedMails);
+  window.addEventListener('keydown', onKeydown);
+  document.addEventListener('visibilitychange', onTabSeen);
+  window.addEventListener('focus', onTabSeen);
 });
 
 onBeforeUnmount(() => {
   clearInterval(timer.value)
   window.removeEventListener(MAIL_KEYS_IMPORTED_EVENT, reprocessLockedMails);
+  window.removeEventListener('keydown', onKeydown);
+  document.removeEventListener('visibilitychange', onTabSeen);
+  window.removeEventListener('focus', onTabSeen);
 })
 </script>
 
 <template>
-  <div>
+  <div ref="rootRef">
     <div v-if="!isMobile" class="left">
       <div class="toolbar mailbox-toolbar">
         <template v-if="multiActionMode">
@@ -436,6 +555,8 @@ onBeforeUnmount(() => {
           </n-input>
           <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" :page-sizes="[20, 50, 100]"
             show-size-picker size="small" />
+          <n-button quaternary size="small" class="shortcuts-hint" :title="t('shortcuts')"
+            :aria-label="t('shortcuts')" @click="showShortcuts = true">?</n-button>
         </template>
       </div>
       <div v-if="loaded && rawData.length === 0" class="empty-state mailbox-empty">
@@ -521,6 +642,8 @@ onBeforeUnmount(() => {
         </n-switch>
         <div class="toolbar__spacer" />
         <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" simple size="small" />
+        <n-button quaternary size="small" class="shortcuts-hint" :title="t('shortcuts')"
+          :aria-label="t('shortcuts')" @click="showShortcuts = true">?</n-button>
       </div>
       <div v-if="loaded && rawData.length === 0" class="empty-state mailbox-empty">
         <n-icon class="empty-state__icon" :component="InboxRound" />
@@ -571,6 +694,7 @@ onBeforeUnmount(() => {
         </n-progress>
       </n-space>
     </n-modal>
+    <ShortcutsOverlay v-model:show="showShortcuts" />
   </div>
 </template>
 

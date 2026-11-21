@@ -24,6 +24,9 @@ Types recognized in `ai` mode:
 
 Extraction results are automatically saved to the `metadata` field in the database, the frontend can directly display extracted verification codes or links, and Telegram pushes and webhook placeholders reuse the same result.
 
+> [!NOTE] Browser fallback for encrypted mail
+> Encrypted mail skips server-side extraction entirely. For those mails (and for any mail without an `ai_extract` result), the frontend runs a small client-side detector in the browser after decryption: it surfaces verification codes (click to copy, also as a chip on the mail list row) and verify / sign-in / reset links, without sending anything anywhere. A "Detect verification codes" preference in the Preferences drawer turns it off. The mailbox also has keyboard shortcuts — press `?` in the inbox to see them.
+
 ## Configuration Variables
 
 | Variable Name              | Type      | Description                                                                                                                      | Example                          |

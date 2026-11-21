@@ -7,6 +7,7 @@ import { CloudDownloadRound, ReplyFilled, ForwardFilled, FullscreenRound, ImageR
   LockOutlined } from '@vicons/material'
 import ShadowHtmlComponent from "./ShadowHtmlComponent.vue";
 import AiExtractInfo from "./AiExtractInfo.vue";
+import ClientExtractInfo from "./ClientExtractInfo.vue";
 import { getDownloadEmlUrl, processItem } from '../utils/email-parser';
 import { importKeyOrLink, pendingWrappedImports } from '../utils/mail-fragment';
 import { blockRemoteContent } from '../utils/remote-content-policy';
@@ -317,6 +318,9 @@ const handleSaveToS3 = async (filename, blob) => {
 
     <!-- AI 提取信息 -->
     <AiExtractInfo :metadata="mail.metadata" />
+
+    <!-- 浏览器端验证码/链接识别（加密邮件或服务器未提取时） -->
+    <ClientExtractInfo :mail="mail" />
 
     <!-- 加密但未解锁的邮件 -->
     <n-alert v-if="mail.locked" type="warning" :show-icon="false" :bordered="false" class="mail-locked-banner">
