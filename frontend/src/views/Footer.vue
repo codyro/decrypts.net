@@ -14,7 +14,10 @@ const showAbout = ref(false)
 const { t } = useScopedI18n('views.Footer')
 const { t: headerT } = useScopedI18n('views.Header')
 const { t: indexT } = useScopedI18n('views.Index')
-const version = import.meta.env.PACKAGE_VERSION ? `v${import.meta.env.PACKAGE_VERSION}` : ''
+const decryptsVersion = import.meta.env.DECRYPTS_VERSION || 'dev'
+const upstreamVersion = import.meta.env.PACKAGE_VERSION ? `v${import.meta.env.PACKAGE_VERSION}` : ''
+const version = `decrypts ${decryptsVersion}`
+const upstreamSuffix = upstreamVersion ? ` · upstream ${upstreamVersion}` : ''
 const showAboutLink = computed(() => openSettings.value.enableIndexAbout || route.path.includes('admin'))
 const aboutModalStyle = computed(() => ({
     width: openSettings.value.enableMailEncryption
@@ -39,7 +42,7 @@ const aboutModalStyle = computed(() => ({
             <span aria-hidden="true">·</span>
             <n-button text size="tiny" tag="a" target="_blank" rel="noopener noreferrer" :href="REPO_URL">
                 <template #icon><n-icon :component="GithubAlt" /></template>
-                {{ version || 'Github' }}
+                {{ version }}<span class="footer-upstream">{{ upstreamSuffix }}</span>
             </n-button>
         </template>
         <template v-if="openSettings.statusUrl">
@@ -72,4 +75,8 @@ const aboutModalStyle = computed(() => ({
 .app-footer :deep(.n-button) { color: var(--app-text-3); }
 .footer-copyright { display: inline-flex; }
 .footer-copyright :deep(p) { margin: 0; }
+/* Keep the footer compact on small screens: drop the upstream credit. */
+@media (max-width: 480px) {
+    .footer-upstream { display: none; }
+}
 </style>

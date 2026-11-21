@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
@@ -8,6 +9,16 @@ import Components from 'unplugin-vue-components/vite'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import wasm from "vite-plugin-wasm";
 import csp from "./vite-plugin-csp.js";
+
+// Fork version, injected as import.meta.env.DECRYPTS_VERSION. Read from the
+// repo-root VERSION file; fall back to 'dev' when the file is missing.
+const decryptsVersion = (() => {
+  try {
+    return readFileSync(new URL('../VERSION', import.meta.url), 'utf8').trim()
+  } catch {
+    return 'dev'
+  }
+})()
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -73,5 +84,6 @@ export default defineConfig({
   },
   define: {
     'import.meta.env.PACKAGE_VERSION': JSON.stringify(process.env.npm_package_version),
+    'import.meta.env.DECRYPTS_VERSION': JSON.stringify(decryptsVersion),
   }
 })

@@ -106,6 +106,18 @@ description = "Run the tests, then push main to your repo (origin = codyro/decry
 depends = ["test"]
 run = "git push origin main"
 
+[tasks.release]
+description = "Cut a decrypts release (VERSION=X.Y.Z; DRY_RUN=1 rehearses on a throwaway worktree; SKIP_E2E=1 skips e2e)"
+run = "bash scripts/release.sh"
+
+[tasks."release:notes"]
+description = "Print the current ## Unreleased section of CHANGELOG_DECRYPTS.md"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+awk '/^## Unreleased$/{flag=1;next}/^## /{flag=0}flag' CHANGELOG_DECRYPTS.md
+'''
+
 [tasks.logs]
 description = "Stream live production worker logs"
 dir = "worker"

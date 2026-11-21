@@ -17,7 +17,7 @@ This is **decrypts.net**, a public fork of [cloudflare_temp_email](https://githu
 - After a merge, run `mise run test`. If the merge touched the worker or the frontend, also run `mise run test:e2e`.
 - Expected conflicts and how to resolve them:
   - `README.md`: keep the fork's. `README_EN.md` / `README_JA.md` stay deleted.
-  - `CHANGELOG.md` / `CHANGELOG_EN.md`: keep both sides' entries.
+  - `CHANGELOG.md` / `CHANGELOG_EN.md`: take upstream's side, plus any fork lines already there. Don't add new fork entries to these files (see below).
   - `AGENTS.md`: keep this section and take upstream's changes below it.
   - `.github/workflows/sync.yaml` stays deleted. The fork does not auto-sync.
   - Upstream refactors that move code the fork changed (address creation, mail parser, `common.ts`): re-apply the fork's changes in the new location. Don't drop them. The fork's features are listed in `README.md`. The encryption code paths are `worker/src/utils/mail_crypto.ts`, `mail_encryption.ts`, `key_backup.ts`, `worker/src/email/storage.ts`, `worker/src/mails_api/address_encryption.ts` and `encrypt_existing.ts`, and `frontend/src/utils/mail-*.js` / `key-backup*.js`.
@@ -50,11 +50,20 @@ This is **decrypts.net**, a public fork of [cloudflare_temp_email](https://githu
   - The production build uses `frontend/.env` with an empty `VITE_API_BASE`, because the worker serves `frontend/dist` from the same origin.
 - Deploy: `mise run deploy` runs the tests, then the production frontend build, then `wrangler deploy`. After a schema change, run the production migration via Admin → Database → Migrate or `ADMIN_AUTH=… mise run db:migrate`. After pulling new dependencies, mise tasks run `pnpm install` first.
 
+### Changelogs
+- Fork changes go into **`CHANGELOG_DECRYPTS.md`** under `## Unreleased` (English only). Do **not** add fork entries to `CHANGELOG.md` / `CHANGELOG_EN.md` any more; those are upstream's files. Existing fork entries in them stay as they are, because `main` is never rewritten.
+
+### Releases
+- Fork releases are tagged **`decrypts-vX.Y.Z`** (annotated, SemVer: major = breaking config/DB steps needing manual action, minor = features, patch = fixes). The `decrypts-` prefix keeps them out of `v*`, which `mise run upstream:check`/`upstream:merge` rely on.
+- The repo-root **`VERSION`** file holds the fork version (single line); both `package.json` files keep upstream's version, so upstream merges don't conflict.
+- Cut a release with **`mise run release`** (`VERSION=X.Y.Z`; `DRY_RUN=1` rehearses on a throwaway worktree, `SKIP_E2E=1` skips e2e). It runs tests, renames `## Unreleased`, commits, tags, builds the assets into `release/` and publishes to GitHub Releases.
+- **Never `git push --tags`** — it would copy all of upstream's `v*` tags into the fork. The release script pushes `main` plus the one new tag with `git push --atomic origin main refs/tags/decrypts-vX.Y.Z`.
+
 ### Project notes
 - `docs/decisions.md`: dated decisions (deploy branch, encryption design, key export, theme). Add a line when you make a lasting decision.
 - `docs/backlog.md`: open work and owner to-dos.
 - `docs/changes/*.md`: specs for larger changes.
-- The commit, CHANGELOG (zh + en) and docs (zh + en) rules in the sections below still apply to fork work.
+- The commit and docs (zh + en) rules in the sections below still apply to fork work. Fork changelog entries are the exception: they go to `CHANGELOG_DECRYPTS.md` only (see "Changelogs" above).
 
 ## Agent Skills
 

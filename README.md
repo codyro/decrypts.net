@@ -109,6 +109,22 @@ To make cleanup run, add `[triggers] crons = ["15 * * * *"]` and set the rules u
 | `mise run test:e2e` | Full Docker end-to-end suite |
 | `mise run upstream:check` / `upstream:merge` | Check for, or merge, a new upstream **release tag** |
 | `mise run push` | Test, then push `main` |
+| `mise run release` | Cut a fork release (`VERSION=X.Y.Z`; `DRY_RUN=1` rehearses) |
+
+## Releases
+
+Fork releases are tagged `decrypts-vX.Y.Z` (SemVer; the `decrypts-` prefix keeps them apart from upstream's own `vX.Y.Z` tags) and published to [GitHub Releases](https://github.com/codyro/decrypts.net/releases). Each release notes the upstream release tag it is based on. Assets:
+
+- `decrypts-frontend-X.Y.Z.zip` — the production frontend. It's a **same-origin build** (`VITE_API_BASE` empty), the exact build the worker's `[assets]` serving expects, so it matches how decrypts.net itself is deployed.
+- `decrypts-worker-X.Y.Z.js` — the minified worker bundle, built with `wrangler deploy --dry-run` against `wrangler.toml.template` (placeholders only — never the real, secret-holding `wrangler.toml`).
+- `decrypts-db-X.Y.Z.zip` — `db/schema.sql` plus every `db/*.sql` migration patch.
+- `SHA256SUMS` — checksums for the three files above.
+
+To cut a release, be on a clean, up-to-date `main` and run:
+
+```sh
+VERSION=1.0.1 mise run release        # DRY_RUN=1 rehearses without changing anything
+```
 
 ## Staying in sync with upstream
 
