@@ -16,6 +16,7 @@ release notes the upstream release tag it is based on.
 
 ### Fixes
 
+- The mailbox card (and the "Create or Bind" modal, which embeds it) now opens on the Login tab when this browser already has saved mailboxes (`LocalAddressCache` non-empty), covering returning visitors and expired or cleared sessions; new visitors with nothing saved still get the Create tab when creation is allowed. A tab the user already clicked is never overridden.
 - Stopped calling the mailbox encryption "end-to-end" in UI copy, translations and docs: mail is encrypted before storage (encryption at rest), so strings now say "Encrypt stored mail" / "Mail encryption" and the same claim was removed from de/es/ja/ptBR translations and the docs. The About page and FAQ honest caveats are unchanged.
 
 ### Features

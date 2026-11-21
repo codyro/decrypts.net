@@ -319,12 +319,27 @@ const showNewAddressTab = computed(() => {
     return openSettings.value.enableUserCreateEmail;
 })
 
+// A browser that already holds saved mailboxes belongs to a returning
+// visitor, who usually wants to log back in — even (or especially) when the
+// current session expired or was cleared. Both credential tokens and
+// password-login tokens live in LocalAddressCache, so a non-empty cache is
+// the "returning" signal.
+const hasSavedMailboxes = () => {
+    try {
+        const cache = JSON.parse(localStorage.getItem('LocalAddressCache') || '[]')
+        return Array.isArray(cache) && cache.length > 0
+    } catch (error) {
+        console.error(error)
+        return false
+    }
+}
+
 // Apply the initial tab once creation availability is known; re-check when
 // user settings arrive (they can disable anonymous creation).
 watch(showNewAddressTab, (allowed) => {
     if (!openSettings.value?.fetched || tabValueTouched.value) return
     applyingDefaultTab = true
-    tabValue.value = allowed ? 'register' : 'signin'
+    tabValue.value = allowed && !hasSavedMailboxes() ? 'register' : 'signin'
     applyingDefaultTab = false
 }, { immediate: true });
 

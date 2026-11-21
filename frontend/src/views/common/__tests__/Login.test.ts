@@ -58,6 +58,19 @@ const stubs = vi.hoisted(() => ({
     openSettings: null as unknown as ReturnType<typeof makeOpenSettings>,
 }))
 
+// jsdom under vitest has no working localStorage (Node's experimental storage
+// is disabled), so stub a minimal in-memory one. Login.vue reads the saved
+// mailbox cache (LocalAddressCache) straight from localStorage.
+const localStorageStub = (() => {
+    let store: Record<string, string> = {}
+    return {
+        getItem: (key: string) => (key in store ? store[key] : null),
+        setItem: (key: string, value: string) => { store[key] = String(value) },
+        removeItem: (key: string) => { delete store[key] },
+        clear: () => { store = {} },
+    }
+})()
+
 vi.mock('@/store', () => ({
     useGlobalState: () => ({
         openSettings: stubs.openSettings,
@@ -140,6 +153,8 @@ describe('Login.vue initial tab', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         i18n.global.locale.value = 'en'
+        localStorageStub.clear()
+        vi.stubGlobal('localStorage', localStorageStub)
     })
 
     it('orders the tabs: create first, then login, then help', async () => {
@@ -150,11 +165,36 @@ describe('Login.vue initial tab', () => {
         expect(tabs).toEqual(['Create Email Address', 'Log In to Mailbox', 'Help'])
     })
 
-    it('opens the create tab when address creation is available', async () => {
+    it('opens the create tab when address creation is available and nothing is cached', async () => {
         stubs.openSettings = makeOpenSettings({ enableUserCreateEmail: true })
         const el = await mountLogin()
         const paneText = el.querySelector('.n-tab-pane')?.textContent || ''
         expect(paneText).toContain('You can choose a domain from the dropdown list.')
+        expect(paneText).not.toContain('Email Address Credential')
+    })
+
+    it('opens the login tab when saved mailboxes exist, even if creation is available', async () => {
+        localStorageStub.setItem('LocalAddressCache', JSON.stringify(['cached-jwt']))
+        stubs.openSettings = makeOpenSettings({ enableUserCreateEmail: true })
+        const el = await mountLogin()
+        const paneText = el.querySelector('.n-tab-pane')?.textContent || ''
+        expect(paneText).toContain('Email Address Credential')
+        expect(paneText).not.toContain('You can choose a domain from the dropdown list.')
+    })
+
+    it('does not override a tab the user already clicked', async () => {
+        stubs.openSettings = makeOpenSettings({ enableUserCreateEmail: true })
+        const el = await mountLogin()
+        // The user switches to Help; then the operator settings change so
+        // creation would no longer be offered. The default-tab watch fires
+        // again, but the user's choice must win.
+        const tabs = el.querySelectorAll<HTMLElement>('.n-tabs-tab')
+        tabs[2]?.click()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        stubs.openSettings.value = { ...stubs.openSettings.value, enableUserCreateEmail: false }
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        const paneText = el.querySelector('.n-tab-pane')?.textContent || ''
+        expect(paneText).toContain('How it works')
         expect(paneText).not.toContain('Email Address Credential')
     })
 
